@@ -66,12 +66,7 @@ let token = null, myId = null;
 let selectedType = 'wall';
 
 // ---------- АВТОРИЗАЦИЯ ----------
-async function auth() {
-  const saved = localStorage.getItem('adrift_token');
-  const savedId = localStorage.getItem('adrift_id');
-  if (saved && savedId) { token = saved; myId = savedId; return; }
-
-  fail('Вход в игру...');
+async function signIn() {
   const res = await fetch(`${SUPABASE_URL}/auth/v1/signup`, {
     method: 'POST',
     headers: {
@@ -89,6 +84,13 @@ async function auth() {
   localStorage.setItem('adrift_id', myId);
 }
 
+function clearSession() {
+  token = null;
+  myId = null;
+  localStorage.removeItem('adrift_token');
+  localStorage.removeItem('adrift_id');
+}
+
 async function api(path, options = {}) {
   const res = await fetch(API_URL + path, {
     ...options,
@@ -101,10 +103,34 @@ async function api(path, options = {}) {
   const text = await res.text();
   const body = text ? JSON.parse(text) : null;
   if (!res.ok) {
-    const msg = body?.error?.message || res.statusText;
-    throw new Error(msg);
+    const err = new Error(body?.error?.message || res.statusText);
+    err.code = body?.error?.code || ('HTTP_' + res.status);
+    throw err;
   }
   return body;
+}
+
+const AUTH_ERRORS = ['TOKEN_EXPIRED', 'TOKEN_INVALID', 'TOKEN_MISSING', 'UNAUTHORIZED'];
+
+async function auth() {
+  const saved = localStorage.getItem('adrift_token');
+  const savedId = localStorage.getItem('adrift_id');
+
+  // Если токен сохранён — проверяем, живой ли он (дешёвый запрос)
+  if (saved && savedId) {
+    token = saved;
+    myId = savedId;
+    try {
+      await api('/api/v1/build/catalog');
+      return;
+    } catch (e) {
+      if (!AUTH_ERRORS.includes(e.code)) throw e;   // сеть/сервер — не наша забота
+      clearSession();                                // токен протух — идём за новым
+    }
+  }
+
+  fail('Вход в игру...');
+  await signIn();
 }
 
 // ---------- 3D СЦЕНА ----------
