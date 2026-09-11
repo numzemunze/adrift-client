@@ -17,6 +17,7 @@
   button { background:rgba(255,255,255,.12); border:1px solid rgba(255,255,255,.2); color:#fff; padding:10px 14px; border-radius:10px; font-size:14px; cursor:pointer; }
   button:active { background:rgba(255,255,255,.25); }
   button.on { background:#2563eb; border-color:#3b82f6; }
+  #hint { position:fixed; left:0; right:0; bottom:70px; text-align:center; font-size:12px; color:rgba(255,255,255,.5); pointer-events:none; z-index:9; }
   #status { position:fixed; inset:0; display:flex; align-items:center; justify-content:center; text-align:center; padding:24px; background:#0b1020; z-index:100; font-size:16px; line-height:1.5; }
   #status.hidden { display:none; }
   #err { color:#fca5a5; font-size:13px; }
@@ -30,6 +31,8 @@
   <div class="pill">🧱 <b id="cubes">—</b></div>
   <div class="pill">🚩 <b id="flag">—</b></div>
 </div>
+
+<div id="hint">Тап по клетке — поставить куб · Свайп — повернуть камеру</div>
 
 <div class="bar" id="bottom">
   <button data-type="floor">Пол · 10</button>
@@ -116,7 +119,8 @@ async function auth() {
   const saved = localStorage.getItem('adrift_token');
   const savedId = localStorage.getItem('adrift_id');
 
-  // Если токен сохранён — проверяем, живой ли он (дешёвый запрос)
+  // Токен живёт час. Если сохранённый протух — молча логинимся заново,
+  // игрок не должен видеть «сессия истекла» и чистить браузер руками.
   if (saved && savedId) {
     token = saved;
     myId = savedId;
@@ -125,7 +129,7 @@ async function auth() {
       return;
     } catch (e) {
       if (!AUTH_ERRORS.includes(e.code)) throw e;   // сеть/сервер — не наша забота
-      clearSession();                                // токен протух — идём за новым
+      clearSession();
     }
   }
 
@@ -171,11 +175,17 @@ const grid = new THREE.GridHelper(64, 64, 0x3b82f6, 0x1e293b);
 grid.position.y = 0.01;
 scene.add(grid);
 
-// Флаг (сердце)
+// Флаг (сердце острова)
 const flagGroup = new THREE.Group();
-const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.15, 4, 8), new THREE.MeshLambertMaterial({ color: 0x94a3b8 }));
+const pole = new THREE.Mesh(
+  new THREE.CylinderGeometry(0.15, 0.15, 4, 8),
+  new THREE.MeshLambertMaterial({ color: 0x94a3b8 })
+);
 pole.position.y = 2;
-const banner = new THREE.Mesh(new THREE.BoxGeometry(1.6, 1, 0.1), new THREE.MeshLambertMaterial({ color: 0xef4444 }));
+const banner = new THREE.Mesh(
+  new THREE.BoxGeometry(1.6, 1, 0.1),
+  new THREE.MeshLambertMaterial({ color: 0xef4444 })
+);
 banner.position.set(0.8, 3.3, 0);
 flagGroup.add(pole, banner);
 scene.add(flagGroup);
@@ -202,12 +212,23 @@ function resetCubes() {
   cubeMeshes.clear();
 }
 
+// ---------- ВСПЛЫВАЮЩАЯ ПОДСКАЗКА ----------
+let flashTimer = null;
+function flash(msg) {
+  errEl.textContent = msg;
+  statusEl.firstChild.textContent = '';
+  statusEl.classList.remove('hidden');
+  clearTimeout(flashTimer);
+  flashTimer = setTimeout(ok, 1400);
+}
+
 // ---------- ЗАГРУЗКА ОСТРОВА ----------
 async function loadIsland() {
   const data = await api(`/api/v1/islands/${myId}`);
   resetCubes();
   data.cubes.forEach(addCube);
-  $('ether').textContent = data.island.potential_loot * 2; // приблизительно
+  // В /islands приходит только «лут» (50% баланса) — умножаем обратно.
+  $('ether').textContent = data.island.potential_loot * 2;
   $('cubes').textContent = data.island.cube_count;
   $('flag').textContent = data.flag.hp + ' / ' + data.flag.max_hp;
   return data;
@@ -217,7 +238,9 @@ async function loadMe() {
   try {
     const me = await api('/api/v1/me');
     $('ether').textContent = me.ether_balance;
-  } catch (e) { /* эндпоинт /me ещё не написан — не страшно */ }
+  } catch (e) {
+    // Эндпоинт /me ещё не написан — не страшно, баланс придёт из ответа постройки
+  }
 }
 
 // ---------- ПОСТРОЙКА ----------
@@ -226,8 +249,37 @@ const pointer = new THREE.Vector2();
 const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
 const hit = new THREE.Vector3();
 
-renderer.domElement.addEventListener('pointerdown', async (ev) => {
+// Тап отличается от свайпа: запоминаем точку касания на pointerdown и
+// строим только на pointerup, если палец почти не сдвинулся. Без этого
+// вращение камеры ставило кубы под пальцем — вся карта в мусоре.
+let pointerStart = null;
+const TAP_MAX_MOVE = 8;     // пикселей
+const TAP_MAX_TIME = 400;   // миллисекунд
+
+renderer.domElement.addEventListener('pointerdown', (ev) => {
   if (ev.button !== 0) return;
+  pointerStart = {
+    x: ev.clientX,
+    y: ev.clientY,
+    t: performance.now(),
+    id: ev.pointerId,
+  };
+});
+
+renderer.domElement.addEventListener('pointercancel', () => {
+  pointerStart = null;
+});
+
+renderer.domElement.addEventListener('pointerup', async (ev) => {
+  if (!pointerStart || ev.pointerId !== pointerStart.id) return;
+
+  const moved = Math.hypot(ev.clientX - pointerStart.x, ev.clientY - pointerStart.y);
+  const elapsed = performance.now() - pointerStart.t;
+  pointerStart = null;
+
+  // Это был свайп камеры, а не тап по клетке — молча выходим
+  if (moved > TAP_MAX_MOVE || elapsed > TAP_MAX_TIME) return;
+
   pointer.x = (ev.clientX / innerWidth) * 2 - 1;
   pointer.y = -(ev.clientY / innerHeight) * 2 + 1;
   raycaster.setFromCamera(pointer, camera);
@@ -250,15 +302,6 @@ renderer.domElement.addEventListener('pointerdown', async (ev) => {
   }
 });
 
-let flashTimer = null;
-function flash(msg) {
-  errEl.textContent = msg;
-  statusEl.firstChild.textContent = '';
-  statusEl.classList.remove('hidden');
-  clearTimeout(flashTimer);
-  flashTimer = setTimeout(ok, 1400);
-}
-
 // Кнопки типов кубов
 document.querySelectorAll('#bottom button[data-type]').forEach(btn => {
   btn.addEventListener('click', () => {
@@ -267,6 +310,7 @@ document.querySelectorAll('#bottom button[data-type]').forEach(btn => {
     selectedType = btn.dataset.type;
   });
 });
+
 $('reload').addEventListener('click', () => loadIsland().catch(e => flash(e.message)));
 
 // ---------- ЦИКЛ ----------
