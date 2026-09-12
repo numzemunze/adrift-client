@@ -12,8 +12,15 @@
   .bar * { pointer-events:auto; }
   #top { top:0; background:linear-gradient(180deg,rgba(11,16,32,.95),rgba(11,16,32,0)); }
   #bottom { bottom:0; background:linear-gradient(0deg,rgba(11,16,32,.95),rgba(11,16,32,0)); justify-content:center; flex-wrap:wrap; }
-  .pill { background:rgba(255,255,255,.1); padding:6px 12px; border-radius:20px; font-size:14px; font-variant-numeric:tabular-nums; }
+  .pill { background:rgba(255,255,255,.1); padding:6px 12px; border-radius:20px; font-size:14px; font-variant-numeric:tabular-nums; color:#fff; border:none; font-family:inherit; }
   .pill b { color:#7dd3fc; }
+  .pill-btn { display:flex; gap:8px; align-items:center; cursor:pointer; transition:background .15s; }
+  .pill-btn:active { background:rgba(255,255,255,.25); }
+  .pill-btn.ready { background:#16a34a; }
+  .pill-btn.ready b { color:#fff; }
+  .pill-btn.ready:active { background:#15803d; }
+  #claim-hint { font-size:12px; opacity:.75; }
+  .pill-btn.ready #claim-hint { opacity:1; font-weight:600; }
   button { background:rgba(255,255,255,.12); border:1px solid rgba(255,255,255,.2); color:#fff; padding:10px 14px; border-radius:10px; font-size:14px; cursor:pointer; }
   button:active { background:rgba(255,255,255,.25); }
   button.on { background:#2563eb; border-color:#3b82f6; }
@@ -27,7 +34,10 @@
 <div id="app"></div>
 
 <div class="bar" id="top">
-  <div class="pill">⚡ <b id="ether">—</b></div>
+  <button class="pill pill-btn" id="claim-btn" title="Забрать накопленный Эфир">
+    ⚡ <b id="ether">—</b>
+    <span id="claim-hint">…</span>
+  </button>
   <div class="pill">🧱 <b id="cubes">—</b></div>
   <div class="pill">🚩 <b id="flag">—</b></div>
 </div>
@@ -56,8 +66,8 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
 // ============ НАСТРОЙКИ ============
 const SUPABASE_URL = 'https://suaitzmqulcziefyryvf.supabase.co';
-const SUPABASE_ANON_KEY = 'sb_publishable_pT2H1bpnu_fcBbevfvfOoQ_AhzZLQjH';
-const API_URL = 'https://adrift-backend-ys3i.onrender.com';
+const SUPABASE_ANON_KEY = 'ВСТАВЬ_СЮДА_PUBLISHABLE_KEY';
+const API_URL = 'https://ВСТАВЬ_СЮДА.onrender.com';
 // ===================================
 
 const $ = (id) => document.getElementById(id);
@@ -128,7 +138,7 @@ async function auth() {
       await api('/api/v1/build/catalog');
       return;
     } catch (e) {
-      if (!AUTH_ERRORS.includes(e.code)) throw e;   // сеть/сервер — не наша забота
+      if (!AUTH_ERRORS.includes(e.code)) throw e;
       clearSession();
     }
   }
@@ -162,7 +172,6 @@ const sun = new THREE.DirectionalLight(0xffffff, 1.1);
 sun.position.set(30, 50, 20);
 scene.add(sun);
 
-// Земля
 const ground = new THREE.Mesh(
   new THREE.BoxGeometry(66, 1, 66),
   new THREE.MeshLambertMaterial({ color: 0x1e3a2f })
@@ -170,12 +179,10 @@ const ground = new THREE.Mesh(
 ground.position.y = -0.5;
 scene.add(ground);
 
-// Сетка
 const grid = new THREE.GridHelper(64, 64, 0x3b82f6, 0x1e293b);
 grid.position.y = 0.01;
 scene.add(grid);
 
-// Флаг (сердце острова)
 const flagGroup = new THREE.Group();
 const pole = new THREE.Mesh(
   new THREE.CylinderGeometry(0.15, 0.15, 4, 8),
@@ -190,7 +197,6 @@ banner.position.set(0.8, 3.3, 0);
 flagGroup.add(pole, banner);
 scene.add(flagGroup);
 
-// Кубы
 const cubeMeshes = new Map();
 const CUBE_COLORS = { floor: 0x6b7280, wall: 0xa8a29e, tower: 0x78716c };
 
@@ -227,21 +233,72 @@ async function loadIsland() {
   const data = await api(`/api/v1/islands/${myId}`);
   resetCubes();
   data.cubes.forEach(addCube);
-  // В /islands приходит только «лут» (50% баланса) — умножаем обратно.
-  $('ether').textContent = data.island.potential_loot * 2;
   $('cubes').textContent = data.island.cube_count;
   $('flag').textContent = data.flag.hp + ' / ' + data.flag.max_hp;
   return data;
 }
 
 async function loadMe() {
-  try {
-    const me = await api('/api/v1/me');
-    $('ether').textContent = me.ether_balance;
-  } catch (e) {
-    // Эндпоинт /me ещё не написан — не страшно, баланс придёт из ответа постройки
+  const me = await api('/api/v1/me');
+  $('ether').textContent = me.ether_balance;
+  return me;
+}
+
+// ---------- ЭКОНОМИКА: пассивный Эфир ----------
+let econ = { accrued_now: 0, seconds_to_next: 0, ether_balance: 0 };
+
+function renderEconomy() {
+  const btn = $('claim-btn');
+  const hint = $('claim-hint');
+
+  if (econ.accrued_now >= 1) {
+    btn.classList.add('ready');
+    hint.textContent = '+' + econ.accrued_now;
+  } else {
+    btn.classList.remove('ready');
+    const s = Math.max(0, econ.seconds_to_next);
+    const m = Math.floor(s / 60);
+    const sec = s % 60;
+    hint.textContent = m + ':' + String(sec).padStart(2, '0');
   }
 }
+
+async function loadEconomy() {
+  try {
+    econ = await api('/api/v1/economy/rates');
+    $('ether').textContent = econ.ether_balance;
+    renderEconomy();
+  } catch (e) {
+    // Экономика не критична для отрисовки острова — молча ждём следующего тика
+  }
+}
+
+async function claimEther() {
+  if (econ.accrued_now < 1) return;   // не дёргаем сервер зря, пока нечего брать
+  try {
+    const res = await api('/api/v1/economy/claim', { method: 'POST' });
+    $('ether').textContent = res.ether_balance;
+    flash('+' + res.claimed + ' Эфира');
+    await loadEconomy();
+  } catch (e) {
+    if (e.code === 'CLAIM_TOO_EARLY') { await loadEconomy(); return; }
+    flash(e.message);
+  }
+}
+
+// Локальный тик: секунды убывают без обращения к серверу, иначе на каждый
+// кадр таймера улетал бы HTTP-запрос. Полный перезапрос — раз в 30 секунд.
+setInterval(() => {
+  if (econ.accrued_now >= 1) return;
+  if (econ.seconds_to_next > 0) {
+    econ.seconds_to_next -= 1;
+    renderEconomy();
+  } else {
+    loadEconomy();
+  }
+}, 1000);
+
+setInterval(loadEconomy, 30000);
 
 // ---------- ПОСТРОЙКА ----------
 const raycaster = new THREE.Raycaster();
@@ -253,22 +310,15 @@ const hit = new THREE.Vector3();
 // строим только на pointerup, если палец почти не сдвинулся. Без этого
 // вращение камеры ставило кубы под пальцем — вся карта в мусоре.
 let pointerStart = null;
-const TAP_MAX_MOVE = 8;     // пикселей
-const TAP_MAX_TIME = 400;   // миллисекунд
+const TAP_MAX_MOVE = 8;
+const TAP_MAX_TIME = 400;
 
 renderer.domElement.addEventListener('pointerdown', (ev) => {
   if (ev.button !== 0) return;
-  pointerStart = {
-    x: ev.clientX,
-    y: ev.clientY,
-    t: performance.now(),
-    id: ev.pointerId,
-  };
+  pointerStart = { x: ev.clientX, y: ev.clientY, t: performance.now(), id: ev.pointerId };
 });
 
-renderer.domElement.addEventListener('pointercancel', () => {
-  pointerStart = null;
-});
+renderer.domElement.addEventListener('pointercancel', () => { pointerStart = null; });
 
 renderer.domElement.addEventListener('pointerup', async (ev) => {
   if (!pointerStart || ev.pointerId !== pointerStart.id) return;
@@ -297,12 +347,12 @@ renderer.domElement.addEventListener('pointerup', async (ev) => {
     addCube(res.cube);
     $('ether').textContent = res.ether_balance;
     $('cubes').textContent = res.island_cube_count;
+    econ.ether_balance = res.ether_balance;
   } catch (e) {
     flash(e.message);
   }
 });
 
-// Кнопки типов кубов
 document.querySelectorAll('#bottom button[data-type]').forEach(btn => {
   btn.addEventListener('click', () => {
     document.querySelectorAll('#bottom button[data-type]').forEach(b => b.classList.remove('on'));
@@ -311,6 +361,7 @@ document.querySelectorAll('#bottom button[data-type]').forEach(btn => {
   });
 });
 
+$('claim-btn').addEventListener('click', claimEther);
 $('reload').addEventListener('click', () => loadIsland().catch(e => flash(e.message)));
 
 // ---------- ЦИКЛ ----------
@@ -335,6 +386,7 @@ animate();
     fail('Загрузка острова...');
     await loadIsland();
     await loadMe();
+    await loadEconomy();
     ok();
   } catch (e) {
     fail('Ошибка: ' + e.message);
