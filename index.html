@@ -26,6 +26,7 @@
   button.locked { opacity:.5; }
   button.danger { background:#b91c1c; border-color:#ef4444; }
   button.go { background:#15803d; border-color:#22c55e; }
+  button.demolish-on { background:#b91c1c; border-color:#ef4444; }
   #hint { position:fixed; left:0; right:0; bottom:66px; text-align:center; font-size:12px; color:rgba(255,255,255,.5); pointer-events:none; z-index:9; padding:0 12px; }
   #status { position:fixed; inset:0; display:flex; align-items:center; justify-content:center; text-align:center; padding:24px; background:#0b1020; z-index:100; font-size:16px; line-height:1.5; }
   #status.hidden { display:none; }
@@ -50,6 +51,14 @@
   .loot-row b { color:#7dd3fc; font-size:18px; }
   .loot-card button { width:100%; margin-top:16px; }
 
+  #onboard-screen { align-items:center; justify-content:center; }
+  .onboard-card { background:#111a33; border:1px solid rgba(255,255,255,.15); border-radius:18px; padding:24px 22px; max-width:360px; width:100%; }
+  .onboard-emoji { font-size:44px; text-align:center; margin-bottom:6px; }
+  .onboard-title { font-size:19px; font-weight:700; text-align:center; margin-bottom:18px; }
+  .onboard-step { font-size:14px; line-height:1.5; color:rgba(255,255,255,.85); margin-bottom:12px; }
+  .onboard-step b { color:#7dd3fc; }
+  .onboard-card button { width:100%; margin-top:6px; }
+
   .hidden { display:none !important; }
 </style>
 </head>
@@ -72,6 +81,7 @@
   <button data-type="floor">Пол · 10</button>
   <button data-type="wall" class="on">Стена · 25</button>
   <button data-type="tower">Башня · 80</button>
+  <button id="btn-demolish">🗑</button>
   <button id="btn-world">🌍 Мир</button>
   <button id="reload">↻</button>
 </div>
@@ -107,6 +117,18 @@
   </div>
 </div>
 
+<div class="screen hidden" id="onboard-screen">
+  <div class="onboard-card">
+    <div class="onboard-emoji">🏝️</div>
+    <div class="onboard-title">Добро пожаловать в ADRIFT</div>
+    <div class="onboard-step"><b>1.</b> Тапни по клетке на острове — поставишь куб. Стены защищают Флаг в центре.</div>
+    <div class="onboard-step"><b>2.</b> Кнопка <b>🗑</b> — режим сноса. Тапни по своему кубу, вернётся 50% Эфира.</div>
+    <div class="onboard-step"><b>3.</b> Кнопка <b>⚡</b> — забери накопленный Эфир. Он капает 10 в час, максимум 240.</div>
+    <div class="onboard-step"><b>4.</b> Кнопка <b>🌍 Мир</b> — сходи в гости к соседу или в рейд: укради его Эфир.</div>
+    <button id="onboard-ok" class="go">Понятно, играем</button>
+  </div>
+</div>
+
 <div id="status">Загрузка...<br><span id="err"></span></div>
 
 <script type="importmap">
@@ -125,10 +147,6 @@ const SUPABASE_URL = 'https://suaitzmqulcziefyryvf.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_pT2H1bpnu_fcBbevfvfOoQ_AhzZLQjH';
 const API_URL = 'https://adrift-backend-ys3i.onrender.com';
 // ===================================
-
-// Уровни заряда. Должны совпадать с CHARGE_LEVELS в raids.py — сервер считает
-// урон сам, это лишь подсказка для интерфейса.
-const CHARGE = { 1: { cost: 10, damage: 25 }, 2: { cost: 25, damage: 75 }, 3: { cost: 60, damage: 200 } };
 
 const $ = (id) => document.getElementById(id);
 const statusEl = $('status'), errEl = $('err');
@@ -150,9 +168,9 @@ let token = null, myId = null;
 let mode = 'own';              // 'own' | 'visit' | 'raid'
 let selectedType = 'wall';
 let selectedCharge = 2;
+let demolishMode = false;
 let raidId = null;
-let targetUser = null;         // { user_id, username }
-let targetFlag = null;         // { hp, max_hp } чужого Флага
+let targetUser = null;
 let attacking = false;
 let econ = { accrued_now: 0, seconds_to_next: 0, ether_balance: 0 };
 
@@ -283,7 +301,6 @@ function addCube(c) {
   paintCube(mesh);
 }
 
-// Цвет куба отражает остаток HP: целый — базовый, разбитый — тёмно-красный.
 function paintCube(mesh) {
   const c = mesh.userData.cube;
   const ratio = c.max_hp > 0 ? Math.max(0, Math.min(1, c.hp / c.max_hp)) : 0;
@@ -331,6 +348,7 @@ function setFlagVisual(hp, maxHp) {
 // ---------- РЕЖИМЫ ----------
 const HINTS = {
   own: 'Тап по клетке — поставить куб · Свайп — повернуть камеру',
+  demolish: 'Режим сноса: тапни по своему кубу · Вернётся 50% Эфира',
   visit: 'Чужой остров. Свайп — повернуть камеру',
   raid: 'Тап по кубу — удар · ⚔️ Флаг или тап по флагу — удар по Флагу',
 };
@@ -341,13 +359,20 @@ function setMode(next) {
   $('bottom-visit').classList.toggle('hidden', mode !== 'visit');
   $('bottom-raid').classList.toggle('hidden', mode !== 'raid');
   $('target-pill').classList.toggle('hidden', mode === 'own');
-  $('hint').textContent = HINTS[mode];
+  $('hint').textContent = (mode === 'own' && demolishMode) ? HINTS.demolish : HINTS[mode];
+}
+
+function setDemolish(on) {
+  demolishMode = on;
+  $('btn-demolish').classList.toggle('demolish-on', on);
+  $('hint').textContent = on ? HINTS.demolish : HINTS.own;
 }
 
 function showScreen(id) { $(id).classList.remove('hidden'); }
 function hideScreens() {
   $('world-screen').classList.add('hidden');
   $('loot-screen').classList.add('hidden');
+  $('onboard-screen').classList.add('hidden');
 }
 
 // ---------- ВСПЛЫВАЮЩАЯ ПОДСКАЗКА ----------
@@ -376,8 +401,9 @@ async function loadMe() {
 }
 
 async function returnHome() {
-  targetUser = null; targetFlag = null; raidId = null;
+  targetUser = null; raidId = null;
   hideScreens();
+  setDemolish(false);
   setMode('own');
   $('target-name').textContent = '—';
   fail('Возвращаемся...');
@@ -428,7 +454,7 @@ setInterval(() => {
 }, 1000);
 setInterval(loadEconomy, 30000);
 
-// ---------- МИР: СПИСОК ОСТРОВОВ ----------
+// ---------- МИР ----------
 function blockLabel(isl) {
   switch (isl.raid_block_reason) {
     case 'TARGET_SHIELDED': return '🛡 щит ' + fmtTime(isl.shield_seconds_left);
@@ -492,14 +518,13 @@ async function openWorld() {
   }
 }
 
-// ---------- ВИЗИТ НА ЧУЖОЙ ОСТРОВ ----------
+// ---------- ВИЗИТ ----------
 async function visitIsland(userId, username) {
   hideScreens();
   fail('Загрузка острова ' + username + '...');
   try {
     const detail = await api(`/api/v1/islands/${userId}`);
     targetUser = { user_id: userId, username };
-    targetFlag = { hp: detail.flag.hp, max_hp: detail.flag.max_hp };
 
     resetCubes();
     detail.cubes.forEach(addCube);
@@ -525,12 +550,10 @@ async function startRaid() {
     $('ether').textContent = res.ether_balance;
     econ.ether_balance = res.ether_balance;
 
-    // Перечитываем остров: с момента визита он мог измениться
     const detail = await api(`/api/v1/islands/${targetUser.user_id}`);
     resetCubes();
     detail.cubes.forEach(addCube);
     refreshCounters();
-    targetFlag = { hp: detail.flag.hp, max_hp: detail.flag.max_hp };
     setFlagVisual(detail.flag.hp, detail.flag.max_hp);
 
     setMode('raid');
@@ -566,10 +589,7 @@ function raidGone(e) {
 }
 
 async function attackCube(cube) {
-  if (!raidId) return;
-  // Проверка safe zone убрана: сервер разрешает бить кубы в зоне, но у них
-  // ×3 прочности. Клиент не должен запрещать то, что разрешено бэкендом.
-  if (attacking) return;
+  if (!raidId || attacking) return;
   attacking = true;
   try {
     const res = await api(`/api/v1/raids/${raidId}/attack-cube`, {
@@ -596,10 +616,9 @@ async function attackCube(cube) {
 }
 
 async function attackFlag() {
-  if (!raidId) return;
+  if (!raidId || attacking) return;
   const safe = countSafeCubes();
   if (safe > 0) { flash(`Флаг защищён: в зоне ещё ${safe} кубов`); return; }
-  if (attacking) return;
   attacking = true;
   try {
     const res = await api(`/api/v1/raids/${raidId}/attack-flag`, {
@@ -634,15 +653,12 @@ async function leaveRaid() {
   await returnHome();
 }
 
-// ---------- ТАПЫ ПО ЭКРАНУ ----------
+// ---------- ТАПЫ ----------
 const raycaster = new THREE.Raycaster();
 const pointer = new THREE.Vector2();
 const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
 const hit = new THREE.Vector3();
 
-// Тап отличается от свайпа: запоминаем точку касания на pointerdown и
-// действуем только на pointerup, если палец почти не сдвинулся. Без этого
-// вращение камеры ставило кубы под пальцем — вся карта в мусоре.
 let pointerStart = null;
 const TAP_MAX_MOVE = 8;
 const TAP_MAX_TIME = 400;
@@ -662,13 +678,13 @@ renderer.domElement.addEventListener('pointerup', async (ev) => {
   pointerStart = null;
 
   if (moved > TAP_MAX_MOVE || elapsed > TAP_MAX_TIME) return;
-  if (statusEl.classList.contains('hidden') === false) return;   // идёт загрузка/ошибка
+  if (!statusEl.classList.contains('hidden')) return;   // идёт загрузка/ошибка
 
   pointer.x = (ev.clientX / innerWidth) * 2 - 1;
   pointer.y = -(ev.clientY / innerHeight) * 2 + 1;
   raycaster.setFromCamera(pointer, camera);
 
-  if (mode === 'own') return handleOwnTap();
+  if (mode === 'own') return demolishMode ? handleDemolishTap() : handleOwnTap();
   if (mode === 'raid') return handleRaidTap();
 });
 
@@ -692,10 +708,25 @@ async function handleOwnTap() {
   }
 }
 
+async function handleDemolishTap() {
+  const targets = [...cubeMeshes.values()];
+  const hits = raycaster.intersectObjects(targets, false);
+  if (!hits.length) return;
+
+  const cube = hits[0].object.userData.cube;
+  try {
+    const res = await api(`/api/v1/build/cube/${cube.id}`, { method: 'DELETE' });
+    for (const c of res.removed) removeCube(c.id);
+    refreshCounters();
+    $('ether').textContent = res.ether_balance;
+    econ.ether_balance = res.ether_balance;
+    flash('+' + res.ether_refunded + ' Эфира возвращено');
+  } catch (e) {
+    flash(e.message);
+  }
+}
+
 async function handleRaidTap() {
-  // Пробуем попасть и по кубам, и по самому Флагу. Если ближайшая цель —
-  // элемент флага, вызываем attackFlag(): тап по 3D-флагу должен работать
-  // так же, как кнопка «⚔️ Флаг» внизу экрана.
   const targets = [...cubeMeshes.values(), ...flagGroup.children];
   const hits = raycaster.intersectObjects(targets, false);
   if (!hits.length) return;
@@ -711,6 +742,7 @@ document.querySelectorAll('#bottom-own button[data-type]').forEach(btn => {
     document.querySelectorAll('#bottom-own button[data-type]').forEach(b => b.classList.remove('on'));
     btn.classList.add('on');
     selectedType = btn.dataset.type;
+    setDemolish(false);   // выбор куба выключает режим сноса: одно нажатие — одно намерение
   });
 });
 
@@ -724,6 +756,7 @@ document.querySelectorAll('#bottom-raid .charge').forEach(btn => {
 
 $('claim-btn').addEventListener('click', claimEther);
 $('reload').addEventListener('click', () => loadOwnIsland().catch(e => flash(e.message)));
+$('btn-demolish').addEventListener('click', () => setDemolish(!demolishMode));
 $('btn-world').addEventListener('click', openWorld);
 $('world-close').addEventListener('click', hideScreens);
 $('btn-back').addEventListener('click', returnHome);
@@ -731,6 +764,10 @@ $('btn-raid').addEventListener('click', startRaid);
 $('btn-flag').addEventListener('click', attackFlag);
 $('btn-leave').addEventListener('click', leaveRaid);
 $('loot-ok').addEventListener('click', returnHome);
+$('onboard-ok').addEventListener('click', () => {
+  localStorage.setItem('adrift_onboarded', '1');
+  hideScreens();
+});
 
 // ---------- ЦИКЛ ----------
 addEventListener('resize', () => {
@@ -757,6 +794,10 @@ animate();
     await loadEconomy();
     setMode('own');
     ok();
+
+    // Онбординг показываем ОДИН раз на устройство. Флаг в localStorage,
+    // а не в БД: игрок с двух устройств увидит подсказку на каждом — это ок.
+    if (!localStorage.getItem('adrift_onboarded')) showScreen('onboard-screen');
   } catch (e) {
     fail('Ошибка: ' + e.message);
   }
