@@ -17,6 +17,14 @@
     padding-bottom:14px;
   }
 
+  /* Плавное появление нижних панелей: сдвиг снизу + fade. Срабатывает один
+     раз при переключении вкладки, а не на каждом кадре. */
+  .bar.reveal { animation: barSlide .28s cubic-bezier(.2,.7,.3,1); }
+  @keyframes barSlide {
+    from { opacity:0; transform: translateY(18px); }
+    to   { opacity:1; transform: translateY(0); }
+  }
+
   .pill { background:rgba(255,255,255,.08); backdrop-filter:blur(8px); padding:6px 12px; border-radius:20px; font-size:14px; font-variant-numeric:tabular-nums; color:#fff; border:1px solid rgba(255,255,255,.1); font-family:inherit; }
   .pill b { color:#7dd3fc; }
   .pill-btn { display:flex; gap:8px; align-items:center; cursor:pointer; transition:background .15s; }
@@ -104,7 +112,18 @@
   .loot-card button { width:100%; margin-top:16px; }
 
   #onboard-screen { align-items:center; justify-content:center; }
-  .onboard-card { background:#111a33; border:1px solid rgba(255,255,255,.15); border-radius:18px; padding:24px 22px; max-width:360px; width:100%; }
+  .onboard-card {
+    background:#111a33; border:1px solid rgba(255,255,255,.15);
+    border-radius:18px; padding:24px 22px; max-width:360px; width:100%;
+    transition: transform .28s cubic-bezier(.3,.8,.4,1), opacity .28s ease;
+  }
+  /* При нажатии «Ок» карточка сначала сжимается и растворяется, затем
+     панель скрывается. Порядок задаёт JS: сначала класс closing, потом hide. */
+  #onboard-screen.closing .onboard-card {
+    transform: scale(.94) translateY(6px);
+    opacity: 0;
+  }
+  #onboard-screen.closing { background: transparent; }
   .onboard-emoji { font-size:44px; text-align:center; margin-bottom:6px; }
   .onboard-title { font-size:19px; font-weight:700; text-align:center; margin-bottom:18px; }
   .onboard-step { font-size:14px; line-height:1.5; color:rgba(255,255,255,.85); margin-bottom:12px; }
@@ -283,7 +302,6 @@ const BLOCK_SIZES = [
   { key: '3x1x3', sx: 3, sy: 1, sz: 3, label: '3×3' },
 ];
 
-// Тексты. Советы захардкожены, не генерируются.
 const I18N = {
   ru: {
     flagColor: 'Цвет флага', blockColor: 'Цвет блока', sizeTitle: 'Размер блока',
@@ -295,7 +313,7 @@ const I18N = {
     raidAlertToast: 'На твой остров открыт рейд. Проверь Флаг.',
     onboardTitle: 'Добро пожаловать в ADRIFT',
     onboard1: '<b>1.</b> Ты уже в режиме стройки. Наведи камеру, увидишь полупрозрачный блок там, куда встанет куб.',
-    onboard2: '<b>2.</b> Зелёный значит можно ставить, красный значит нельзя. <b>📐</b> размер, <b>↔️</b> поворот, квадратик рядом меняет цвет блока.',
+    onboard2: '<b>2.</b> Зелёный значит можно ставить, красный значит нельзя. <b>📐</b> размер, <b>↔️</b> поворот (для 2×1), квадратик рядом меняет цвет блока.',
     onboard3: '<b>3.</b> <b>⚡</b> вверху, забери накопленный Эфир. <b>🎨</b> меняет цвет флага.',
     onboard4: '<b>4.</b> Тапни по Буйку, он даст совет. <b>🌍</b> откроет список соседей.',
     onboardOk: 'Понятно, играем',
@@ -320,6 +338,7 @@ const I18N = {
     tips: [
       { text: 'Наведи камеру на клетку и тапни по экрану. Там появится куб.', cond: 'always' },
       { text: 'Кнопка 📐 меняет размер блока. Большие блоки стоят дороже.', cond: 'always' },
+      { text: 'Для размера 2×1 рядом появляется кнопка поворота. Так ставишь блок вдоль или поперёк.', cond: 'always' },
       { text: 'Тапни по верхней грани куба, и новый встанет сверху. Так строят башни.', cond: 'always' },
       { text: 'Кнопка 🗑 сносит куб. Половина Эфира вернётся в кошелёк.', cond: 'hasCubes' },
       { text: 'Эфир капает сам, примерно десять в час. Следи за кнопкой ⚡.', cond: 'always' },
@@ -349,7 +368,7 @@ const I18N = {
     raidAlertToast: 'A raid is open against your island. Check your Flag.',
     onboardTitle: 'Welcome to ADRIFT',
     onboard1: '<b>1.</b> You are already in build mode. Aim the camera, a translucent block shows where the cube will go.',
-    onboard2: '<b>2.</b> Green means you can place, red means you cannot. <b>📐</b> size, <b>↔️</b> rotate, the square next to it changes the block color.',
+    onboard2: '<b>2.</b> Green means you can place, red means you cannot. <b>📐</b> size, <b>↔️</b> rotate (for 2×1), the square next to it changes the block color.',
     onboard3: '<b>3.</b> <b>⚡</b> at the top, claim accrued Ether. <b>🎨</b> changes the flag color.',
     onboard4: '<b>4.</b> Tap the Buoy for a tip. <b>🌍</b> opens the list of neighbors.',
     onboardOk: 'Got it, let\'s play',
@@ -374,6 +393,7 @@ const I18N = {
     tips: [
       { text: 'Aim the camera at a cell and tap the screen. A cube appears there.', cond: 'always' },
       { text: 'The 📐 button changes block size. Bigger blocks cost more.', cond: 'always' },
+      { text: 'For a 2×1 block a rotate button appears next to it. Place it lengthwise or across.', cond: 'always' },
       { text: 'Tap the top face of a cube and the new one stacks on it. That is how towers are built.', cond: 'always' },
       { text: 'The 🗑 button removes a cube. Half the Ether comes back to you.', cond: 'hasCubes' },
       { text: 'Ether accrues by itself, about ten per hour. Watch the ⚡ button.', cond: 'always' },
@@ -415,7 +435,6 @@ const FLAG_COLORS_CSS = { red:'#ef4444', orange:'#f97316', yellow:'#eab308', gre
 const BLOCK_COLORS_HEX = { wood:0xc9a06a, red:0xd94a4a, blue:0x4a7fd9, green:0x4ad96b, yellow:0xd9c94a, purple:0x9b4ad9, dark:0x6b6b6b, light:0xd9d9d9 };
 const BLOCK_COLORS_CSS = { wood:'#c9a06a', red:'#d94a4a', blue:'#4a7fd9', green:'#4ad96b', yellow:'#d9c94a', purple:'#9b4ad9', dark:'#6b6b6b', light:'#d9d9d9' };
 
-// Стоимость и урон заряда. Совпадает с CHARGE_LEVELS на сервере.
 const CHARGE_COST = { 1: 10, 2: 25, 3: 60 };
 
 const $ = (id) => document.getElementById(id);
@@ -680,7 +699,7 @@ function setSpriteChar(sp, char, size) {
 }
 
 // ===========================================================================
-// МИНЬОН («Буй») — простая модель
+// МИНЬОН («Буй»)
 // ===========================================================================
 const MINION_RADIUS_MIN = 4;
 const MINION_RADIUS_MAX = 12;
@@ -688,8 +707,6 @@ const PANIC_RADIUS_MIN = 3;
 const PANIC_RADIUS_MAX = 9;
 const THINK_TIME = 1.4;
 
-// Пул эмодзи для случайных «мыслей» в спокойном режиме. Порядок не важен,
-// выбираем случайно, чтобы Буй не повторялся.
 const MINION_BUBBLES = ['💬', '💭', '✨', '🎵', '❤️', '🎉', '😎', '🗿', '⚡', '🧠', '🥱', '😴'];
 const IDLE_ACTS = ['stretch', 'tapFoot', 'scratchHead', 'lookAround', 'dance', 'kick', 'whistle', 'think'];
 
@@ -796,7 +813,6 @@ const minion = {
   nextTalk: 0,
   talkUntil: 0,
   bubbleChar: '💬',
-  // Микроанимации в покое
   nextIdleAct: 0,
   idleAct: null,
   idleActUntil: 0,
@@ -928,7 +944,6 @@ function idleMinion(now, dt) {
   const alert = minion.mood === 'alert';
   const breath = Math.sin(now * 1.7);
 
-  // Сбрасываем ноги — в покое они стоят.
   let legLx = 0, legRx = 0;
   let armLx = breath * 0.06, armRx = Math.PI;
   let headZ = Math.sin(now * 0.7) * 0.05;
@@ -949,7 +964,6 @@ function idleMinion(now, dt) {
     headY = Math.sin(now * 1.1) * 0.28;
     bodyY = breath * 0.012;
   } else if (minion.idleAct && now < minion.idleActUntil) {
-    // Микроанимация в покое. Каждая длится ~1.8 сек.
     const t = now - (minion.idleActUntil - 1.8);
     switch (minion.idleAct) {
       case 'stretch':
@@ -1004,7 +1018,6 @@ function updateMinion(dt) {
 
   if (!minion.frozen && !cellFree(minion.x, minion.z)) placeMinionInitial();
 
-  // Сбрасываем завершённую микроанимацию
   if (minion.idleAct && now >= minion.idleActUntil) minion.idleAct = null;
 
   if (minion.thinking) {
@@ -1040,7 +1053,6 @@ function updateMinion(dt) {
   if (minion.path.length === 0) {
     if (now < minion.idleUntil) {
       idleMinion(now, dt);
-      // Иногда запускаем новую микроанимацию
       if (now > minion.nextIdleAct) {
         minion.nextIdleAct = now + 5 + Math.random() * 8;
         if (Math.random() < 0.7) pickIdleAct(now);
@@ -1414,7 +1426,6 @@ function updateFlagButton() {
     return;
   }
 
-  // Показываем, чего не хватает: процента или прохода.
   btn.classList.add('locked');
   if (raidFlagState.percent < raidFlagState.min_percent) {
     if (ico) ico.textContent = '🔒';
@@ -1426,6 +1437,22 @@ function updateFlagButton() {
 }
 
 // ---------- ПАНЕЛЬ ----------
+// Показываем бар с анимацией только при реальном переключении.
+// Если просто обновляем состояние (например, эфир), анимация не проигрывается.
+function applyTab(id, visible) {
+  const el = $(id);
+  if (visible) {
+    if (el.classList.contains('hidden')) {
+      el.classList.remove('hidden');
+      el.classList.remove('reveal');
+      void el.offsetWidth;   // принудительный reflow — перезапускает анимацию
+      el.classList.add('reveal');
+    }
+  } else {
+    el.classList.add('hidden');
+  }
+}
+
 function updatePanel() {
   const on = buildMode && mode === 'own';
   $('btn-build').classList.toggle('on', on);
@@ -1433,11 +1460,14 @@ function updatePanel() {
   $('btn-block-color').classList.toggle('hidden', !on);
   $('btn-palette').classList.toggle('hidden', !on);
   $('btn-demolish').classList.toggle('hidden', !on);
+  // Кнопка перезагрузки не нужна во время стройки: она мешает и отвлекает.
+  $('reload').classList.toggle('hidden', on);
   $('target-pill').classList.toggle('hidden', mode === 'own');
   updateRotateButton();
-  $('bottom').classList.toggle('hidden', mode !== 'own');
-  $('bottom-visit').classList.toggle('hidden', mode !== 'visit');
-  $('bottom-raid').classList.toggle('hidden', mode !== 'raid');
+
+  applyTab('bottom', mode === 'own');
+  applyTab('bottom-visit', mode === 'visit');
+  applyTab('bottom-raid', mode === 'raid');
 }
 function setMode(next) {
   mode = next;
@@ -1465,6 +1495,16 @@ function showScreen(id) { $(id).classList.remove('hidden'); }
 function hideScreens() {
   ['world-screen','loot-screen','onboard-screen','tip-screen'].forEach(id => $(id).classList.add('hidden'));
   closeAllPalettes();
+}
+
+// Плавное закрытие гайда: карточка сжимается и растворяется, затем скрываем панель.
+function closeOnboard() {
+  const el = $('onboard-screen');
+  el.classList.add('closing');
+  setTimeout(() => {
+    el.classList.remove('closing');
+    el.classList.add('hidden');
+  }, 300);
 }
 
 // ---------- ОСТРОВ ----------
@@ -1651,16 +1691,12 @@ async function visitIsland(userId, username) {
 }
 
 // ---------- РЕЙД ----------
-// Автоподбор заряда под цель. Берём минимальный, который вероятно добьёт куб,
-// и снижаем, если эфира не хватает. Клиент присылает ТОЛЬКО cube_id и charge,
-// весь урон и стоимость считает сервер.
 function pickCharge(cube) {
   const hp = Math.max(0, cube.hp | 0);
   const bal = econ.ether_balance | 0;
   let want = 1;
   if (hp > 25) want = 2;
   if (hp > 75) want = 3;
-  // Понижаем уровень, если не хватает эфира на текущий.
   while (want > 1 && bal < CHARGE_COST[want]) want--;
   return want;
 }
@@ -1844,7 +1880,7 @@ $('loot-ok').addEventListener('click', returnHome);
 $('tip-ok').addEventListener('click', closeTip);
 $('onboard-ok').addEventListener('click', () => {
   localStorage.setItem('adrift_onboarded', '1');
-  hideScreens();
+  closeOnboard();
 });
 
 // ---------- ЦИКЛ ----------
