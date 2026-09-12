@@ -12,7 +12,10 @@
   .bar { position:fixed; left:0; right:0; padding:10px 12px; display:flex; gap:8px; align-items:center; z-index:10; pointer-events:none; flex-wrap:wrap; justify-content:center; }
   .bar * { pointer-events:auto; }
   #top { top:0; justify-content:flex-start; background:linear-gradient(180deg,rgba(11,16,32,.9),rgba(11,16,32,0)); }
-  #bottom { bottom:0; background:linear-gradient(0deg,rgba(11,16,32,.92),rgba(11,16,32,0)); padding-bottom:14px; }
+  #bottom, #bottom-visit, #bottom-raid {
+    bottom:0; background:linear-gradient(0deg,rgba(11,16,32,.92),rgba(11,16,32,0));
+    padding-bottom:14px;
+  }
 
   .pill { background:rgba(255,255,255,.08); backdrop-filter:blur(8px); padding:6px 12px; border-radius:20px; font-size:14px; font-variant-numeric:tabular-nums; color:#fff; border:1px solid rgba(255,255,255,.1); font-family:inherit; }
   .pill b { color:#7dd3fc; }
@@ -52,7 +55,6 @@
   #toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
   #toast.error { background:rgba(127,29,29,.96); border-color:rgba(239,68,68,.5); }
 
-  /* Цена над призраком. Следим за 3D-координатой через project(). */
   #price-tag {
     position:fixed; top:0; left:0;
     background:rgba(17,26,51,.94); backdrop-filter:blur(6px);
@@ -139,6 +141,7 @@
   <button id="btn-build" class="primary icon" title="Build">🔨</button>
   <button id="btn-size" class="hidden">📐 <span id="size-label">1×1</span></button>
   <button id="btn-block-color" class="hidden icon">🟫</button>
+  <button id="btn-palette" class="hidden icon">🎨</button>
   <button id="btn-demolish" class="hidden icon">🗑</button>
   <button id="btn-world" class="icon">🌍</button>
   <button id="reload" class="icon">↻</button>
@@ -222,9 +225,6 @@ const API_URL = 'https://adrift-backend-ys3i.onrender.com';
 
 const WOOD_BASE_COST = 10;
 
-// Четыре размера вместо семи. Вертикаль набирается стекингом: тап по верхней
-// грани ставит блок сверху, повторение даёт башню. Меньше кнопок — меньше
-// ступор у новичка.
 const BLOCK_SIZES = [
   { key: '1x1x1', sx: 1, sy: 1, sz: 1, label: '1×1' },
   { key: '2x1x1', sx: 2, sy: 1, sz: 1, label: '2×1' },
@@ -240,8 +240,8 @@ const I18N = {
     returnHome: 'Вернуться',
     onboardTitle: 'Добро пожаловать в ADRIFT',
     onboard1: '<b>1.</b> Ты уже в режиме стройки. Наведи камеру — увидишь полупрозрачный блок там, куда встанет куб.',
-    onboard2: '<b>2.</b> Зелёный — можно ставить, красный — нельзя. Тапни, чтобы поставить. Кнопка <b>📐</b> меняет размер.',
-    onboard3: '<b>3.</b> <b>⚡</b> вверху — забери накопленный Эфир, он капает 10 в час.',
+    onboard2: '<b>2.</b> Зелёный — можно ставить, красный — нельзя. Тапни, чтобы поставить. Кнопка <b>📐</b> меняет размер, <b>🟫</b> — цвет блока.',
+    onboard3: '<b>3.</b> <b>⚡</b> вверху — забери накопленный Эфир, он капает 10 в час. <b>🎨</b> — цвет твоего флага.',
     onboard4: '<b>4.</b> <b>🌍</b> — сходи к соседу в гости или в рейд: укради его Эфир.',
     onboardOk: 'Понятно, играем',
     loading: 'Загрузка...', login: 'Вход...', returning: 'Возвращаемся...',
@@ -253,13 +253,14 @@ const I18N = {
     flagColorChanged: 'Цвет флага изменён',
     noone: 'Пока никого нет в твоём регионе',
     error: 'Ошибка',
-    shield: 'щит', cooldown: 'кулдаун', yourIsland: 'это твой остров',
+    yourIsland: 'это твой остров',
     dmgyou: 'Флагу', refund: 'возвращено', ether: 'Эфира',
     noSupport: 'Нужна опора снизу',
     occupied: 'Здесь уже стоит блок',
     noEther: 'Не хватает Эфира',
     outOfBounds: 'За границей острова',
-    tapToPlace: 'Тапни, чтобы поставить',
+    hint: 'Наведи камеру на клетку · тапни, чтобы поставить',
+    hintDemolish: 'Тапни по своему блоку, чтобы снести',
   },
   en: {
     flagColor: 'Flag color', blockColor: 'Block color', sizeTitle: 'Block size',
@@ -268,8 +269,8 @@ const I18N = {
     returnHome: 'Return',
     onboardTitle: 'Welcome to ADRIFT',
     onboard1: '<b>1.</b> You are already in build mode. Aim the camera — a translucent block shows where the cube will go.',
-    onboard2: '<b>2.</b> Green — can place, red — cannot. Tap to place. <b>📐</b> changes the size.',
-    onboard3: '<b>3.</b> <b>⚡</b> at the top — claim accrued Ether, 10 per hour.',
+    onboard2: '<b>2.</b> Green — can place, red — cannot. Tap to place. <b>📐</b> changes size, <b>🟫</b> — block color.',
+    onboard3: '<b>3.</b> <b>⚡</b> at the top — claim accrued Ether, 10 per hour. <b>🎨</b> — your flag color.',
     onboard4: '<b>4.</b> <b>🌍</b> — visit a neighbor or raid: steal their Ether.',
     onboardOk: 'Got it, let\'s play',
     loading: 'Loading...', login: 'Signing in...', returning: 'Returning...',
@@ -281,13 +282,14 @@ const I18N = {
     flagColorChanged: 'Flag color changed',
     noone: 'Nobody in your region yet',
     error: 'Error',
-    shield: 'shield', cooldown: 'cooldown', yourIsland: 'your island',
+    yourIsland: 'your island',
     dmgyou: 'Flag damage', refund: 'refunded', ether: 'Ether',
     noSupport: 'Needs support below',
     occupied: 'Already occupied',
     noEther: 'Not enough Ether',
     outOfBounds: 'Out of bounds',
-    tapToPlace: 'Tap to place',
+    hint: 'Aim the camera at a cell · tap to place',
+    hintDemolish: 'Tap your own block to remove it',
   },
 };
 
@@ -317,6 +319,7 @@ function setLang(next) {
   applyI18n();
   renderEconomy();
   updateSizeLabel();
+  updatePanel();
 }
 
 const FLAG_COLORS_HEX = { red:0xef4444, orange:0xf97316, yellow:0xeab308, green:0x22c55e, teal:0x14b8a6, blue:0x3b82f6, purple:0xa855f7, pink:0xec4899, white:0xf1f5f9, black:0x334155 };
@@ -358,8 +361,6 @@ const fmtTime = (s) => {
 // ---------- СОСТОЯНИЕ ----------
 let token = null, myId = null;
 let mode = 'own';
-// Стройка включена СРАЗУ. Игрок открывает игру и видит призрак блока —
-// не надо искать кнопку, чтобы понять, что тут можно строить.
 let buildMode = true;
 let demolishMode = false;
 let selectedBlockColor = 'wood';
@@ -548,9 +549,9 @@ function setFlagVisual(hp, maxHp, color) {
 }
 
 // ---------- ПРИЗРАК БЛОКА ----------
-// Полупрозрачный куб на экране показывает, куда встанет постройка.
-// Считаем его позицию и валидность каждый кадр — 60 raycast'ов в секунду
-// по ≤256 мешам, для телефона это дёшево (three.js отсекает по bounding sphere).
+// Полупрозрачный куб в прицеле. На тач-устройствах прицел — центр экрана
+// (его наводишь поворотом камеры), на мышке — позиция курсора. Тап всегда
+// подтверждает то, что показывает призрак: превью и результат совпадают.
 const ghostMat = new THREE.MeshBasicMaterial({
   color: 0x22c55e, transparent: true, opacity: 0.4, depthWrite: false,
 });
@@ -569,8 +570,15 @@ const hitPoint = new THREE.Vector3();
 const normalMatrix = new THREE.Matrix3();
 const projVec = new THREE.Vector3();
 
-// Куда встанет блок, если тапнуть в точку с экранными координатами NDC.
-// Возвращает {x,y,z,sx,sy,sz,valid,reason,price} или null.
+const isTouch = window.matchMedia('(pointer: coarse)').matches;
+const aimPoint = { x: 0, y: 0 };
+
+window.addEventListener('pointermove', (ev) => {
+  if (isTouch) return;
+  aimPoint.x = (ev.clientX / innerWidth) * 2 - 1;
+  aimPoint.y = -(ev.clientY / innerHeight) * 2 + 1;
+});
+
 function computePlacement(ndcX, ndcY) {
   const sx = selectedSize.sx, sy = selectedSize.sy, sz = selectedSize.sz;
   raycaster.setFromCamera({ x: ndcX, y: ndcY }, camera);
@@ -608,15 +616,12 @@ function computePlacement(ndcX, ndcY) {
 
   const price = WOOD_BASE_COST * sx * sy * sz;
 
-  // Локальная валидация — дублирует серверную, но нужна для мгновенной
-  // реакции призрака. Сервер всё равно перепроверит и отклонит, если что.
   if (x < -32 || x + sx - 1 > 32 || z < -32 || z + sz - 1 > 32 || y < 0 || y + sy - 1 > 32) {
     return { x, y, z, sx, sy, sz, valid:false, reason: t('outOfBounds'), price };
   }
   if (x <= 0 && 0 <= x+sx-1 && y <= 0 && 0 <= y+sy-1 && z <= 0 && 0 <= z+sz-1) {
     return { x, y, z, sx, sy, sz, valid:false, reason: t('flagReserved'), price };
   }
-  // Пересечение AABB с любым существующим кубом
   for (const m of cubeMeshes.values()) {
     const c = m.userData.cube;
     const csx = c.size_x||1, csy = c.size_y||1, csz = c.size_z||1;
@@ -624,7 +629,6 @@ function computePlacement(ndcX, ndcY) {
       return { x, y, z, sx, sy, sz, valid:false, reason: t('occupied'), price };
     }
   }
-  // Опора: каждая клетка под блоком должна быть чем-то накрыта
   if (y > 0) {
     for (let dx = 0; dx < sx; dx++) {
       for (let dz = 0; dz < sz; dz++) {
@@ -649,17 +653,6 @@ function computePlacement(ndcX, ndcY) {
   return { x, y, z, sx, sy, sz, valid:true, reason:'', price };
 }
 
-// Куда смотрит «прицел»: на телефоне — центр экрана (камеру наводишь
-// поворотом), на мышке — последняя позиция курсора.
-const isCoarsePointer = window.matchMedia('(pointer: coarse)').matches;
-const aimPoint = { x: 0, y: 0 };
-
-window.addEventListener('pointermove', (ev) => {
-  if (isCoarsePointer) return;
-  aimPoint.x = (ev.clientX / innerWidth) * 2 - 1;
-  aimPoint.y = -(ev.clientY / innerHeight) * 2 + 1;
-});
-
 function updateGhost() {
   if (!buildMode || mode !== 'own' || demolishMode) {
     ghost.visible = false; priceEl.classList.add('hidden'); return;
@@ -679,19 +672,25 @@ function updateGhost() {
   if (projVec.z > 1) { priceEl.classList.add('hidden'); return; }
   const px = (projVec.x * 0.5 + 0.5) * innerWidth;
   const py = (-projVec.y * 0.5 + 0.5) * innerHeight;
-  priceEl.style.transform = `translate(-50%,-100%) translate(${px}px, ${py}px)`;
+  priceEl.style.transform = `translate(${px}px, ${py}px) translate(-50%, -100%)`;
   priceEl.classList.remove('hidden');
 }
 
-// ---------- РЕЖИМЫ / ПАНЕЛЬ ----------
+// ---------- ПАНЕЛЬ И РЕЖИМЫ ----------
 function updatePanel() {
   const on = buildMode && mode === 'own';
-  $('btn-build').classList.toggle('primary', on);
   $('btn-build').classList.toggle('on', on);
   $('btn-size').classList.toggle('hidden', !on);
   $('btn-block-color').classList.toggle('hidden', !on);
+  $('btn-palette').classList.toggle('hidden', !on);
   $('btn-demolish').classList.toggle('hidden', !on);
   $('target-pill').classList.toggle('hidden', mode === 'own');
+
+  // Полоса кнопок зависит от режима: в гостях и в рейде нужны СВОИ кнопки,
+  // а не стройка. Без этого в рейд нельзя было ни ударить, ни выйти.
+  $('bottom').classList.toggle('hidden', mode !== 'own');
+  $('bottom-visit').classList.toggle('hidden', mode !== 'visit');
+  $('bottom-raid').classList.toggle('hidden', mode !== 'raid');
 }
 
 function setMode(next) {
@@ -703,7 +702,7 @@ function setMode(next) {
 
 function setBuildMode(on) {
   buildMode = on;
-  if (on) setDemolish(false);
+  if (!on) setDemolish(false);
   closeAllPalettes();
   updatePanel();
 }
@@ -711,7 +710,6 @@ function setBuildMode(on) {
 function setDemolish(on) {
   demolishMode = on;
   $('btn-demolish').classList.toggle('demolish-on', on);
-  if (on) buildMode = false;
   updatePanel();
 }
 
@@ -737,7 +735,10 @@ async function loadMe() {
 
 async function returnHome() {
   targetUser = null; raidId = null; hideScreens();
-  setDemolish(false); setMode('own'); buildMode = true; updatePanel();
+  setDemolish(false);
+  setMode('own');
+  buildMode = true;
+  updatePanel();
   $('target-name').textContent = '—';
   fail(t('returning'));
   try { await loadOwnIsland(); await loadMe(); await loadEconomy(); } finally { ok(); }
@@ -823,9 +824,9 @@ function buildSizePalette() {
 function updateSizeLabel() { $('size-label').textContent = selectedSize.label; }
 
 function togglePalette(id) {
-  const hidden = $(id).classList.contains('hidden');
+  const wasHidden = $(id).classList.contains('hidden');
   closeAllPalettes();
-  if (!hidden) return;
+  if (!wasHidden) return;
   if (id === 'palette') buildFlagPalette();
   if (id === 'block-palette') buildBlockPalette();
   if (id === 'size-palette') buildSizePalette();
@@ -987,18 +988,18 @@ renderer.domElement.addEventListener('pointerup', async (ev) => {
   if (moved > TAP_MAX_MOVE || elapsed > TAP_MAX_TIME) return;
   if (loading) return;
 
-  // Куда тапнули — там и точка прицела. На тач-устройстве это перекрывает
-  // центр экрана, что интуитивнее: блок встанет туда, где палец.
   const ndcX = (ev.clientX / innerWidth) * 2 - 1;
   const ndcY = -(ev.clientY / innerHeight) * 2 + 1;
 
+  // Стройка: подтверждаем то, что показывает призрак (центр экрана на таче).
+  // Снос и рейд: целимся прямо туда, куда тапнули — так точнее выбирать блок.
   if (mode === 'own' && demolishMode) return handleDemolishTap(ndcX, ndcY);
-  if (mode === 'own' && buildMode) return handleBuildTap(ndcX, ndcY);
+  if (mode === 'own' && buildMode) return handleBuildTap();
   if (mode === 'raid') return handleRaidTap(ndcX, ndcY);
 });
 
-async function handleBuildTap(ndcX, ndcY) {
-  const p = computePlacement(ndcX, ndcY);
+async function handleBuildTap() {
+  const p = computePlacement(aimPoint.x, aimPoint.y);
   if (!p) return;
   if (!p.valid) { toast(p.reason, true); return; }
 
@@ -1072,18 +1073,6 @@ $('onboard-ok').addEventListener('click', () => {
   hideScreens();
 });
 
-// Долгий тап по 🎨 (если когда-нибудь вернём кнопку) — не нужен.
-// Цвет флага теперь доступен только через... его нет в панели.
-// Флаг перекрашивается программно: тап по самому флагу.
-renderer.domElement.addEventListener('dblclick', (ev) => {
-  if (mode !== 'own') return;
-  const ndcX = (ev.clientX / innerWidth) * 2 - 1;
-  const ndcY = -(ev.clientY / innerHeight) * 2 + 1;
-  raycaster.setFromCamera({ x:ndcX, y:ndcY }, camera);
-  const hits = raycaster.intersectObjects(flagGroup.children, false);
-  if (hits.length && buildMode) togglePalette('palette');
-});
-
 // ---------- ЦИКЛ ----------
 addEventListener('resize', () => {
   camera.aspect = innerWidth / innerHeight;
@@ -1120,4 +1109,4 @@ animate();
 })();
 </script>
 </body>
- </html>
+</html>
