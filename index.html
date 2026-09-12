@@ -5,37 +5,64 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 <title>ADRIFT</title>
 <style>
-  * { margin:0; padding:0; box-sizing:border-box; }
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
   html,body { width:100%; height:100%; overflow:hidden; background:#0b1020; font-family:system-ui,-apple-system,sans-serif; color:#fff; }
   #app { position:fixed; inset:0; }
-  .bar { position:fixed; left:0; right:0; padding:10px 14px; display:flex; gap:8px; align-items:center; z-index:10; pointer-events:none; flex-wrap:wrap; }
+
+  .bar { position:fixed; left:0; right:0; padding:10px 12px; display:flex; gap:8px; align-items:center; z-index:10; pointer-events:none; flex-wrap:wrap; justify-content:center; }
   .bar * { pointer-events:auto; }
-  #top { top:0; background:linear-gradient(180deg,rgba(11,16,32,.95),rgba(11,16,32,0)); }
-  #bottom-own, #bottom-visit, #bottom-raid { bottom:0; background:linear-gradient(0deg,rgba(11,16,32,.95),rgba(11,16,32,0)); justify-content:center; }
-  .pill { background:rgba(255,255,255,.1); padding:6px 12px; border-radius:20px; font-size:14px; font-variant-numeric:tabular-nums; color:#fff; border:none; font-family:inherit; }
+  #top { top:0; justify-content:flex-start; background:linear-gradient(180deg,rgba(11,16,32,.9),rgba(11,16,32,0)); }
+  #bottom-idle, #bottom-build, #bottom-visit, #bottom-raid {
+    bottom:0; background:linear-gradient(0deg,rgba(11,16,32,.92),rgba(11,16,32,0));
+    padding-bottom:14px;
+  }
+
+  .pill { background:rgba(255,255,255,.08); backdrop-filter:blur(8px); padding:6px 12px; border-radius:20px; font-size:14px; font-variant-numeric:tabular-nums; color:#fff; border:1px solid rgba(255,255,255,.1); font-family:inherit; }
   .pill b { color:#7dd3fc; }
   .pill-btn { display:flex; gap:8px; align-items:center; cursor:pointer; transition:background .15s; }
-  .pill-btn:active { background:rgba(255,255,255,.25); }
-  .pill-btn.ready { background:#16a34a; }
+  .pill-btn:active { background:rgba(255,255,255,.22); }
+  .pill-btn.ready { background:#16a34a; border-color:#22c55e; }
   .pill-btn.ready b { color:#fff; }
-  #claim-hint { font-size:12px; opacity:.75; }
+  #claim-hint { font-size:12px; opacity:.8; }
   #target-pill b { color:#fca5a5; }
-  button { background:rgba(255,255,255,.12); border:1px solid rgba(255,255,255,.2); color:#fff; padding:10px 14px; border-radius:10px; font-size:14px; cursor:pointer; font-family:inherit; }
-  button:active { background:rgba(255,255,255,.25); }
-  button.on { background:#2563eb; border-color:#3b82f6; }
+
+  button {
+    background:linear-gradient(180deg, rgba(255,255,255,.14), rgba(255,255,255,.06));
+    border:1px solid rgba(255,255,255,.16);
+    color:#fff; padding:11px 15px; border-radius:12px;
+    font-size:14px; font-weight:500; font-family:inherit; cursor:pointer;
+    box-shadow:0 2px 8px rgba(0,0,0,.25);
+    transition:transform .1s ease, background .15s ease, box-shadow .15s ease;
+  }
+  button:active { transform:scale(.94); background:rgba(255,255,255,.22); box-shadow:0 1px 3px rgba(0,0,0,.3); }
+  button.on { background:linear-gradient(180deg,#3b82f6,#2563eb); border-color:#60a5fa; }
   button.locked { opacity:.5; }
-  button.danger { background:#b91c1c; border-color:#ef4444; }
-  button.go { background:#15803d; border-color:#22c55e; }
-  button.demolish-on { background:#b91c1c; border-color:#ef4444; }
-  #hint { position:fixed; left:0; right:0; bottom:66px; text-align:center; font-size:12px; color:rgba(255,255,255,.5); pointer-events:none; z-index:9; padding:0 12px; }
+  button.danger { background:linear-gradient(180deg,#dc2626,#b91c1c); border-color:#ef4444; }
+  button.go { background:linear-gradient(180deg,#22c55e,#15803d); border-color:#4ade80; }
+  button.demolish-on { background:linear-gradient(180deg,#dc2626,#7f1d1d); border-color:#ef4444; }
+  button.primary { background:linear-gradient(180deg,#3b82f6,#1d4ed8); border-color:#60a5fa; font-weight:600; }
+
+  #toast {
+    position:fixed; top:64px; left:50%; transform:translateX(-50%) translateY(-8px);
+    background:rgba(30,41,59,.96); backdrop-filter:blur(10px);
+    border:1px solid rgba(255,255,255,.14); border-radius:14px;
+    padding:12px 20px; font-size:14px; font-weight:500;
+    max-width:88vw; text-align:center; pointer-events:none; z-index:200;
+    box-shadow:0 8px 24px rgba(0,0,0,.4);
+    opacity:0; transition:opacity .2s ease, transform .2s ease;
+  }
+  #toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
+  #toast.error { background:rgba(127,29,29,.96); border-color:rgba(239,68,68,.5); }
+
   #status { position:fixed; inset:0; display:flex; align-items:center; justify-content:center; text-align:center; padding:24px; background:#0b1020; z-index:100; font-size:16px; line-height:1.5; }
   #status.hidden { display:none; }
   #err { color:#fca5a5; font-size:13px; }
 
-  .screen { position:fixed; inset:0; background:#0b1020; z-index:50; display:flex; flex-direction:column; padding:14px; overflow-y:auto; }
+  .screen { position:fixed; inset:0; background:#0b1020; z-index:50; display:flex; flex-direction:column; padding:14px; overflow-y:auto; animation:fadeIn .25s ease-out; }
+  @keyframes fadeIn { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
   .screen-head { display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; }
   .screen-title { font-size:20px; font-weight:700; }
-  .island-row { display:flex; flex-direction:column; gap:4px; width:100%; text-align:left; background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.1); border-radius:12px; padding:12px 14px; margin-bottom:8px; }
+  .island-row { display:flex; flex-direction:column; gap:4px; width:100%; text-align:left; background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.1); border-radius:14px; padding:13px 15px; margin-bottom:8px; box-shadow:0 2px 8px rgba(0,0,0,.2); }
   .island-row:active { background:rgba(255,255,255,.16); }
   .island-row.locked { opacity:.55; }
   .island-name { font-size:16px; font-weight:600; }
@@ -44,7 +71,7 @@
   .screen-note { text-align:center; color:rgba(255,255,255,.5); padding:32px 16px; }
 
   #loot-screen { align-items:center; justify-content:center; }
-  .loot-card { background:#111a33; border:1px solid rgba(255,255,255,.15); border-radius:18px; padding:28px 24px; text-align:center; max-width:340px; width:100%; }
+  .loot-card { background:#111a33; border:1px solid rgba(255,255,255,.15); border-radius:18px; padding:28px 24px; text-align:center; max-width:340px; width:100%; box-shadow:0 12px 40px rgba(0,0,0,.5); }
   .loot-emoji { font-size:48px; margin-bottom:8px; }
   .loot-title { font-size:20px; font-weight:700; margin-bottom:16px; }
   .loot-row { font-size:15px; color:rgba(255,255,255,.8); margin-bottom:8px; }
@@ -52,12 +79,26 @@
   .loot-card button { width:100%; margin-top:16px; }
 
   #onboard-screen { align-items:center; justify-content:center; }
-  .onboard-card { background:#111a33; border:1px solid rgba(255,255,255,.15); border-radius:18px; padding:24px 22px; max-width:360px; width:100%; }
+  .onboard-card { background:#111a33; border:1px solid rgba(255,255,255,.15); border-radius:18px; padding:24px 22px; max-width:360px; width:100%; box-shadow:0 12px 40px rgba(0,0,0,.5); }
   .onboard-emoji { font-size:44px; text-align:center; margin-bottom:6px; }
   .onboard-title { font-size:19px; font-weight:700; text-align:center; margin-bottom:18px; }
   .onboard-step { font-size:14px; line-height:1.5; color:rgba(255,255,255,.85); margin-bottom:12px; }
   .onboard-step b { color:#7dd3fc; }
   .onboard-card button { width:100%; margin-top:6px; }
+
+  #palette {
+    position:fixed; bottom:78px; left:50%; transform:translateX(-50%);
+    background:rgba(17,26,51,.98); backdrop-filter:blur(12px);
+    border:1px solid rgba(255,255,255,.15); border-radius:16px;
+    padding:14px; z-index:60; box-shadow:0 12px 40px rgba(0,0,0,.6);
+    animation:popIn .18s ease-out;
+  }
+  @keyframes popIn { from { opacity:0; transform:translateX(-50%) scale(.92); } to { opacity:1; transform:translateX(-50%) scale(1); } }
+  .palette-title { font-size:12px; color:rgba(255,255,255,.65); margin-bottom:10px; text-align:center; letter-spacing:.5px; text-transform:uppercase; }
+  .palette-grid { display:grid; grid-template-columns:repeat(5, 1fr); gap:10px; }
+  .color-dot { width:42px; height:42px; border-radius:50%; border:2px solid rgba(255,255,255,.2); cursor:pointer; padding:0; box-shadow:inset 0 2px 4px rgba(0,0,0,.2); }
+  .color-dot:active { transform:scale(.86); }
+  .color-dot.selected { border-color:#fff; border-width:3px; box-shadow:0 0 0 3px rgba(255,255,255,.25); }
 
   .hidden { display:none !important; }
 </style>
@@ -75,28 +116,37 @@
   <div class="pill hidden" id="target-pill">👁 <b id="target-name">—</b></div>
 </div>
 
-<div id="hint">Загрузка…</div>
-
-<div class="bar" id="bottom-own">
-  <button data-type="floor">Пол · 10</button>
-  <button data-type="wall" class="on">Стена · 25</button>
-  <button data-type="tower">Башня · 80</button>
-  <button id="btn-demolish">🗑</button>
+<div class="bar" id="bottom-idle">
+  <button id="btn-build" class="primary">🔨 Строить</button>
+  <button id="btn-palette">🎨</button>
   <button id="btn-world">🌍 Мир</button>
   <button id="reload">↻</button>
 </div>
 
-<div class="bar" id="bottom-visit">
+<div class="bar hidden" id="bottom-build">
+  <button data-type="floor">Пол · 10</button>
+  <button data-type="wall" class="on">Стена · 25</button>
+  <button data-type="tower">Башня · 80</button>
+  <button id="btn-demolish">🗑</button>
+  <button id="btn-build-done" class="go">✅ Готово</button>
+</div>
+
+<div class="bar hidden" id="bottom-visit">
   <button id="btn-back">↩ Назад</button>
   <button id="btn-raid" class="danger">⚔️ Рейд</button>
 </div>
 
-<div class="bar" id="bottom-raid">
+<div class="bar hidden" id="bottom-raid">
   <button class="charge" data-charge="1">1 · 10⚡</button>
   <button class="charge on" data-charge="2">2 · 25⚡</button>
   <button class="charge" data-charge="3">3 · 60⚡</button>
   <button id="btn-flag" class="danger">⚔️ Флаг</button>
   <button id="btn-leave">🏳 Выйти</button>
+</div>
+
+<div id="palette" class="hidden">
+  <div class="palette-title">Цвет флага</div>
+  <div class="palette-grid" id="palette-grid"></div>
 </div>
 
 <div class="screen hidden" id="world-screen">
@@ -121,14 +171,15 @@
   <div class="onboard-card">
     <div class="onboard-emoji">🏝️</div>
     <div class="onboard-title">Добро пожаловать в ADRIFT</div>
-    <div class="onboard-step"><b>1.</b> Тапни по клетке на острове — поставишь куб. Стены защищают Флаг в центре.</div>
-    <div class="onboard-step"><b>2.</b> Кнопка <b>🗑</b> — режим сноса. Тапни по своему кубу, вернётся 50% Эфира.</div>
-    <div class="onboard-step"><b>3.</b> Кнопка <b>⚡</b> — забери накопленный Эфир. Он капает 10 в час, максимум 240.</div>
-    <div class="onboard-step"><b>4.</b> Кнопка <b>🌍 Мир</b> — сходи в гости к соседу или в рейд: укради его Эфир.</div>
+    <div class="onboard-step"><b>1.</b> Нажми <b>🔨 Строить</b> — появятся типы кубов. Тапни по клетке, чтобы поставить.</div>
+    <div class="onboard-step"><b>2.</b> <b>✅ Готово</b> — выходишь из режима строительства и просто любуешься островом.</div>
+    <div class="onboard-step"><b>3.</b> <b>⚡</b> вверху — забери накопленный Эфир. Он капает 10 в час.</div>
+    <div class="onboard-step"><b>4.</b> <b>🌍 Мир</b> — сходи в гости к соседу. Или в рейд: укради его Эфир.</div>
     <button id="onboard-ok" class="go">Понятно, играем</button>
   </div>
 </div>
 
+<div id="toast" class="hidden"></div>
 <div id="status">Загрузка...<br><span id="err"></span></div>
 
 <script type="importmap">
@@ -148,10 +199,39 @@ const SUPABASE_ANON_KEY = 'sb_publishable_pT2H1bpnu_fcBbevfvfOoQ_AhzZLQjH';
 const API_URL = 'https://adrift-backend-ys3i.onrender.com';
 // ===================================
 
+// Те же 10 цветов, что в CHECK-констрейнте users.flag_color. Держим их
+// в двух представлениях: hex для three.js и css для палитры.
+const FLAG_COLORS_HEX = {
+  red: 0xef4444, orange: 0xf97316, yellow: 0xeab308, green: 0x22c55e,
+  teal: 0x14b8a6, blue: 0x3b82f6, purple: 0xa855f7, pink: 0xec4899,
+  white: 0xf1f5f9, black: 0x334155,
+};
+const FLAG_COLORS_CSS = {
+  red: '#ef4444', orange: '#f97316', yellow: '#eab308', green: '#22c55e',
+  teal: '#14b8a6', blue: '#3b82f6', purple: '#a855f7', pink: '#ec4899',
+  white: '#f1f5f9', black: '#334155',
+};
+
 const $ = (id) => document.getElementById(id);
 const statusEl = $('status'), errEl = $('err');
-const fail = (msg) => { statusEl.classList.remove('hidden'); statusEl.firstChild.textContent = msg; };
-const ok = () => statusEl.classList.add('hidden');
+const toastEl = $('toast');
+
+let loading = false;
+const fail = (msg) => { loading = true; statusEl.classList.remove('hidden'); statusEl.firstChild.textContent = msg; };
+const ok = () => { loading = false; statusEl.classList.add('hidden'); };
+
+let toastTimer = null;
+function toast(msg, isError = false) {
+  toastEl.textContent = msg;
+  toastEl.classList.toggle('error', !!isError);
+  toastEl.classList.remove('hidden');
+  requestAnimationFrame(() => toastEl.classList.add('show'));
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => {
+    toastEl.classList.remove('show');
+    setTimeout(() => toastEl.classList.add('hidden'), 220);
+  }, isError ? 2600 : 1600);
+}
 
 const uid = () => (crypto.randomUUID ? crypto.randomUUID() : String(Date.now()) + Math.random().toString(16).slice(2));
 
@@ -166,13 +246,18 @@ const fmtTime = (s) => {
 // ---------- СОСТОЯНИЕ ----------
 let token = null, myId = null;
 let mode = 'own';              // 'own' | 'visit' | 'raid'
+let buildMode = false;
+let demolishMode = false;
 let selectedType = 'wall';
 let selectedCharge = 2;
-let demolishMode = false;
 let raidId = null;
 let targetUser = null;
 let attacking = false;
 let econ = { accrued_now: 0, seconds_to_next: 0, ether_balance: 0 };
+
+let myFlagColor = 'red';       // выбор игрока (для палитры)
+let displayFlagColor = 'red';  // цвет, который нарисован СЕЙЧАС (может быть чужим)
+let currentFlagHp = 0, currentFlagMax = 0;
 
 // ---------- АВТОРИЗАЦИЯ ----------
 async function signIn() {
@@ -325,9 +410,7 @@ function removeCube(id) {
   cubeMeshes.delete(id);
 }
 
-function resetCubes() {
-  for (const id of [...cubeMeshes.keys()]) removeCube(id);
-}
+function resetCubes() { for (const id of [...cubeMeshes.keys()]) removeCube(id); }
 
 function countSafeCubes() {
   let n = 0;
@@ -335,54 +418,60 @@ function countSafeCubes() {
   return n;
 }
 
-function refreshCounters() {
-  $('cubes').textContent = cubeMeshes.size;
-}
+function refreshCounters() { $('cubes').textContent = cubeMeshes.size; }
 
-function setFlagVisual(hp, maxHp) {
+// Цвет полотнища = выбранный игроком, но при потере HP он подмешивает
+// тёмно-красный: на рейде сразу видно, что Флаг «горит».
+function setFlagVisual(hp, maxHp, color) {
+  currentFlagHp = hp;
+  currentFlagMax = maxHp;
+  if (color) displayFlagColor = color;
+
   const ratio = maxHp > 0 ? Math.max(0, Math.min(1, hp / maxHp)) : 0;
-  banner.material.color.copy(new THREE.Color(0xef4444)).lerp(new THREE.Color(0x16a34a), ratio);
+  const base = new THREE.Color(FLAG_COLORS_HEX[displayFlagColor] || FLAG_COLORS_HEX.red);
+  const damaged = new THREE.Color(0x7f1d1d);
+  banner.material.color.copy(base).lerp(damaged, 1 - ratio);
+
   $('flag').textContent = Math.max(0, hp) + ' / ' + maxHp;
 }
 
 // ---------- РЕЖИМЫ ----------
-const HINTS = {
-  own: 'Тап по клетке — поставить куб · Свайп — повернуть камеру',
-  demolish: 'Режим сноса: тапни по своему кубу · Вернётся 50% Эфира',
-  visit: 'Чужой остров. Свайп — повернуть камеру',
-  raid: 'Тап по кубу — удар · ⚔️ Флаг или тап по флагу — удар по Флагу',
-};
+function updateBottom() {
+  ['bottom-idle','bottom-build','bottom-visit','bottom-raid']
+    .forEach(id => $(id).classList.add('hidden'));
+
+  if (mode === 'own') {
+    $(buildMode ? 'bottom-build' : 'bottom-idle').classList.remove('hidden');
+  } else if (mode === 'visit') {
+    $('bottom-visit').classList.remove('hidden');
+  } else if (mode === 'raid') {
+    $('bottom-raid').classList.remove('hidden');
+  }
+
+  $('target-pill').classList.toggle('hidden', mode === 'own');
+}
 
 function setMode(next) {
   mode = next;
-  $('bottom-own').classList.toggle('hidden', mode !== 'own');
-  $('bottom-visit').classList.toggle('hidden', mode !== 'visit');
-  $('bottom-raid').classList.toggle('hidden', mode !== 'raid');
-  $('target-pill').classList.toggle('hidden', mode === 'own');
-  $('hint').textContent = (mode === 'own' && demolishMode) ? HINTS.demolish : HINTS[mode];
+  if (next !== 'own') buildMode = false;
+  updateBottom();
+}
+
+function setBuildMode(on) {
+  buildMode = on;
+  if (on) setDemolish(false);
+  updateBottom();
 }
 
 function setDemolish(on) {
   demolishMode = on;
   $('btn-demolish').classList.toggle('demolish-on', on);
-  $('hint').textContent = on ? HINTS.demolish : HINTS.own;
 }
 
 function showScreen(id) { $(id).classList.remove('hidden'); }
 function hideScreens() {
-  $('world-screen').classList.add('hidden');
-  $('loot-screen').classList.add('hidden');
-  $('onboard-screen').classList.add('hidden');
-}
-
-// ---------- ВСПЛЫВАЮЩАЯ ПОДСКАЗКА ----------
-let flashTimer = null;
-function flash(msg) {
-  errEl.textContent = msg;
-  statusEl.firstChild.textContent = '';
-  statusEl.classList.remove('hidden');
-  clearTimeout(flashTimer);
-  flashTimer = setTimeout(ok, 1600);
+  ['world-screen','loot-screen','onboard-screen'].forEach(id => $(id).classList.add('hidden'));
+  closePalette();
 }
 
 // ---------- СВОЙ ОСТРОВ ----------
@@ -391,19 +480,22 @@ async function loadOwnIsland() {
   resetCubes();
   data.cubes.forEach(addCube);
   refreshCounters();
-  setFlagVisual(data.flag.hp, data.flag.max_hp);
+  // Свой флаг рисуем своим цветом, а не тем, что вернул снапшот
+  setFlagVisual(data.flag.hp, data.flag.max_hp, myFlagColor);
 }
 
 async function loadMe() {
   const me = await api('/api/v1/me');
   $('ether').textContent = me.ether_balance;
   econ.ether_balance = me.ether_balance;
+  myFlagColor = me.flag_color || 'red';
+  displayFlagColor = myFlagColor;
 }
 
 async function returnHome() {
   targetUser = null; raidId = null;
   hideScreens();
-  setDemolish(false);
+  setBuildMode(false);
   setMode('own');
   $('target-name').textContent = '—';
   fail('Возвращаемся...');
@@ -431,7 +523,7 @@ async function loadEconomy() {
     econ = await api('/api/v1/economy/rates');
     $('ether').textContent = econ.ether_balance;
     renderEconomy();
-  } catch (e) { /* не критично для отрисовки */ }
+  } catch (e) { /* экономика не критична для отрисовки */ }
 }
 
 async function claimEther() {
@@ -439,11 +531,11 @@ async function claimEther() {
   try {
     const res = await api('/api/v1/economy/claim', { method: 'POST' });
     $('ether').textContent = res.ether_balance;
-    flash('+' + res.claimed + ' Эфира');
+    toast('+' + res.claimed + ' Эфира');
     await loadEconomy();
   } catch (e) {
     if (e.code === 'CLAIM_TOO_EARLY') { await loadEconomy(); return; }
-    flash(e.message);
+    toast(e.message, true);
   }
 }
 
@@ -453,6 +545,40 @@ setInterval(() => {
   else loadEconomy();
 }, 1000);
 setInterval(loadEconomy, 30000);
+
+// ---------- ПАЛИТРА ЦВЕТА ----------
+function buildPalette() {
+  const grid = $('palette-grid');
+  grid.innerHTML = '';
+  for (const [key, hex] of Object.entries(FLAG_COLORS_CSS)) {
+    const dot = document.createElement('button');
+    dot.className = 'color-dot' + (key === myFlagColor ? ' selected' : '');
+    dot.style.background = hex;
+    dot.addEventListener('click', () => pickColor(key));
+    grid.appendChild(dot);
+  }
+}
+
+function openPalette() { buildPalette(); $('palette').classList.remove('hidden'); }
+function closePalette() { $('palette').classList.add('hidden'); }
+function togglePalette() {
+  $('palette').classList.contains('hidden') ? openPalette() : closePalette();
+}
+
+async function pickColor(key) {
+  try {
+    const res = await api('/api/v1/me/flag-color', {
+      method: 'POST',
+      body: JSON.stringify({ color: key }),
+    });
+    myFlagColor = res.flag_color;
+    if (mode === 'own') setFlagVisual(currentFlagHp, currentFlagMax, myFlagColor);
+    closePalette();
+    toast('Цвет флага изменён');
+  } catch (e) {
+    toast(e.message, true);
+  }
+}
 
 // ---------- МИР ----------
 function blockLabel(isl) {
@@ -490,6 +616,7 @@ function makeIslandRow(isl) {
 }
 
 async function openWorld() {
+  closePalette();
   showScreen('world-screen');
   const list = $('world-list');
   list.innerHTML = '';
@@ -529,14 +656,14 @@ async function visitIsland(userId, username) {
     resetCubes();
     detail.cubes.forEach(addCube);
     refreshCounters();
-    setFlagVisual(detail.flag.hp, detail.flag.max_hp);
+    setFlagVisual(detail.flag.hp, detail.flag.max_hp, detail.flag.color);
     $('target-name').textContent = username;
 
     setMode('visit');
     ok();
   } catch (e) {
     ok();
-    flash(e.message);
+    toast(e.message, true);
   }
 }
 
@@ -554,15 +681,15 @@ async function startRaid() {
     resetCubes();
     detail.cubes.forEach(addCube);
     refreshCounters();
-    setFlagVisual(detail.flag.hp, detail.flag.max_hp);
+    setFlagVisual(detail.flag.hp, detail.flag.max_hp, detail.flag.color);
 
     setMode('raid');
     updateFlagButton();
     ok();
-    flash('Рейд начался!');
+    toast('Рейд начался! Тапни по кубу');
   } catch (e) {
     ok();
-    flash(e.message);
+    toast(e.message, true);
   }
 }
 
@@ -580,7 +707,7 @@ function updateFlagButton() {
 
 function raidGone(e) {
   if (e.code === 'RAID_NOT_FOUND' || e.code === 'RAID_ALREADY_FINISHED') {
-    flash('Рейд завершён');
+    toast('Рейд завершён');
     raidId = null;
     setTimeout(returnHome, 1200);
     return true;
@@ -603,13 +730,12 @@ async function attackCube(cube) {
 
     if (res.cube.destroyed) removeCube(res.cube.id);
     else updateCubeHp(res.cube.id, res.cube.hp);
-
     for (const c of res.collapsed) removeCube(c.id);
 
     refreshCounters();
     updateFlagButton();
   } catch (e) {
-    if (!raidGone(e)) flash(e.message);
+    if (!raidGone(e)) toast(e.message, true);
   } finally {
     attacking = false;
   }
@@ -618,7 +744,7 @@ async function attackCube(cube) {
 async function attackFlag() {
   if (!raidId || attacking) return;
   const safe = countSafeCubes();
-  if (safe > 0) { flash(`Флаг защищён: в зоне ещё ${safe} кубов`); return; }
+  if (safe > 0) { toast(`Флаг защищён: в зоне ещё ${safe} кубов`, true); return; }
   attacking = true;
   try {
     const res = await api(`/api/v1/raids/${raidId}/attack-flag`, {
@@ -636,10 +762,10 @@ async function attackFlag() {
       $('loot-balance').textContent = res.loot.attacker_balance;
       showScreen('loot-screen');
     } else {
-      flash('−' + res.damage + ' Флагу');
+      toast('−' + res.damage + ' Флагу');
     }
   } catch (e) {
-    if (!raidGone(e)) flash(e.message);
+    if (!raidGone(e)) toast(e.message, true);
   } finally {
     attacking = false;
   }
@@ -678,13 +804,13 @@ renderer.domElement.addEventListener('pointerup', async (ev) => {
   pointerStart = null;
 
   if (moved > TAP_MAX_MOVE || elapsed > TAP_MAX_TIME) return;
-  if (!statusEl.classList.contains('hidden')) return;   // идёт загрузка/ошибка
+  if (loading) return;   // блокируем тапы только на время загрузки, не на тостах
 
   pointer.x = (ev.clientX / innerWidth) * 2 - 1;
   pointer.y = -(ev.clientY / innerHeight) * 2 + 1;
   raycaster.setFromCamera(pointer, camera);
 
-  if (mode === 'own') return demolishMode ? handleDemolishTap() : handleOwnTap();
+  if (mode === 'own' && buildMode) return demolishMode ? handleDemolishTap() : handleOwnTap();
   if (mode === 'raid') return handleRaidTap();
 });
 
@@ -692,7 +818,7 @@ async function handleOwnTap() {
   if (!raycaster.ray.intersectPlane(plane, hit)) return;
   const x = Math.round(hit.x), z = Math.round(hit.z);
   if (Math.abs(x) > 32 || Math.abs(z) > 32) return;
-  if (x === 0 && z === 0) { flash('Клетка Флага зарезервирована'); return; }
+  if (x === 0 && z === 0) { toast('Клетка Флага зарезервирована'); return; }
 
   try {
     const res = await api('/api/v1/build/cube', {
@@ -704,7 +830,7 @@ async function handleOwnTap() {
     econ.ether_balance = res.ether_balance;
     $('cubes').textContent = res.island_cube_count;
   } catch (e) {
-    flash(e.message);
+    toast(e.message, true);
   }
 }
 
@@ -720,9 +846,9 @@ async function handleDemolishTap() {
     refreshCounters();
     $('ether').textContent = res.ether_balance;
     econ.ether_balance = res.ether_balance;
-    flash('+' + res.ether_refunded + ' Эфира возвращено');
+    toast('+' + res.ether_refunded + ' Эфира возвращено');
   } catch (e) {
-    flash(e.message);
+    toast(e.message, true);
   }
 }
 
@@ -737,12 +863,12 @@ async function handleRaidTap() {
 }
 
 // ---------- КНОПКИ ----------
-document.querySelectorAll('#bottom-own button[data-type]').forEach(btn => {
+document.querySelectorAll('#bottom-build button[data-type]').forEach(btn => {
   btn.addEventListener('click', () => {
-    document.querySelectorAll('#bottom-own button[data-type]').forEach(b => b.classList.remove('on'));
+    document.querySelectorAll('#bottom-build button[data-type]').forEach(b => b.classList.remove('on'));
     btn.classList.add('on');
     selectedType = btn.dataset.type;
-    setDemolish(false);   // выбор куба выключает режим сноса: одно нажатие — одно намерение
+    setDemolish(false);
   });
 });
 
@@ -755,8 +881,11 @@ document.querySelectorAll('#bottom-raid .charge').forEach(btn => {
 });
 
 $('claim-btn').addEventListener('click', claimEther);
-$('reload').addEventListener('click', () => loadOwnIsland().catch(e => flash(e.message)));
+$('reload').addEventListener('click', () => loadOwnIsland().catch(e => toast(e.message, true)));
+$('btn-build').addEventListener('click', () => setBuildMode(true));
+$('btn-build-done').addEventListener('click', () => { setDemolish(false); setBuildMode(false); });
 $('btn-demolish').addEventListener('click', () => setDemolish(!demolishMode));
+$('btn-palette').addEventListener('click', togglePalette);
 $('btn-world').addEventListener('click', openWorld);
 $('world-close').addEventListener('click', hideScreens);
 $('btn-back').addEventListener('click', returnHome);
@@ -788,15 +917,15 @@ animate();
 (async () => {
   try {
     await auth();
-    fail('Загрузка острова...');
-    await loadOwnIsland();
+    fail('Загрузка...');
+    // Сначала /me: оттуда узнаём цвет флага, и только потом рисуем остров.
+    // Иначе первый кадр будет с дефолтным красным, а потом цвет «прыгнет».
     await loadMe();
+    await loadOwnIsland();
     await loadEconomy();
     setMode('own');
     ok();
 
-    // Онбординг показываем ОДИН раз на устройство. Флаг в localStorage,
-    // а не в БД: игрок с двух устройств увидит подсказку на каждом — это ок.
     if (!localStorage.getItem('adrift_onboarded')) showScreen('onboard-screen');
   } catch (e) {
     fail('Ошибка: ' + e.message);
