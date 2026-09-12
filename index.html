@@ -310,14 +310,28 @@ const FLAG_COLORS_CSS = {
   white: '#f1f5f9', black: '#334155',
 };
 
-// Цвета блоков. 'wood' — базовый, без тонировки (белый множитель).
+// Цвета блоков. Теперь это НАСТОЯЩИЕ цвета: текстура белая и только добавляет
+// волокна, поэтому выбранный оттенок доходит до экрана без искажений.
+// hex и css совпадают один в один — то, что видно в палитре, то и на блоке.
 const BLOCK_COLORS_HEX = {
-  wood: 0xffffff, red: 0xd94a4a, blue: 0x4a7fd9, green: 0x4ad96b,
-  yellow: 0xd9c94a, purple: 0x9b4ad9, dark: 0x6b6b6b, light: 0xd9d9d9,
+  wood: 0xc9a06a,
+  red: 0xd94a4a,
+  blue: 0x4a7fd9,
+  green: 0x4ad96b,
+  yellow: 0xd9c94a,
+  purple: 0x9b4ad9,
+  dark: 0x6b6b6b,
+  light: 0xd9d9d9,
 };
 const BLOCK_COLORS_CSS = {
-  wood: '#b8845a', red: '#d94a4a', blue: '#4a7fd9', green: '#4ad96b',
-  yellow: '#d9c94a', purple: '#9b4ad9', dark: '#6b6b6b', light: '#d9d9d9',
+  wood: '#c9a06a',
+  red: '#d94a4a',
+  blue: '#4a7fd9',
+  green: '#4ad96b',
+  yellow: '#d9c94a',
+  purple: '#9b4ad9',
+  dark: '#6b6b6b',
+  light: '#d9d9d9',
 };
 
 const $ = (id) => document.getElementById(id);
@@ -484,15 +498,18 @@ function makeWoodTexture() {
   canvas.width = canvas.height = size;
   const ctx = canvas.getContext('2d');
 
-  // База — светлая, потому что материал тонирует её цветом блока.
-  ctx.fillStyle = '#c9a06a';
+  // База БЕЛАЯ. Тон задаёт material.color, а текстура только затемняет
+  // отдельные волокна. Раньше база была коричневой, и она перемножалась
+  // с выбранным цветом — красный блок получался грязно-бурым.
+  ctx.fillStyle = '#ffffff';
   ctx.fillRect(0, 0, size, size);
 
-  // Горизонтальные волокна
-  for (let i = 0; i < 26; i++) {
+  // Горизонтальные волокна: серый с низкой альфой. На любом цвете это даёт
+  // тень нужной плотности, не меняя оттенок.
+  for (let i = 0; i < 22; i++) {
     const y = Math.random() * size;
-    ctx.strokeStyle = `rgba(140, 100, 60, ${0.15 + Math.random() * 0.25})`;
-    ctx.lineWidth = 1 + Math.random() * 2.5;
+    ctx.strokeStyle = `rgba(0, 0, 0, ${0.04 + Math.random() * 0.06})`;
+    ctx.lineWidth = 1 + Math.random() * 2;
     ctx.beginPath();
     ctx.moveTo(0, y);
     for (let x = 0; x <= size; x += 8) {
@@ -501,11 +518,11 @@ function makeWoodTexture() {
     ctx.stroke();
   }
 
-  // Пара «сучков»
+  // Пара «сучков» — чуть плотнее волокон
   for (let i = 0; i < 2; i++) {
     const cx = Math.random() * size, cy = Math.random() * size;
-    for (let r = 2; r < 9; r += 2) {
-      ctx.strokeStyle = `rgba(110, 75, 40, ${0.3 - r * 0.02})`;
+    for (let r = 2; r < 8; r += 2) {
+      ctx.strokeStyle = `rgba(0, 0, 0, ${0.08 - r * 0.008})`;
       ctx.lineWidth = 1.2;
       ctx.beginPath();
       ctx.ellipse(cx, cy, r * 1.6, r, 0, 0, Math.PI * 2);
@@ -513,10 +530,8 @@ function makeWoodTexture() {
     }
   }
 
-  // Тёмная рамка — «стык» между блоками, помогает читать сетку
-  ctx.strokeStyle = 'rgba(70, 45, 25, 0.55)';
-  ctx.lineWidth = 3;
-  ctx.strokeRect(1.5, 1.5, size - 3, size - 3);
+  // Рамку по краю НЕ рисуем. Текстура повторяется на каждой грани куба,
+  // и рамка превращалась в «обводку» вокруг каждого блока.
 
   const tex = new THREE.CanvasTexture(canvas);
   tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
@@ -529,21 +544,27 @@ const WOOD_TEXTURE = makeWoodTexture();
 // ---------- КУБЫ ----------
 const cubeMeshes = new Map();
 
-function makeCubeMaterial(color) {
-  return new THREE.MeshLambertMaterial({
+function makeCubeMaterial(color, inSafeZone) {
+  const mat = new THREE.MeshLambertMaterial({
     map: WOOD_TEXTURE,
-    color: new THREE.Color(BLOCK_COLORS_HEX[color] || 0xffffff),
+    color: new THREE.Color(BLOCK_COLORS_HEX[color] || BLOCK_COLORS_HEX.wood),
   });
+  // Кубы в safe zone подсвечиваем ИХ ЖЕ цветом. Раньше был синий emissive —
+  // он подмешивался к любому оттенку и красил красное в фиолетовое.
+  if (inSafeZone) {
+    mat.emissive.copy(mat.color).multiplyScalar(0.18);
+  }
+  return mat;
 }
 
 function addCube(c) {
   if (cubeMeshes.has(c.id)) return;
-  const mat = makeCubeMaterial(c.color || 'wood');
-  // Куб в safe zone подсвечиваем лёгкой эмиссией: видно, что его бить дороже
-  if (c.is_safe_zone) mat.emissive = new THREE.Color(0x1e3a8a);
+  const color = c.color || 'wood';
+  const mat = makeCubeMaterial(color, !!c.is_safe_zone);
   const mesh = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), mat);
   mesh.position.set(c.x, c.y + 0.5, c.z);
-  mesh.userData.cube = { ...c };
+  // Нормализуем поле: paintCube() читает c.color и не должен гадать про undefined
+  mesh.userData.cube = { ...c, color };
   scene.add(mesh);
   cubeMeshes.set(c.id, mesh);
   paintCube(mesh);
@@ -552,7 +573,7 @@ function addCube(c) {
 function paintCube(mesh) {
   const c = mesh.userData.cube;
   const ratio = c.max_hp > 0 ? Math.max(0, Math.min(1, c.hp / c.max_hp)) : 0;
-  const base = new THREE.Color(BLOCK_COLORS_HEX[c.color] || 0xffffff);
+  const base = new THREE.Color(BLOCK_COLORS_HEX[c.color] || BLOCK_COLORS_HEX.wood);
   const hurt = new THREE.Color(0x7f1d1d);
   mesh.material.color.copy(base).lerp(hurt, 1 - ratio);
 }
@@ -996,8 +1017,8 @@ renderer.domElement.addEventListener('pointerup', async (ev) => {
   if (mode === 'raid') return handleRaidTap();
 });
 
-// Новая логика постановки: тап по кубу ставит НА него (по нормали грани),
-// тап по земле — на y = 0. Это даёт стекинг без слайдеров высоты.
+// Тап по кубу ставит НА него (по нормали грани), тап по земле — на y = 0.
+// Это даёт стекинг без слайдеров высоты.
 async function handleBuildTap() {
   const cubeTargets = [...cubeMeshes.values()];
   const cubeHits = raycaster.intersectObjects(cubeTargets, false);
@@ -1016,7 +1037,6 @@ async function handleBuildTap() {
     y = Math.round(c.y + n.y);
     z = Math.round(c.z + n.z);
   } else {
-    // Промах по кубам — считаем точку на земле, y = 0
     if (!raycaster.ray.intersectPlane(plane, hitPoint)) return;
     x = Math.round(hitPoint.x);
     y = 0;
@@ -1134,4 +1154,4 @@ animate();
 })();
 </script>
 </body>
-</html>
+ </html>
