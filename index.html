@@ -332,7 +332,7 @@ function setFlagVisual(hp, maxHp) {
 const HINTS = {
   own: 'Тап по клетке — поставить куб · Свайп — повернуть камеру',
   visit: 'Чужой остров. Свайп — повернуть камеру',
-  raid: 'Тап по кубу — удар · ⚔️ Флаг — когда зона расчищена',
+  raid: 'Тап по кубу — удар · ⚔️ Флаг или тап по флагу — удар по Флагу',
 };
 
 function setMode(next) {
@@ -567,7 +567,8 @@ function raidGone(e) {
 
 async function attackCube(cube) {
   if (!raidId) return;
-  if (cube.is_safe_zone) { flash('Внутри безопасной зоны атака запрещена'); return; }
+  // Проверка safe zone убрана: сервер разрешает бить кубы в зоне, но у них
+  // ×3 прочности. Клиент не должен запрещать то, что разрешено бэкендом.
   if (attacking) return;
   attacking = true;
   try {
@@ -596,7 +597,8 @@ async function attackCube(cube) {
 
 async function attackFlag() {
   if (!raidId) return;
-  if (countSafeCubes() > 0) { flash('Сначала расчисти безопасную зону'); return; }
+  const safe = countSafeCubes();
+  if (safe > 0) { flash(`Флаг защищён: в зоне ещё ${safe} кубов`); return; }
   if (attacking) return;
   attacking = true;
   try {
@@ -691,11 +693,16 @@ async function handleOwnTap() {
 }
 
 async function handleRaidTap() {
-  const meshes = [...cubeMeshes.values()];
-  if (!meshes.length) return;
-  const hits = raycaster.intersectObjects(meshes, false);
+  // Пробуем попасть и по кубам, и по самому Флагу. Если ближайшая цель —
+  // элемент флага, вызываем attackFlag(): тап по 3D-флагу должен работать
+  // так же, как кнопка «⚔️ Флаг» внизу экрана.
+  const targets = [...cubeMeshes.values(), ...flagGroup.children];
+  const hits = raycaster.intersectObjects(targets, false);
   if (!hits.length) return;
-  await attackCube(hits[0].object.userData.cube);
+
+  const obj = hits[0].object;
+  if (flagGroup.children.includes(obj)) { await attackFlag(); return; }
+  await attackCube(obj.userData.cube);
 }
 
 // ---------- КНОПКИ ----------
