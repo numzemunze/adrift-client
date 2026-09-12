@@ -8,26 +8,49 @@
   * { margin:0; padding:0; box-sizing:border-box; }
   html,body { width:100%; height:100%; overflow:hidden; background:#0b1020; font-family:system-ui,-apple-system,sans-serif; color:#fff; }
   #app { position:fixed; inset:0; }
-  .bar { position:fixed; left:0; right:0; padding:10px 14px; display:flex; gap:12px; align-items:center; z-index:10; pointer-events:none; }
+  .bar { position:fixed; left:0; right:0; padding:10px 14px; display:flex; gap:8px; align-items:center; z-index:10; pointer-events:none; flex-wrap:wrap; }
   .bar * { pointer-events:auto; }
   #top { top:0; background:linear-gradient(180deg,rgba(11,16,32,.95),rgba(11,16,32,0)); }
-  #bottom { bottom:0; background:linear-gradient(0deg,rgba(11,16,32,.95),rgba(11,16,32,0)); justify-content:center; flex-wrap:wrap; }
+  #bottom-own, #bottom-visit, #bottom-raid { bottom:0; background:linear-gradient(0deg,rgba(11,16,32,.95),rgba(11,16,32,0)); justify-content:center; }
   .pill { background:rgba(255,255,255,.1); padding:6px 12px; border-radius:20px; font-size:14px; font-variant-numeric:tabular-nums; color:#fff; border:none; font-family:inherit; }
   .pill b { color:#7dd3fc; }
   .pill-btn { display:flex; gap:8px; align-items:center; cursor:pointer; transition:background .15s; }
   .pill-btn:active { background:rgba(255,255,255,.25); }
   .pill-btn.ready { background:#16a34a; }
   .pill-btn.ready b { color:#fff; }
-  .pill-btn.ready:active { background:#15803d; }
   #claim-hint { font-size:12px; opacity:.75; }
-  .pill-btn.ready #claim-hint { opacity:1; font-weight:600; }
-  button { background:rgba(255,255,255,.12); border:1px solid rgba(255,255,255,.2); color:#fff; padding:10px 14px; border-radius:10px; font-size:14px; cursor:pointer; }
+  #target-pill b { color:#fca5a5; }
+  button { background:rgba(255,255,255,.12); border:1px solid rgba(255,255,255,.2); color:#fff; padding:10px 14px; border-radius:10px; font-size:14px; cursor:pointer; font-family:inherit; }
   button:active { background:rgba(255,255,255,.25); }
   button.on { background:#2563eb; border-color:#3b82f6; }
-  #hint { position:fixed; left:0; right:0; bottom:70px; text-align:center; font-size:12px; color:rgba(255,255,255,.5); pointer-events:none; z-index:9; }
+  button.locked { opacity:.5; }
+  button.danger { background:#b91c1c; border-color:#ef4444; }
+  button.go { background:#15803d; border-color:#22c55e; }
+  #hint { position:fixed; left:0; right:0; bottom:66px; text-align:center; font-size:12px; color:rgba(255,255,255,.5); pointer-events:none; z-index:9; padding:0 12px; }
   #status { position:fixed; inset:0; display:flex; align-items:center; justify-content:center; text-align:center; padding:24px; background:#0b1020; z-index:100; font-size:16px; line-height:1.5; }
   #status.hidden { display:none; }
   #err { color:#fca5a5; font-size:13px; }
+
+  .screen { position:fixed; inset:0; background:#0b1020; z-index:50; display:flex; flex-direction:column; padding:14px; overflow-y:auto; }
+  .screen-head { display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; }
+  .screen-title { font-size:20px; font-weight:700; }
+  .island-row { display:flex; flex-direction:column; gap:4px; width:100%; text-align:left; background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.1); border-radius:12px; padding:12px 14px; margin-bottom:8px; }
+  .island-row:active { background:rgba(255,255,255,.16); }
+  .island-row.locked { opacity:.55; }
+  .island-name { font-size:16px; font-weight:600; }
+  .island-meta { font-size:13px; color:rgba(255,255,255,.7); }
+  .island-badge { font-size:12px; color:#fca5a5; }
+  .screen-note { text-align:center; color:rgba(255,255,255,.5); padding:32px 16px; }
+
+  #loot-screen { align-items:center; justify-content:center; }
+  .loot-card { background:#111a33; border:1px solid rgba(255,255,255,.15); border-radius:18px; padding:28px 24px; text-align:center; max-width:340px; width:100%; }
+  .loot-emoji { font-size:48px; margin-bottom:8px; }
+  .loot-title { font-size:20px; font-weight:700; margin-bottom:16px; }
+  .loot-row { font-size:15px; color:rgba(255,255,255,.8); margin-bottom:8px; }
+  .loot-row b { color:#7dd3fc; font-size:18px; }
+  .loot-card button { width:100%; margin-top:16px; }
+
+  .hidden { display:none !important; }
 </style>
 </head>
 <body>
@@ -40,15 +63,48 @@
   </button>
   <div class="pill">🧱 <b id="cubes">—</b></div>
   <div class="pill">🚩 <b id="flag">—</b></div>
+  <div class="pill hidden" id="target-pill">👁 <b id="target-name">—</b></div>
 </div>
 
-<div id="hint">Тап по клетке — поставить куб · Свайп — повернуть камеру</div>
+<div id="hint">Загрузка…</div>
 
-<div class="bar" id="bottom">
+<div class="bar" id="bottom-own">
   <button data-type="floor">Пол · 10</button>
   <button data-type="wall" class="on">Стена · 25</button>
   <button data-type="tower">Башня · 80</button>
+  <button id="btn-world">🌍 Мир</button>
   <button id="reload">↻</button>
+</div>
+
+<div class="bar" id="bottom-visit">
+  <button id="btn-back">↩ Назад</button>
+  <button id="btn-raid" class="danger">⚔️ Рейд</button>
+</div>
+
+<div class="bar" id="bottom-raid">
+  <button class="charge" data-charge="1">1 · 10⚡</button>
+  <button class="charge on" data-charge="2">2 · 25⚡</button>
+  <button class="charge" data-charge="3">3 · 60⚡</button>
+  <button id="btn-flag" class="danger">⚔️ Флаг</button>
+  <button id="btn-leave">🏳 Выйти</button>
+</div>
+
+<div class="screen hidden" id="world-screen">
+  <div class="screen-head">
+    <div class="screen-title">🌍 Мир</div>
+    <button id="world-close">✕</button>
+  </div>
+  <div id="world-list"></div>
+</div>
+
+<div class="screen hidden" id="loot-screen">
+  <div class="loot-card">
+    <div class="loot-emoji">🏆</div>
+    <div class="loot-title">Флаг разрушен!</div>
+    <div class="loot-row">Украдено Эфира: <b id="loot-stolen">0</b></div>
+    <div class="loot-row">Твой баланс: <b id="loot-balance">0</b></div>
+    <button id="loot-ok" class="go">Вернуться на свой остров</button>
+  </div>
 </div>
 
 <div id="status">Загрузка...<br><span id="err"></span></div>
@@ -70,13 +126,35 @@ const SUPABASE_ANON_KEY = 'sb_publishable_pT2H1bpnu_fcBbevfvfOoQ_AhzZLQjH';
 const API_URL = 'https://adrift-backend-ys3i.onrender.com';
 // ===================================
 
+// Уровни заряда. Должны совпадать с CHARGE_LEVELS в raids.py — сервер считает
+// урон сам, это лишь подсказка для интерфейса.
+const CHARGE = { 1: { cost: 10, damage: 25 }, 2: { cost: 25, damage: 75 }, 3: { cost: 60, damage: 200 } };
+
 const $ = (id) => document.getElementById(id);
 const statusEl = $('status'), errEl = $('err');
 const fail = (msg) => { statusEl.classList.remove('hidden'); statusEl.firstChild.textContent = msg; };
 const ok = () => statusEl.classList.add('hidden');
 
+const uid = () => (crypto.randomUUID ? crypto.randomUUID() : String(Date.now()) + Math.random().toString(16).slice(2));
+
+const fmtTime = (s) => {
+  s = Math.max(0, Math.floor(s));
+  const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), sec = s % 60;
+  if (h > 0) return h + 'ч ' + m + 'м';
+  if (m > 0) return m + ':' + String(sec).padStart(2, '0');
+  return '0:' + String(sec).padStart(2, '0');
+};
+
+// ---------- СОСТОЯНИЕ ----------
 let token = null, myId = null;
+let mode = 'own';              // 'own' | 'visit' | 'raid'
 let selectedType = 'wall';
+let selectedCharge = 2;
+let raidId = null;
+let targetUser = null;         // { user_id, username }
+let targetFlag = null;         // { hp, max_hp } чужого Флага
+let attacking = false;
+let econ = { accrued_now: 0, seconds_to_next: 0, ether_balance: 0 };
 
 // ---------- АВТОРИЗАЦИЯ ----------
 async function signIn() {
@@ -98,8 +176,7 @@ async function signIn() {
 }
 
 function clearSession() {
-  token = null;
-  myId = null;
+  token = null; myId = null;
   localStorage.removeItem('adrift_token');
   localStorage.removeItem('adrift_id');
 }
@@ -118,6 +195,7 @@ async function api(path, options = {}) {
   if (!res.ok) {
     const err = new Error(body?.error?.message || res.statusText);
     err.code = body?.error?.code || ('HTTP_' + res.status);
+    err.details = body?.error?.details;
     throw err;
   }
   return body;
@@ -128,21 +206,11 @@ const AUTH_ERRORS = ['TOKEN_EXPIRED', 'TOKEN_INVALID', 'TOKEN_MISSING', 'UNAUTHO
 async function auth() {
   const saved = localStorage.getItem('adrift_token');
   const savedId = localStorage.getItem('adrift_id');
-
-  // Токен живёт час. Если сохранённый протух — молча логинимся заново,
-  // игрок не должен видеть «сессия истекла» и чистить браузер руками.
   if (saved && savedId) {
-    token = saved;
-    myId = savedId;
-    try {
-      await api('/api/v1/build/catalog');
-      return;
-    } catch (e) {
-      if (!AUTH_ERRORS.includes(e.code)) throw e;
-      clearSession();
-    }
+    token = saved; myId = savedId;
+    try { await api('/api/v1/build/catalog'); return; }
+    catch (e) { if (!AUTH_ERRORS.includes(e.code)) throw e; clearSession(); }
   }
-
   fail('Вход в игру...');
   await signIn();
 }
@@ -197,6 +265,7 @@ banner.position.set(0.8, 3.3, 0);
 flagGroup.add(pole, banner);
 scene.add(flagGroup);
 
+// ---------- КУБЫ ----------
 const cubeMeshes = new Map();
 const CUBE_COLORS = { floor: 0x6b7280, wall: 0xa8a29e, tower: 0x78716c };
 
@@ -208,14 +277,77 @@ function addCube(c) {
   });
   const mesh = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), mat);
   mesh.position.set(c.x, c.y + 0.5, c.z);
-  mesh.userData.cube = c;
+  mesh.userData.cube = { ...c };
   scene.add(mesh);
   cubeMeshes.set(c.id, mesh);
+  paintCube(mesh);
+}
+
+// Цвет куба отражает остаток HP: целый — базовый, разбитый — тёмно-красный.
+function paintCube(mesh) {
+  const c = mesh.userData.cube;
+  const ratio = c.max_hp > 0 ? Math.max(0, Math.min(1, c.hp / c.max_hp)) : 0;
+  const base = new THREE.Color(CUBE_COLORS[c.cube_type] || 0x999999);
+  const hurt = new THREE.Color(0x7f1d1d);
+  mesh.material.color.copy(base).lerp(hurt, 1 - ratio);
+}
+
+function updateCubeHp(id, hp) {
+  const mesh = cubeMeshes.get(id);
+  if (!mesh) return;
+  mesh.userData.cube.hp = hp;
+  paintCube(mesh);
+}
+
+function removeCube(id) {
+  const mesh = cubeMeshes.get(id);
+  if (!mesh) return;
+  scene.remove(mesh);
+  mesh.geometry.dispose();
+  mesh.material.dispose();
+  cubeMeshes.delete(id);
 }
 
 function resetCubes() {
-  for (const m of cubeMeshes.values()) scene.remove(m);
-  cubeMeshes.clear();
+  for (const id of [...cubeMeshes.keys()]) removeCube(id);
+}
+
+function countSafeCubes() {
+  let n = 0;
+  for (const m of cubeMeshes.values()) if (m.userData.cube.is_safe_zone) n++;
+  return n;
+}
+
+function refreshCounters() {
+  $('cubes').textContent = cubeMeshes.size;
+}
+
+function setFlagVisual(hp, maxHp) {
+  const ratio = maxHp > 0 ? Math.max(0, Math.min(1, hp / maxHp)) : 0;
+  banner.material.color.copy(new THREE.Color(0xef4444)).lerp(new THREE.Color(0x16a34a), ratio);
+  $('flag').textContent = Math.max(0, hp) + ' / ' + maxHp;
+}
+
+// ---------- РЕЖИМЫ ----------
+const HINTS = {
+  own: 'Тап по клетке — поставить куб · Свайп — повернуть камеру',
+  visit: 'Чужой остров. Свайп — повернуть камеру',
+  raid: 'Тап по кубу — удар · ⚔️ Флаг — когда зона расчищена',
+};
+
+function setMode(next) {
+  mode = next;
+  $('bottom-own').classList.toggle('hidden', mode !== 'own');
+  $('bottom-visit').classList.toggle('hidden', mode !== 'visit');
+  $('bottom-raid').classList.toggle('hidden', mode !== 'raid');
+  $('target-pill').classList.toggle('hidden', mode === 'own');
+  $('hint').textContent = HINTS[mode];
+}
+
+function showScreen(id) { $(id).classList.remove('hidden'); }
+function hideScreens() {
+  $('world-screen').classList.add('hidden');
+  $('loot-screen').classList.add('hidden');
 }
 
 // ---------- ВСПЛЫВАЮЩАЯ ПОДСКАЗКА ----------
@@ -225,41 +357,46 @@ function flash(msg) {
   statusEl.firstChild.textContent = '';
   statusEl.classList.remove('hidden');
   clearTimeout(flashTimer);
-  flashTimer = setTimeout(ok, 1400);
+  flashTimer = setTimeout(ok, 1600);
 }
 
-// ---------- ЗАГРУЗКА ОСТРОВА ----------
-async function loadIsland() {
+// ---------- СВОЙ ОСТРОВ ----------
+async function loadOwnIsland() {
   const data = await api(`/api/v1/islands/${myId}`);
   resetCubes();
   data.cubes.forEach(addCube);
-  $('cubes').textContent = data.island.cube_count;
-  $('flag').textContent = data.flag.hp + ' / ' + data.flag.max_hp;
-  return data;
+  refreshCounters();
+  setFlagVisual(data.flag.hp, data.flag.max_hp);
 }
 
 async function loadMe() {
   const me = await api('/api/v1/me');
   $('ether').textContent = me.ether_balance;
-  return me;
+  econ.ether_balance = me.ether_balance;
 }
 
-// ---------- ЭКОНОМИКА: пассивный Эфир ----------
-let econ = { accrued_now: 0, seconds_to_next: 0, ether_balance: 0 };
+async function returnHome() {
+  targetUser = null; targetFlag = null; raidId = null;
+  hideScreens();
+  setMode('own');
+  $('target-name').textContent = '—';
+  fail('Возвращаемся...');
+  try {
+    await loadOwnIsland();
+    await loadMe();
+    await loadEconomy();
+  } finally { ok(); }
+}
 
+// ---------- ЭКОНОМИКА ----------
 function renderEconomy() {
-  const btn = $('claim-btn');
-  const hint = $('claim-hint');
-
+  const btn = $('claim-btn'), hint = $('claim-hint');
   if (econ.accrued_now >= 1) {
     btn.classList.add('ready');
     hint.textContent = '+' + econ.accrued_now;
   } else {
     btn.classList.remove('ready');
-    const s = Math.max(0, econ.seconds_to_next);
-    const m = Math.floor(s / 60);
-    const sec = s % 60;
-    hint.textContent = m + ':' + String(sec).padStart(2, '0');
+    hint.textContent = fmtTime(econ.seconds_to_next);
   }
 }
 
@@ -268,13 +405,11 @@ async function loadEconomy() {
     econ = await api('/api/v1/economy/rates');
     $('ether').textContent = econ.ether_balance;
     renderEconomy();
-  } catch (e) {
-    // Экономика не критична для отрисовки острова — молча ждём следующего тика
-  }
+  } catch (e) { /* не критично для отрисовки */ }
 }
 
 async function claimEther() {
-  if (econ.accrued_now < 1) return;   // не дёргаем сервер зря, пока нечего брать
+  if (econ.accrued_now < 1) return;
   try {
     const res = await api('/api/v1/economy/claim', { method: 'POST' });
     $('ether').textContent = res.ether_balance;
@@ -286,28 +421,225 @@ async function claimEther() {
   }
 }
 
-// Локальный тик: секунды убывают без обращения к серверу, иначе на каждый
-// кадр таймера улетал бы HTTP-запрос. Полный перезапрос — раз в 30 секунд.
 setInterval(() => {
   if (econ.accrued_now >= 1) return;
-  if (econ.seconds_to_next > 0) {
-    econ.seconds_to_next -= 1;
-    renderEconomy();
-  } else {
-    loadEconomy();
-  }
+  if (econ.seconds_to_next > 0) { econ.seconds_to_next -= 1; renderEconomy(); }
+  else loadEconomy();
 }, 1000);
-
 setInterval(loadEconomy, 30000);
 
-// ---------- ПОСТРОЙКА ----------
+// ---------- МИР: СПИСОК ОСТРОВОВ ----------
+function blockLabel(isl) {
+  switch (isl.raid_block_reason) {
+    case 'TARGET_SHIELDED': return '🛡 щит ' + fmtTime(isl.shield_seconds_left);
+    case 'COOLDOWN_ACTIVE': return '⏳ кулдаун ' + fmtTime(isl.cooldown_seconds_left);
+    case 'TARGET_IS_SELF': return 'это твой остров';
+    default: return isl.raid_block_reason || '';
+  }
+}
+
+function makeIslandRow(isl) {
+  const row = document.createElement('button');
+  row.className = 'island-row' + (isl.can_raid ? '' : ' locked');
+
+  const name = document.createElement('div');
+  name.className = 'island-name';
+  name.textContent = isl.username;
+
+  const meta = document.createElement('div');
+  meta.className = 'island-meta';
+  meta.textContent = `🧱 ${isl.cube_count} · ⚡ ${isl.potential_loot} · 🚩 ${isl.flag_hp}`;
+
+  row.append(name, meta);
+
+  if (!isl.can_raid) {
+    const badge = document.createElement('div');
+    badge.className = 'island-badge';
+    badge.textContent = blockLabel(isl);
+    row.appendChild(badge);
+  }
+
+  row.addEventListener('click', () => visitIsland(isl.user_id, isl.username));
+  return row;
+}
+
+async function openWorld() {
+  showScreen('world-screen');
+  const list = $('world-list');
+  list.innerHTML = '';
+  const note = document.createElement('div');
+  note.className = 'screen-note';
+  note.textContent = 'Загрузка...';
+  list.appendChild(note);
+
+  try {
+    const data = await api('/api/v1/islands?limit=50');
+    list.innerHTML = '';
+    if (!data.islands.length) {
+      const empty = document.createElement('div');
+      empty.className = 'screen-note';
+      empty.textContent = 'Пока никого нет в твоём регионе';
+      list.appendChild(empty);
+      return;
+    }
+    for (const isl of data.islands) list.appendChild(makeIslandRow(isl));
+  } catch (e) {
+    list.innerHTML = '';
+    const err = document.createElement('div');
+    err.className = 'screen-note';
+    err.textContent = 'Ошибка: ' + e.message;
+    list.appendChild(err);
+  }
+}
+
+// ---------- ВИЗИТ НА ЧУЖОЙ ОСТРОВ ----------
+async function visitIsland(userId, username) {
+  hideScreens();
+  fail('Загрузка острова ' + username + '...');
+  try {
+    const detail = await api(`/api/v1/islands/${userId}`);
+    targetUser = { user_id: userId, username };
+    targetFlag = { hp: detail.flag.hp, max_hp: detail.flag.max_hp };
+
+    resetCubes();
+    detail.cubes.forEach(addCube);
+    refreshCounters();
+    setFlagVisual(detail.flag.hp, detail.flag.max_hp);
+    $('target-name').textContent = username;
+
+    setMode('visit');
+    ok();
+  } catch (e) {
+    ok();
+    flash(e.message);
+  }
+}
+
+// ---------- РЕЙД ----------
+async function startRaid() {
+  if (!targetUser) return;
+  fail('Начинаем рейд...');
+  try {
+    const res = await api(`/api/v1/raids/${targetUser.user_id}/start`, { method: 'POST' });
+    raidId = res.raid_id;
+    $('ether').textContent = res.ether_balance;
+    econ.ether_balance = res.ether_balance;
+
+    // Перечитываем остров: с момента визита он мог измениться
+    const detail = await api(`/api/v1/islands/${targetUser.user_id}`);
+    resetCubes();
+    detail.cubes.forEach(addCube);
+    refreshCounters();
+    targetFlag = { hp: detail.flag.hp, max_hp: detail.flag.max_hp };
+    setFlagVisual(detail.flag.hp, detail.flag.max_hp);
+
+    setMode('raid');
+    updateFlagButton();
+    ok();
+    flash('Рейд начался!');
+  } catch (e) {
+    ok();
+    flash(e.message);
+  }
+}
+
+function updateFlagButton() {
+  const btn = $('btn-flag');
+  const safe = countSafeCubes();
+  if (safe > 0) {
+    btn.textContent = `🔒 ${safe}`;
+    btn.classList.add('locked');
+  } else {
+    btn.textContent = '⚔️ Флаг';
+    btn.classList.remove('locked');
+  }
+}
+
+function raidGone(e) {
+  if (e.code === 'RAID_NOT_FOUND' || e.code === 'RAID_ALREADY_FINISHED') {
+    flash('Рейд завершён');
+    raidId = null;
+    setTimeout(returnHome, 1200);
+    return true;
+  }
+  return false;
+}
+
+async function attackCube(cube) {
+  if (!raidId) return;
+  if (cube.is_safe_zone) { flash('Внутри безопасной зоны атака запрещена'); return; }
+  if (attacking) return;
+  attacking = true;
+  try {
+    const res = await api(`/api/v1/raids/${raidId}/attack-cube`, {
+      method: 'POST',
+      headers: { 'Idempotency-Key': uid() },
+      body: JSON.stringify({ cube_id: cube.id, charge: selectedCharge }),
+    });
+
+    $('ether').textContent = res.ether_balance;
+    econ.ether_balance = res.ether_balance;
+
+    if (res.cube.destroyed) removeCube(res.cube.id);
+    else updateCubeHp(res.cube.id, res.cube.hp);
+
+    for (const c of res.collapsed) removeCube(c.id);
+
+    refreshCounters();
+    updateFlagButton();
+  } catch (e) {
+    if (!raidGone(e)) flash(e.message);
+  } finally {
+    attacking = false;
+  }
+}
+
+async function attackFlag() {
+  if (!raidId) return;
+  if (countSafeCubes() > 0) { flash('Сначала расчисти безопасную зону'); return; }
+  if (attacking) return;
+  attacking = true;
+  try {
+    const res = await api(`/api/v1/raids/${raidId}/attack-flag`, {
+      method: 'POST',
+      headers: { 'Idempotency-Key': uid() },
+    });
+
+    $('ether').textContent = res.ether_balance;
+    econ.ether_balance = res.ether_balance;
+    setFlagVisual(res.flag_hp, res.flag_max_hp);
+
+    if (res.flag_destroyed && res.loot) {
+      raidId = null;
+      $('loot-stolen').textContent = res.loot.stolen_ether;
+      $('loot-balance').textContent = res.loot.attacker_balance;
+      showScreen('loot-screen');
+    } else {
+      flash('−' + res.damage + ' Флагу');
+    }
+  } catch (e) {
+    if (!raidGone(e)) flash(e.message);
+  } finally {
+    attacking = false;
+  }
+}
+
+async function leaveRaid() {
+  if (raidId) {
+    try { await api(`/api/v1/raids/${raidId}/finish`, { method: 'POST' }); }
+    catch (e) { /* рейд мог истечь сам — не мешаем выйти */ }
+  }
+  await returnHome();
+}
+
+// ---------- ТАПЫ ПО ЭКРАНУ ----------
 const raycaster = new THREE.Raycaster();
 const pointer = new THREE.Vector2();
 const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
 const hit = new THREE.Vector3();
 
 // Тап отличается от свайпа: запоминаем точку касания на pointerdown и
-// строим только на pointerup, если палец почти не сдвинулся. Без этого
+// действуем только на pointerup, если палец почти не сдвинулся. Без этого
 // вращение камеры ставило кубы под пальцем — вся карта в мусоре.
 let pointerStart = null;
 const TAP_MAX_MOVE = 8;
@@ -327,14 +659,19 @@ renderer.domElement.addEventListener('pointerup', async (ev) => {
   const elapsed = performance.now() - pointerStart.t;
   pointerStart = null;
 
-  // Это был свайп камеры, а не тап по клетке — молча выходим
   if (moved > TAP_MAX_MOVE || elapsed > TAP_MAX_TIME) return;
+  if (statusEl.classList.contains('hidden') === false) return;   // идёт загрузка/ошибка
 
   pointer.x = (ev.clientX / innerWidth) * 2 - 1;
   pointer.y = -(ev.clientY / innerHeight) * 2 + 1;
   raycaster.setFromCamera(pointer, camera);
-  if (!raycaster.ray.intersectPlane(plane, hit)) return;
 
+  if (mode === 'own') return handleOwnTap();
+  if (mode === 'raid') return handleRaidTap();
+});
+
+async function handleOwnTap() {
+  if (!raycaster.ray.intersectPlane(plane, hit)) return;
   const x = Math.round(hit.x), z = Math.round(hit.z);
   if (Math.abs(x) > 32 || Math.abs(z) > 32) return;
   if (x === 0 && z === 0) { flash('Клетка Флага зарезервирована'); return; }
@@ -346,23 +683,47 @@ renderer.domElement.addEventListener('pointerup', async (ev) => {
     });
     addCube(res.cube);
     $('ether').textContent = res.ether_balance;
-    $('cubes').textContent = res.island_cube_count;
     econ.ether_balance = res.ether_balance;
+    $('cubes').textContent = res.island_cube_count;
   } catch (e) {
     flash(e.message);
   }
-});
+}
 
-document.querySelectorAll('#bottom button[data-type]').forEach(btn => {
+async function handleRaidTap() {
+  const meshes = [...cubeMeshes.values()];
+  if (!meshes.length) return;
+  const hits = raycaster.intersectObjects(meshes, false);
+  if (!hits.length) return;
+  await attackCube(hits[0].object.userData.cube);
+}
+
+// ---------- КНОПКИ ----------
+document.querySelectorAll('#bottom-own button[data-type]').forEach(btn => {
   btn.addEventListener('click', () => {
-    document.querySelectorAll('#bottom button[data-type]').forEach(b => b.classList.remove('on'));
+    document.querySelectorAll('#bottom-own button[data-type]').forEach(b => b.classList.remove('on'));
     btn.classList.add('on');
     selectedType = btn.dataset.type;
   });
 });
 
+document.querySelectorAll('#bottom-raid .charge').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('#bottom-raid .charge').forEach(b => b.classList.remove('on'));
+    btn.classList.add('on');
+    selectedCharge = parseInt(btn.dataset.charge, 10);
+  });
+});
+
 $('claim-btn').addEventListener('click', claimEther);
-$('reload').addEventListener('click', () => loadIsland().catch(e => flash(e.message)));
+$('reload').addEventListener('click', () => loadOwnIsland().catch(e => flash(e.message)));
+$('btn-world').addEventListener('click', openWorld);
+$('world-close').addEventListener('click', hideScreens);
+$('btn-back').addEventListener('click', returnHome);
+$('btn-raid').addEventListener('click', startRaid);
+$('btn-flag').addEventListener('click', attackFlag);
+$('btn-leave').addEventListener('click', leaveRaid);
+$('loot-ok').addEventListener('click', returnHome);
 
 // ---------- ЦИКЛ ----------
 addEventListener('resize', () => {
@@ -384,9 +745,10 @@ animate();
   try {
     await auth();
     fail('Загрузка острова...');
-    await loadIsland();
+    await loadOwnIsland();
     await loadMe();
     await loadEconomy();
+    setMode('own');
     ok();
   } catch (e) {
     fail('Ошибка: ' + e.message);
