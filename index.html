@@ -23,6 +23,7 @@
   .pill-btn:active { background:rgba(255,255,255,.22); }
   .pill-btn.ready { background:#16a34a; border-color:#22c55e; }
   .pill-btn.ready b { color:#fff; }
+  .pill-btn.alert { background:#b45309; border-color:#f59e0b; }
   #claim-hint { font-size:12px; opacity:.8; }
   #target-pill b { color:#fca5a5; }
 
@@ -37,12 +38,20 @@
   button:active { transform:scale(.94); background:rgba(255,255,255,.22); }
   button.on { background:linear-gradient(180deg,#3b82f6,#2563eb); border-color:#60a5fa; }
   button.locked { opacity:.5; }
+  button:disabled { opacity:.45; }
   button.danger { background:linear-gradient(180deg,#dc2626,#b91c1c); border-color:#ef4444; }
   button.go { background:linear-gradient(180deg,#22c55e,#15803d); border-color:#4ade80; }
   button.demolish-on { background:linear-gradient(180deg,#dc2626,#7f1d1d); border-color:#ef4444; }
   button.primary { background:linear-gradient(180deg,#3b82f6,#1d4ed8); border-color:#60a5fa; font-weight:600; }
-  button.icon { padding:11px 13px; }
+  button.icon { padding:10px 12px; }
   button.rot-on { background:linear-gradient(180deg,#3b82f6,#2563eb); border-color:#60a5fa; }
+
+  .swatch {
+    display:block; width:22px; height:22px; border-radius:6px;
+    border:2px solid rgba(255,255,255,.5);
+    box-shadow: inset 0 1px 3px rgba(0,0,0,.4);
+    transition: background .15s ease;
+  }
 
   #toast {
     position:fixed; top:64px; left:50%; transform:translateX(-50%) translateY(-8px);
@@ -56,6 +65,7 @@
   #toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
   #toast.error { background:rgba(127,29,29,.96); border-color:rgba(239,68,68,.5); }
   #toast.tip { background:rgba(21,128,61,.96); border-color:rgba(74,222,128,.5); }
+  #toast.warn { background:rgba(120,53,15,.96); border-color:rgba(245,158,11,.55); }
 
   #price-tag {
     position:fixed; top:0; left:0;
@@ -100,10 +110,9 @@
   .onboard-step b { color:#7dd3fc; }
   .onboard-card button { width:100%; margin-top:6px; }
 
-  /* Совет Буя: фон прозрачный сверху, чтобы видеть самого миньона,
-     которого в этот момент подсвечивает камера. Карточка выезжает снизу. */
+  /* Карточка совета: фон прозрачный, чтобы видеть Буя, которого подсветила камера */
   #tip-screen {
-    background:linear-gradient(0deg, rgba(11,16,32,.94) 0%, rgba(11,16,32,.55) 42%, rgba(11,16,32,0) 100%);
+    background:linear-gradient(0deg, rgba(11,16,32,.95) 0%, rgba(11,16,32,.55) 45%, rgba(11,16,32,0) 100%);
     justify-content:flex-end;
     align-items:center;
     padding-bottom:36px;
@@ -118,9 +127,16 @@
     box-shadow:0 14px 44px rgba(0,0,0,.6);
   }
   .tip-head { display:flex; align-items:center; gap:10px; margin-bottom:10px; }
-  .tip-dot { width:10px; height:10px; border-radius:50%; background:#7dd3fc; box-shadow:0 0 10px #7dd3fc; }
+  .tip-dot { width:10px; height:10px; border-radius:50%; background:#7dd3fc; box-shadow:0 0 10px #7dd3fc; animation: tipPulse 1.6s ease-in-out infinite; }
+  @keyframes tipPulse { 0%,100% { transform:scale(1); opacity:1; } 50% { transform:scale(1.35); opacity:.6; } }
   .tip-title { font-size:15px; font-weight:700; color:#7dd3fc; letter-spacing:.3px; }
-  .tip-text { font-size:15px; line-height:1.5; color:rgba(255,255,255,.94); margin-bottom:16px; }
+  .tip-text { font-size:15px; line-height:1.5; color:rgba(255,255,255,.94); margin-bottom:16px; min-height:44px; }
+  .tip-word { display:inline-block; white-space:nowrap; }
+  .tip-char { display:inline-block; opacity:0; animation: tipChar .32s ease-out forwards; }
+  @keyframes tipChar {
+    from { opacity:0; transform: translateY(7px) scale(.9); }
+    to   { opacity:1; transform: none; }
+  }
   .tip-card button { width:100%; }
 
   #palette, #block-palette, #size-palette {
@@ -165,11 +181,11 @@
   <button id="btn-build" class="primary icon" title="Build">🔨</button>
   <button id="btn-size" class="hidden">📐 <span id="size-label">1×1</span></button>
   <button id="btn-rotate" class="hidden icon" title="Rotate">↔️</button>
-  <button id="btn-block-color" class="hidden icon">🟫</button>
-  <button id="btn-palette" class="hidden icon">🎨</button>
-  <button id="btn-demolish" class="hidden icon">🗑</button>
-  <button id="btn-world" class="icon">🌍</button>
-  <button id="reload" class="icon">↻</button>
+  <button id="btn-block-color" class="hidden icon" title="Block color"><span class="swatch" id="swatch-block"></span></button>
+  <button id="btn-palette" class="hidden icon" title="Flag color">🎨</button>
+  <button id="btn-demolish" class="hidden icon" title="Demolish">🗑</button>
+  <button id="btn-world" class="icon" title="World">🌍</button>
+  <button id="reload" class="icon" title="Reload">↻</button>
 </div>
 
 <div class="bar hidden" id="bottom-visit">
@@ -222,7 +238,7 @@
   <div class="tip-card">
     <div class="tip-head">
       <div class="tip-dot"></div>
-      <div class="tip-title" data-i18n="tipTitle">Буй говорит</div>
+      <div class="tip-title" id="tip-title" data-i18n="tipTitle">Буй говорит</div>
     </div>
     <div class="tip-text" id="tip-text"></div>
     <button id="tip-ok" class="go" data-i18n="tipOk">Ок</button>
@@ -268,6 +284,14 @@ const BLOCK_SIZES = [
   { key: '3x1x3', sx: 3, sy: 1, sz: 3, label: '3×3' },
 ];
 
+// ---------------------------------------------------------------------------
+// ТЕКСТЫ.
+// Совет Буя это ЗАХАРДКОЖЕННАЯ строка, не генерация и не запрос к серверу.
+// Плюс: невозможно случайно соврать или дать совет про несуществующую механику.
+// Минус: при каждом патче тексты правятся руками. Ниже они приведены в
+// соответствие текущей сборке. Тире не используем, только точки и запятые.
+// cond: когда совет уместен. always | noCubes | hasCubes | alert
+// ---------------------------------------------------------------------------
 const I18N = {
   ru: {
     flagColor: 'Цвет флага', blockColor: 'Цвет блока', sizeTitle: 'Размер блока',
@@ -275,12 +299,15 @@ const I18N = {
     lootTitle: 'Флаг разрушен!', lootStolen: 'Украдено:', lootBalance: 'Баланс:',
     returnHome: 'Вернуться',
     tipTitle: 'Буй говорит', tipOk: 'Ок',
-    minionPanic: 'Буй в панике! Ему не до разговоров',
+    minionPanic: 'Буй в панике. Сейчас ему не до разговоров.',
+    minionThinking: 'Буй думает…',
+    raidAlertTitle: 'Внимание',
+    raidAlertToast: 'На твой остров открыт рейд. Проверь Флаг.',
     onboardTitle: 'Добро пожаловать в ADRIFT',
-    onboard1: '<b>1.</b> Ты уже в режиме стройки. Наведи камеру — увидишь полупрозрачный блок там, куда встанет куб.',
-    onboard2: '<b>2.</b> Зелёный — можно ставить, красный — нельзя. <b>📐</b> — размер, <b>↔️</b> — поворот, <b>🟫</b> — цвет.',
-    onboard3: '<b>3.</b> <b>⚡</b> вверху — забери накопленный Эфир. <b>🎨</b> — цвет флага.',
-    onboard4: '<b>4.</b> Тапни по Буйку — он даст совет. <b>🌍</b> — сходи в гости или в рейд.',
+    onboard1: '<b>1.</b> Ты уже в режиме стройки. Наведи камеру, увидишь полупрозрачный блок там, куда встанет куб.',
+    onboard2: '<b>2.</b> Зелёный значит можно ставить, красный значит нельзя. <b>📐</b> размер, <b>↔️</b> поворот, квадратик рядом меняет цвет блока.',
+    onboard3: '<b>3.</b> <b>⚡</b> вверху, забери накопленный Эфир. <b>🎨</b> меняет цвет флага.',
+    onboard4: '<b>4.</b> Тапни по Буйку, он даст совет. <b>🌍</b> откроет список соседей.',
     onboardOk: 'Понятно, играем',
     loading: 'Загрузка...', login: 'Вход...', returning: 'Возвращаемся...',
     islandLoading: 'Загрузка острова',
@@ -298,15 +325,25 @@ const I18N = {
     noEther: 'Не хватает Эфира',
     outOfBounds: 'За границей острова',
     tips: [
-      'Тапни по верхней грани блока — новый куб встанет сверху',
-      'Кнопка 📐 меняет размер: 3×3 строит быстрее, но дороже',
-      '🎨 — цвет твоего флага. Его увидят все, кто зайдёт к тебе',
-      'Во время рейда тапни по чужому кубу, чтобы разбить его',
-      'Эфир капает сам — заглядывай в ⚡ раз в час',
-      'Снеси блок кнопкой 🗑 — вернётся половина Эфира',
-      'Стены вокруг Флага защищают его от рейдеров',
-      '🌍 Мир — сходи в гости к соседу или в рейд',
-      'Флаг бить нельзя, пока в зоне есть хоть один куб',
+      { text: 'Наведи камеру на клетку и тапни по экрану. Там появится куб.', cond: 'always' },
+      { text: 'Кнопка 📐 меняет размер блока. Большие блоки стоят дороже.', cond: 'always' },
+      { text: 'Тапни по верхней грани куба, и новый встанет сверху. Так строят башни.', cond: 'always' },
+      { text: 'Кнопка 🗑 сносит куб. Половина Эфира вернётся в кошелёк.', cond: 'hasCubes' },
+      { text: 'Эфир капает сам, примерно десять в час. Следи за кнопкой ⚡.', cond: 'always' },
+      { text: '🎨 меняет цвет флага. Его увидят все, кто зайдёт к тебе.', cond: 'always' },
+      { text: 'Стены вокруг Флага мешают рейдерам подойти. Ставь их плотнее.', cond: 'hasCubes' },
+      { text: 'Кнопка 🌍 открывает список соседей. Можно зайти в гости или начать рейд.', cond: 'always' },
+      { text: 'В рейде тапай по чужим кубам. Когда зона у Флага опустеет, откроется сам Флаг.', cond: 'always' },
+      { text: 'Флаг не пробить, пока рядом с ним стоит хотя бы один куб.', cond: 'hasCubes' },
+      { text: 'Сначала стены, потом башни. Башня без защиты сгорит быстро.', cond: 'always' },
+      { text: 'Квадратик рядом с 📐 меняет цвет блока. Красный видно издалека.', cond: 'always' },
+      { text: 'Заглядывай в ⚡ раз в час. Накопленное можно забрать одним тапом.', cond: 'always' },
+      { text: 'Ставь блоки плотнее к Флагу, там их сложнее разбить.', cond: 'hasCubes' },
+    ],
+    alertTips: [
+      { text: 'На твой остров открыт рейд. Посмотри, с какой стороны подходят, и дострой стену.', cond: 'alert' },
+      { text: 'Кто-то точит зуб на твой Флаг. Загляни в 🌍 и проверь соседей.', cond: 'alert' },
+      { text: 'Рейд уже идёт. Укрепи зону вокруг Флага, пока не поздно.', cond: 'alert' },
     ],
   },
   en: {
@@ -315,12 +352,15 @@ const I18N = {
     lootTitle: 'Flag destroyed!', lootStolen: 'Stolen:', lootBalance: 'Balance:',
     returnHome: 'Return',
     tipTitle: 'Buoy says', tipOk: 'OK',
-    minionPanic: 'Buoy is panicking! Not the time for chat',
+    minionPanic: 'Buoy is panicking. No time for a chat.',
+    minionThinking: 'Buoy is thinking…',
+    raidAlertTitle: 'Attention',
+    raidAlertToast: 'A raid is open against your island. Check your Flag.',
     onboardTitle: 'Welcome to ADRIFT',
-    onboard1: '<b>1.</b> You are already in build mode. Aim the camera — a translucent block shows where the cube will go.',
-    onboard2: '<b>2.</b> Green — can place, red — cannot. <b>📐</b> — size, <b>↔️</b> — rotate, <b>🟫</b> — color.',
-    onboard3: '<b>3.</b> <b>⚡</b> at the top — claim accrued Ether. <b>🎨</b> — flag color.',
-    onboard4: '<b>4.</b> Tap the Buoy for a tip. <b>🌍</b> — visit or raid a neighbor.',
+    onboard1: '<b>1.</b> You are already in build mode. Aim the camera, a translucent block shows where the cube will go.',
+    onboard2: '<b>2.</b> Green means you can place, red means you cannot. <b>📐</b> size, <b>↔️</b> rotate, the square next to it changes the block color.',
+    onboard3: '<b>3.</b> <b>⚡</b> at the top, claim accrued Ether. <b>🎨</b> changes the flag color.',
+    onboard4: '<b>4.</b> Tap the Buoy for a tip. <b>🌍</b> opens the list of neighbors.',
     onboardOk: 'Got it, let\'s play',
     loading: 'Loading...', login: 'Signing in...', returning: 'Returning...',
     islandLoading: 'Loading island',
@@ -338,15 +378,25 @@ const I18N = {
     noEther: 'Not enough Ether',
     outOfBounds: 'Out of bounds',
     tips: [
-      'Tap the top face of a block — the new cube stacks on it',
-      'The 📐 button changes size: 3×3 builds faster but costs more',
-      '🎨 — your flag color. Everyone visiting you will see it',
-      'During a raid tap an enemy cube to break it',
-      'Ether accrues by itself — check ⚡ once an hour',
-      'Demolish with 🗑 — you get half the Ether back',
-      'Walls around the Flag protect it from raiders',
-      '🌍 World — visit a neighbor or start a raid',
-      'The Flag cannot be hit while any cube is inside the zone',
+      { text: 'Aim the camera at a cell and tap the screen. A cube appears there.', cond: 'always' },
+      { text: 'The 📐 button changes block size. Bigger blocks cost more.', cond: 'always' },
+      { text: 'Tap the top face of a cube and the new one stacks on it. That is how towers are built.', cond: 'always' },
+      { text: 'The 🗑 button removes a cube. Half the Ether comes back to you.', cond: 'hasCubes' },
+      { text: 'Ether accrues by itself, about ten per hour. Watch the ⚡ button.', cond: 'always' },
+      { text: '🎨 changes your flag color. Everyone visiting you will see it.', cond: 'always' },
+      { text: 'Walls around the Flag make it harder for raiders to get close. Pack them tight.', cond: 'hasCubes' },
+      { text: 'The 🌍 button opens the list of neighbors. You can visit or start a raid.', cond: 'always' },
+      { text: 'During a raid, tap enemy cubes. Once the zone near the Flag is empty, the Flag opens up.', cond: 'always' },
+      { text: 'The Flag cannot be hit while at least one cube stands next to it.', cond: 'hasCubes' },
+      { text: 'Build walls first, towers later. A tower without cover burns fast.', cond: 'always' },
+      { text: 'The square next to 📐 changes the block color. Red is visible from far away.', cond: 'always' },
+      { text: 'Check ⚡ once an hour. Accrued Ether is claimed with one tap.', cond: 'always' },
+      { text: 'Place blocks closer to the Flag, they are harder to break there.', cond: 'hasCubes' },
+    ],
+    alertTips: [
+      { text: 'A raid is open against your island. Look where they are coming from and add a wall.', cond: 'alert' },
+      { text: 'Someone has their eye on your Flag. Open 🌍 and check your neighbors.', cond: 'alert' },
+      { text: 'The raid is already running. Reinforce the zone around your Flag while you can.', cond: 'alert' },
     ],
   },
 };
@@ -379,17 +429,20 @@ const fail = (msg) => { loading = true; statusEl.classList.remove('hidden'); sta
 const ok = () => { loading = false; statusEl.classList.add('hidden'); };
 
 let toastTimer = null;
-function toast(msg, isError = false, isTip = false) {
+function toast(msg, kind = 'info') {
+  // kind: info | error | tip | warn
   toastEl.textContent = msg;
-  toastEl.classList.toggle('error', !!isError);
-  toastEl.classList.toggle('tip', !!isTip);
+  toastEl.classList.toggle('error', kind === 'error');
+  toastEl.classList.toggle('tip', kind === 'tip');
+  toastEl.classList.toggle('warn', kind === 'warn');
   toastEl.classList.remove('hidden');
   requestAnimationFrame(() => toastEl.classList.add('show'));
   clearTimeout(toastTimer);
+  const dur = kind === 'error' ? 2600 : (kind === 'warn' ? 3200 : (kind === 'tip' ? 3000 : 1600));
   toastTimer = setTimeout(() => {
     toastEl.classList.remove('show');
     setTimeout(() => toastEl.classList.add('hidden'), 220);
-  }, isTip ? 3000 : (isError ? 2600 : 1600));
+  }, dur);
 }
 
 const uid = () => (crypto.randomUUID ? crypto.randomUUID() : String(Date.now()) + Math.random().toString(16).slice(2));
@@ -418,6 +471,7 @@ let econ = { accrued_now: 0, seconds_to_next: 0, ether_balance: 0 };
 let myFlagColor = 'red';
 let displayFlagColor = 'red';
 let currentFlagHp = 0, currentFlagMax = 0;
+let myRaidAlert = false;   // против меня открыт рейд
 
 // ---------- АВТОРИЗАЦИЯ ----------
 async function signIn() {
@@ -500,7 +554,8 @@ const flagGroup = new THREE.Group();
 const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.15,0.15,4,8), new THREE.MeshLambertMaterial({ color:0x94a3b8 }));
 pole.position.y = 2;
 const banner = new THREE.Mesh(new THREE.BoxGeometry(1.6,1,0.1), new THREE.MeshLambertMaterial({ color:0xef4444 }));
-banner.position.set(0.8, 3.3, 0);
+banner.position.set(0.8, 3.3, 0.1 - 0.1);
+banner.position.z = 0;
 flagGroup.add(pole, banner); scene.add(flagGroup);
 
 // ---------- ТЕКСТУРА ДЕРЕВА ----------
@@ -550,7 +605,6 @@ function cubeCenter(c) {
   return { x: c.x + sx/2, y: c.y + sy/2, z: c.z + sz/2 };
 }
 
-// Клетки, занятые кубами, СТОЯЩИМИ НА ЗЕМЛЕ. Именно их обходит Буй.
 function rebuildBlockedGround() {
   blockedGround = new Set();
   for (const m of cubeMeshes.values()) {
@@ -610,25 +664,74 @@ function setFlagVisual(hp, maxHp, color) {
   const base = new THREE.Color(FLAG_COLORS_HEX[displayFlagColor] || FLAG_COLORS_HEX.red);
   banner.material.color.copy(base).lerp(new THREE.Color(0x7f1d1d), 1 - ratio);
   $('flag').textContent = Math.max(0, hp) + ' / ' + maxHp;
+  setMinionFlagColor(displayFlagColor);
+}
+
+// ===========================================================================
+// ЭМОДЗИ СПРАЙТЫ
+// Рисуем эмодзи в canvas и вешаем как спрайт. Системный шрифт эмодзи есть и на
+// Android, и на iOS, поэтому внешние картинки не нужны.
+// ===========================================================================
+const emojiTexCache = new Map();
+function emojiTexture(char) {
+  if (emojiTexCache.has(char)) return emojiTexCache.get(char);
+  const px = 96;
+  const canvas = document.createElement('canvas');
+  canvas.width = canvas.height = px;
+  const ctx = canvas.getContext('2d');
+  ctx.font = `${Math.floor(px * 0.76)}px "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(char, px/2, px/2 + px*0.04);
+  const tex = new THREE.CanvasTexture(canvas);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  emojiTexCache.set(char, tex);
+  return tex;
+}
+
+function makeSprite(char, size) {
+  const sp = new THREE.Sprite(new THREE.SpriteMaterial({
+    map: emojiTexture(char), transparent: true, depthWrite: false, opacity: 0,
+  }));
+  sp.scale.set(size, size, 1);
+  sp.userData.char = char;
+  return sp;
+}
+
+function setSpriteChar(sp, char, size) {
+  if (sp.userData.char !== char) {
+    sp.material.map = emojiTexture(char);
+    sp.userData.char = char;
+    sp.material.needsUpdate = true;
+  }
+  sp.scale.set(size, size, 1);
 }
 
 // ===========================================================================
 // МИНЬОН («Буй»)
+// Режимы:
+//   calm   свой остров или визит, Буй спокоен
+//   alert  против моего острова открыт рейд, Буй насторожен, над головой ⚠️
+//   panic  я рейжу чужой остров, чужой Буй в панике, вокруг летят 💦
 // ===========================================================================
 const MINION_RADIUS_MIN = 4;
 const MINION_RADIUS_MAX = 12;
 const PANIC_RADIUS_MIN = 3;
 const PANIC_RADIUS_MAX = 9;
+const THINK_TIME = 1.4;   // сколько Буй «думает» перед советом, сек
 
 const minionGroup = new THREE.Group();
 const minionParts = {};
 let minionFlagMat = null;
 const minionHitMeshes = [];
 
+let bubbleSprite = null;      // основная «мысль» над головой
+const droplets = [];          // три капли для паники
+
 (function buildMinion() {
-  const SKIN = 0xe8dcc8;   // светлая голова и кисти
-  const CLOTH = 0x9c9184;  // корпус
-  const DARK = 0x6b6152;   // руки, ноги, древко
+  const SKIN = 0xe8dcc8;
+  const CLOTH = 0x9c9184;
+  const DARK = 0x6b6152;
   const EYE = 0x241f19;
 
   const matSkin = new THREE.MeshLambertMaterial({ color: SKIN });
@@ -637,8 +740,6 @@ const minionHitMeshes = [];
   const matEye = new THREE.MeshBasicMaterial({ color: EYE });
   minionFlagMat = new THREE.MeshLambertMaterial({ color: 0xef4444 });
 
-  // Корпус, голова и руки живут в отдельной группе: её мы наклоняем при
-  // ходьбе и качаем при дыхании — всё туловище идёт как одно целое.
   const bodyGroup = new THREE.Group();
 
   const torso = new THREE.Mesh(new THREE.BoxGeometry(0.52, 0.6, 0.38), matCloth);
@@ -656,14 +757,12 @@ const minionHitMeshes = [];
   const armGeo = new THREE.BoxGeometry(0.17, 0.46, 0.17);
   const handGeo = new THREE.BoxGeometry(0.19, 0.14, 0.19);
 
-  // Левая рука — свободна, машет.
   const armLPivot = new THREE.Group(); armLPivot.position.set(-0.35, 1.02, 0);
   const armL = new THREE.Mesh(armGeo, matDark); armL.position.y = -0.23;
   const handL = new THREE.Mesh(handGeo, matSkin); handL.position.y = -0.5;
   armLPivot.add(armL, handL);
   bodyGroup.add(armLPivot);
 
-  // Правая рука — перевёрнута вверх, держит древко.
   const armRPivot = new THREE.Group(); armRPivot.position.set(0.35, 1.02, 0);
   armRPivot.rotation.x = Math.PI;
   const armR = new THREE.Mesh(armGeo, matDark); armR.position.y = -0.23;
@@ -677,8 +776,6 @@ const minionHitMeshes = [];
   mFlag.position.set(0.58, 2.02, 0);
   bodyGroup.add(mPole, mFlag);
 
-  // Ноги: пивот на бедре, внутри — голень и ботинок. Ботинок ставим так,
-  // чтобы подошва оказалась ровно на y = 0 (пол).
   const legGeo = new THREE.BoxGeometry(0.2, 0.5, 0.2);
   const footGeo = new THREE.BoxGeometry(0.22, 0.1, 0.28);
 
@@ -696,24 +793,49 @@ const minionHitMeshes = [];
   minionHitMeshes.push(torso, head, armL, armR, legL, legR, mPole, mFlag, handL, handR);
 
   Object.assign(minionParts, { bodyGroup, torso, head, armLPivot, armRPivot, legLPivot, legRPivot });
+
+  // Мысль над головой
+  bubbleSprite = makeSprite('💬', 1.1);
+  bubbleSprite.position.set(0, 2.55, 0);
+  minionGroup.add(bubbleSprite);
+
+  // Три капли для паники. Летят вверх и в стороны, зациклено.
+  for (let i = 0; i < 3; i++) {
+    const d = makeSprite('💦', 0.55);
+    d.userData.phase = i / 3;
+    d.position.set(0, 1.2, 0);
+    minionGroup.add(d);
+    droplets.push(d);
+  }
+
   scene.add(minionGroup);
 })();
 
 const minion = {
   x: 3, z: 3,
   path: [],
-  speed: 1.5,
   phase: 0,
   idleUntil: 0,
   facing: 0,
   lastTip: -1,
-  mood: 'calm',        // 'calm' | 'panic'
+  mood: 'calm',
   frozen: false,
+  thinking: false,
+  thinkUntil: 0,
   panicBoost: 0,
+  nextTalk: 0,
+  talkUntil: 0,
 };
 
 function setMinionFlagColor(color) {
   minionFlagMat.color.set(FLAG_COLORS_HEX[color] || FLAG_COLORS_HEX.red);
+}
+
+function refreshMinionMood() {
+  if (minion.frozen || minion.thinking) return;
+  if (mode === 'raid') minion.mood = 'panic';
+  else if (mode === 'own' && myRaidAlert) minion.mood = 'alert';
+  else minion.mood = 'calm';
 }
 
 function cellFree(x, z) {
@@ -722,7 +844,6 @@ function cellFree(x, z) {
   return !blockedGround.has(x + ',' + z);
 }
 
-// BFS по клеткам земли. Карта 65×65, обход — доли миллисекунды.
 function bfsPath(sx, sz, tx, tz) {
   if (!cellFree(tx, tz)) return null;
   const key = (x, z) => x + ',' + z;
@@ -791,12 +912,47 @@ function placeMinionInitial() {
   minionGroup.position.set(2.5, 0, 2.5);
 }
 
-// Общая «затухающая» интерполяция: значение идёт к цели с частотой k.
 function approach(current, target, dt, k) {
   return current + (target - current) * Math.min(1, dt * k);
 }
 
-function idleMinion(now, dt, panic) {
+// --- мысли и капли над головой ---
+function updateBubbles(now, dt) {
+  let char = null;
+  let size = 1.1;
+
+  if (minion.thinking) { char = '🤔'; size = 1.15; }
+  else if (minion.frozen) { char = '👋'; size = 1.15; }
+  else if (minion.mood === 'panic') { char = '💦'; size = 0.95; }
+  else if (minion.mood === 'alert') { char = '⚠️'; size = 1.0; }
+  else if (now < minion.talkUntil) { char = '💬'; size = 1.0; }
+
+  if (char) {
+    setSpriteChar(bubbleSprite, char, size);
+    const pulse = char === '⚠️'
+      ? 1 + Math.sin(now * 5) * 0.1
+      : 1 + Math.sin(now * 2.4) * 0.04;
+    bubbleSprite.scale.set(size * pulse, size * pulse, 1);
+    bubbleSprite.position.y = 2.55 + Math.sin(now * 2.1) * 0.07;
+    bubbleSprite.material.opacity = 1;
+  } else {
+    bubbleSprite.material.opacity = 0;
+  }
+
+  // Капли: только в панике. Поднимаются вверх по кругу и обнуляются.
+  for (const d of droplets) {
+    if (minion.mood !== 'panic') { d.material.opacity = 0; continue; }
+    const t = ((now * 0.75 + d.userData.phase) % 1);
+    const ang = d.userData.phase * Math.PI * 2 + now * 2.2;
+    d.position.set(Math.cos(ang) * 0.42, 1.15 + t * 1.1, Math.sin(ang) * 0.32);
+    d.material.opacity = Math.sin(t * Math.PI) * 0.95;
+    d.scale.setScalar(0.45 + t * 0.25);
+  }
+}
+
+function idleMinion(now, dt) {
+  const panic = minion.mood === 'panic';
+  const alert = minion.mood === 'alert';
   const breath = Math.sin(now * 1.7);
 
   minionParts.legLPivot.rotation.x = approach(minionParts.legLPivot.rotation.x, 0, dt, 8);
@@ -806,32 +962,50 @@ function idleMinion(now, dt, panic) {
   minionParts.armRPivot.rotation.x = Math.PI;
 
   if (panic) {
-    // Стоять на месте в панике он не умеет: руки вверх, голова трясётся.
     minionParts.armLPivot.rotation.x = Math.PI * 0.85 + Math.sin(now * 8) * 0.35;
     minionParts.head.rotation.z = Math.sin(now * 9) * 0.1;
     minionParts.head.rotation.y = Math.sin(now * 7) * 0.12;
     minionParts.bodyGroup.position.y = Math.abs(Math.sin(now * 6)) * 0.03;
+  } else if (alert) {
+    // Насторожен: чуть присел, руки полусогнуты, голова поворачивается
+    minionParts.armLPivot.rotation.x = 0.5 + Math.sin(now * 3) * 0.12;
+    minionParts.head.rotation.z = Math.sin(now * 2.2) * 0.05;
+    minionParts.head.rotation.y = Math.sin(now * 1.1) * 0.28;
+    minionParts.bodyGroup.position.y = breath * 0.012;
   } else {
     minionParts.armLPivot.rotation.x = breath * 0.06;
     minionParts.head.rotation.z = Math.sin(now * 0.7) * 0.05;
-    minionParts.head.rotation.y = Math.sin(now * 0.45) * 0.16;   // осматривается
-    minionParts.bodyGroup.position.y = breath * 0.015;            // дышит
+    minionParts.head.rotation.y = Math.sin(now * 0.45) * 0.16;
+    minionParts.bodyGroup.position.y = breath * 0.015;
   }
 }
 
 function updateMinion(dt) {
   const now = performance.now() / 1000;
 
-  // Если игрок построил блок прямо на Буе — вытаскиваем его на свободную клетку.
   if (!minion.frozen && !cellFree(minion.x, minion.z)) placeMinionInitial();
 
-  // 1. Заморожен: игрок читает совет. Буй стоит и машет.
+  // 1. Пауза на раздумье: стоит, рука у подбородка, глаза вверх
+  if (minion.thinking) {
+    minionParts.armLPivot.rotation.x = approach(minionParts.armLPivot.rotation.x, -1.9, dt, 7);
+    minionParts.armRPivot.rotation.x = Math.PI;
+    minionParts.head.rotation.x = approach(minionParts.head.rotation.x, -0.22, dt, 6);
+    minionParts.head.rotation.z = approach(minionParts.head.rotation.z, 0.06, dt, 6);
+    minionParts.legLPivot.rotation.x = approach(minionParts.legLPivot.rotation.x, 0, dt, 8);
+    minionParts.legRPivot.rotation.x = approach(minionParts.legRPivot.rotation.x, 0, dt, 8);
+    minionParts.bodyGroup.rotation.x = approach(minionParts.bodyGroup.rotation.x, 0, dt, 6);
+    minionGroup.position.y = approach(minionGroup.position.y, 0, dt, 10);
+    return;
+  }
+
+  // 2. Заморожен, игрок читает совет: машет рукой
   if (minion.frozen) {
-    minionParts.armLPivot.rotation.x = Math.PI * 0.7 + Math.sin(now * 5) * 0.28;
+    minionParts.armLPivot.rotation.x = Math.PI * 0.7 + Math.sin(now * 5) * 0.3;
     minionParts.armRPivot.rotation.x = Math.PI;
     minionParts.legLPivot.rotation.x = approach(minionParts.legLPivot.rotation.x, 0, dt, 8);
     minionParts.legRPivot.rotation.x = approach(minionParts.legRPivot.rotation.x, 0, dt, 8);
     minionParts.bodyGroup.rotation.x = approach(minionParts.bodyGroup.rotation.x, 0, dt, 6);
+    minionParts.head.rotation.x = approach(minionParts.head.rotation.x, 0, dt, 6);
     minionParts.head.rotation.z = Math.sin(now * 1.4) * 0.09;
     minionParts.head.rotation.y = approach(minionParts.head.rotation.y, 0, dt, 6);
     minionParts.bodyGroup.position.y = Math.sin(now * 2.2) * 0.02;
@@ -840,24 +1014,27 @@ function updateMinion(dt) {
   }
 
   const panic = minion.mood === 'panic';
-  // Паника после разрушенного куба затухает примерно за 5 секунд.
+  const alert = minion.mood === 'alert';
   minion.panicBoost = Math.max(0, minion.panicBoost - dt * 0.6);
 
-  // 2. Пауза между переходами.
+  // 3. Пауза между переходами
   if (minion.path.length === 0) {
-    if (now < minion.idleUntil) { idleMinion(now, dt, panic); return; }
+    if (now < minion.idleUntil) { idleMinion(now, dt); return; }
     pickMinionTarget();
     if (minion.path.length === 0) { minion.idleUntil = now + 1.0; return; }
-    minion.idleUntil = now + (panic ? 0.1 + Math.random() * 0.3 : 0.9 + Math.random() * 2.6);
+    const basePause = panic ? 0.1 + Math.random() * 0.3
+                    : (alert ? 0.5 + Math.random() * 1.2
+                             : 0.9 + Math.random() * 2.6);
+    minion.idleUntil = now + basePause;
   }
 
-  // 3. Идём к следующей клетке.
+  // 4. Идём
   const [nx, nz] = minion.path[0];
   const tx = nx + 0.5, tz = nz + 0.5;
   const px = minionGroup.position.x, pz = minionGroup.position.z;
   const dx = tx - px, dz = tz - pz;
   const dist = Math.hypot(dx, dz);
-  const speed = panic ? (3.0 + minion.panicBoost * 0.8) : 1.5;
+  const speed = panic ? (3.0 + minion.panicBoost * 0.8) : (alert ? 2.0 : 1.5);
   const step = speed * dt;
 
   if (dist <= step) {
@@ -869,8 +1046,7 @@ function updateMinion(dt) {
     minionGroup.position.z += (dz / dist) * step;
   }
 
-  // 4. Плавный поворот. Сглаживаем угловую разницу, иначе на развороте
-  //    на 180° персонаж «щёлкает».
+  // 5. Плавный поворот
   const targetAngle = Math.atan2(dx, dz);
   let diff = targetAngle - minion.facing;
   while (diff > Math.PI) diff -= Math.PI * 2;
@@ -878,10 +1054,12 @@ function updateMinion(dt) {
   minion.facing += diff * Math.min(1, dt * (panic ? 12 : 7));
   minionGroup.rotation.y = minion.facing;
 
-  // 5. Ходьба.
-  const freq = panic ? 13 + minion.panicBoost * 2 : 6.5;
+  // 6. Походка
+  const freq = panic ? 13 + minion.panicBoost * 2 : (alert ? 8 : 6.5);
   minion.phase += dt * freq;
   const s = Math.sin(minion.phase);
+
+  minionParts.head.rotation.x = approach(minionParts.head.rotation.x, 0, dt, 5);
 
   if (panic) {
     minionParts.legLPivot.rotation.x = s * 0.95;
@@ -893,6 +1071,16 @@ function updateMinion(dt) {
     minionParts.bodyGroup.rotation.x = 0.18;
     minionParts.bodyGroup.position.y = 0;
     minionGroup.position.y = Math.abs(s) * 0.13;
+  } else if (alert) {
+    minionParts.legLPivot.rotation.x = s * 0.75;
+    minionParts.legRPivot.rotation.x = -s * 0.75;
+    minionParts.armLPivot.rotation.x = 0.45 - s * 0.35;
+    minionParts.armRPivot.rotation.x = Math.PI;
+    minionParts.head.rotation.z = s * 0.05;
+    minionParts.head.rotation.y = Math.sin(performance.now() / 420) * 0.24;
+    minionParts.bodyGroup.rotation.x = 0.1;
+    minionParts.bodyGroup.position.y = 0;
+    minionGroup.position.y = Math.abs(s) * 0.06;
   } else {
     minionParts.legLPivot.rotation.x = s * 0.62;
     minionParts.legRPivot.rotation.x = -s * 0.62;
@@ -903,6 +1091,12 @@ function updateMinion(dt) {
     minionParts.bodyGroup.rotation.x = 0.06;
     minionParts.bodyGroup.position.y = 0;
     minionGroup.position.y = Math.abs(s) * 0.05;
+  }
+
+  // 7. Редкие «мысли» в спокойном режиме
+  if (!panic && !alert && now > minion.nextTalk && now > minion.talkUntil) {
+    minion.talkUntil = now + 2.2;
+    minion.nextTalk = now + 6 + Math.random() * 8;
   }
 }
 
@@ -916,9 +1110,7 @@ const camAnim = {
 const savedCam = { pos: new THREE.Vector3(), tgt: new THREE.Vector3() };
 
 function animateCamera(toPos, toTgt, dur, onDone) {
-  camAnim.active = true;
-  camAnim.t = 0;
-  camAnim.dur = Math.max(0.01, dur);
+  camAnim.active = true; camAnim.t = 0; camAnim.dur = Math.max(0.01, dur);
   camAnim.fromPos.copy(camera.position);
   camAnim.fromTgt.copy(controls.target);
   camAnim.toPos.copy(toPos);
@@ -931,7 +1123,6 @@ function updateCameraAnim(dt) {
   if (!camAnim.active) return false;
   camAnim.t += dt;
   const k = Math.min(1, camAnim.t / camAnim.dur);
-  // easeInOutQuad: мягкий разгон и мягкое торможение
   const e = k < 0.5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2;
 
   camera.position.lerpVectors(camAnim.fromPos, camAnim.toPos, e);
@@ -939,23 +1130,68 @@ function updateCameraAnim(dt) {
 
   if (k >= 1) {
     camAnim.active = false;
-    const cb = camAnim.onDone;
-    camAnim.onDone = null;
+    const cb = camAnim.onDone; camAnim.onDone = null;
     if (cb) cb();
   }
   return true;
 }
 
-function openTip() {
+// ---------- СОВЕТ БУЯ ----------
+function pickTip() {
+  const alertTips = I18N[lang].alertTips || [];
   const tips = I18N[lang].tips;
-  let idx = Math.floor(Math.random() * tips.length);
-  if (idx === minion.lastTip) idx = (idx + 1) % tips.length;
-  minion.lastTip = idx;
+
+  // Когда на остров идёт рейд, Буй в первую очередь говорит об этом.
+  if (minion.mood === 'alert' && alertTips.length && Math.random() < 0.6) {
+    return alertTips[Math.floor(Math.random() * alertTips.length)].text;
+  }
+
+  const hasCubes = cubeMeshes.size > 0;
+  const pool = tips.filter(tip => {
+    if (tip.cond === 'hasCubes') return hasCubes;
+    if (tip.cond === 'noCubes') return !hasCubes;
+    return true;
+  });
+
+  let idx = Math.floor(Math.random() * pool.length);
+  if (pool[idx].text === minion.lastTipText) idx = (idx + 1) % pool.length;
+  minion.lastTipText = pool[idx].text;
+  return pool[idx].text;
+}
+
+// Печать волной: каждое слово держим неразрывным, чтобы перенос строки не рвал
+// слова посередине, а буквы внутри слова появляются по очереди.
+function animateTipText(text) {
+  const el = $('tip-text');
+  el.innerHTML = '';
+  let i = 0;
+  for (const word of text.split(' ')) {
+    const w = document.createElement('span');
+    w.className = 'tip-word';
+    for (const ch of word) {
+      const s = document.createElement('span');
+      s.className = 'tip-char';
+      s.textContent = ch;
+      s.style.animationDelay = (i * 26) + 'ms';
+      w.appendChild(s);
+      i++;
+    }
+    el.appendChild(w);
+    el.appendChild(document.createTextNode(' '));
+    i++;
+  }
+  return i * 26 + 340;
+}
+
+function openTip() {
+  const text = pickTip();
+  minion.lastTipText = text;
 
   minion.frozen = true;
+  minion.thinking = true;
+  minion.thinkUntil = performance.now() / 1000 + THINK_TIME;
   minion.path = [];
 
-  // Буй поворачивается лицом к камере — «обращается к тебе».
   const mp = minionGroup.position;
   const toCam = new THREE.Vector3().subVectors(camera.position, mp).setY(0);
   if (toCam.lengthSq() < 0.001) toCam.set(1, 0, 1);
@@ -963,25 +1199,35 @@ function openTip() {
   minion.facing = Math.atan2(toCam.x, toCam.z);
   minionGroup.rotation.y = minion.facing;
 
-  // Запоминаем позицию камеры, чтобы вернуться после «Ок».
   savedCam.pos.copy(camera.position);
   savedCam.tgt.copy(controls.target);
 
-  // Камера подлетает чуть сбоку и сверху, смотрит на уровень груди Буя.
   const camPos = new THREE.Vector3(mp.x + toCam.x * 4.2, mp.y + 2.3, mp.z + toCam.z * 4.2);
   const camTgt = new THREE.Vector3(mp.x, mp.y + 0.85, mp.z);
   animateCamera(camPos, camTgt, 0.55);
 
-  $('tip-text').textContent = tips[idx];
+  $('tip-text').innerHTML = '';
+  $('tip-ok').disabled = true;
   showScreen('tip-screen');
+}
+
+function finishThinking() {
+  if (!minion.thinking) return;
+  minion.thinking = false;
+  $('tip-text').innerHTML = '';
+
+  const text = minion.pendingTip || pickTip();
+  minion.pendingTip = null;
+  const ms = animateTipText(text);
+
+  setTimeout(() => { $('tip-ok').disabled = false; }, ms);
 }
 
 function closeTip() {
   hideScreens();
   minion.frozen = false;
-  animateCamera(savedCam.pos, savedCam.tgt, 0.45, () => {
-    controls.enabled = true;
-  });
+  minion.thinking = false;
+  animateCamera(savedCam.pos, savedCam.tgt, 0.45, () => { controls.enabled = true; });
 }
 
 // ---------- ПРИЗРАК БЛОКА ----------
@@ -1011,6 +1257,11 @@ function updateRotateButton() {
   btn.classList.toggle('hidden', !canRotate() || !(buildMode && mode === 'own'));
   btn.textContent = rotated ? '↕️' : '↔️';
   btn.classList.toggle('rot-on', rotated);
+}
+
+// Квадратик на кнопке всегда показывает выбранный цвет блока.
+function updateBlockSwatch() {
+  $('swatch-block').style.background = BLOCK_COLORS_CSS[selectedBlockColor] || '#c9a06a';
 }
 
 const raycaster = new THREE.Raycaster();
@@ -1145,11 +1396,11 @@ function updatePanel() {
 function setMode(next) {
   mode = next;
   if (next !== 'own') buildMode = false;
-  // Паника у Буя только на рейде: он тут не хозяин, а жертва.
-  minion.mood = next === 'raid' ? 'panic' : 'calm';
   minion.frozen = false;
+  minion.thinking = false;
   minion.panicBoost = 0;
   resetMinionPath();
+  refreshMinionMood();
   closeAllPalettes();
   updatePanel();
 }
@@ -1178,7 +1429,6 @@ async function loadOwnIsland() {
   const data = await api(`/api/v1/islands/${myId}`);
   resetCubes(); data.cubes.forEach(addCube); refreshCounters();
   setFlagVisual(data.flag.hp, data.flag.max_hp, myFlagColor);
-  setMinionFlagColor(myFlagColor);
   placeMinionInitial();
 }
 
@@ -1186,7 +1436,8 @@ async function loadMe() {
   const me = await api('/api/v1/me');
   $('ether').textContent = me.ether_balance;
   econ.ether_balance = me.ether_balance;
-  myFlagColor = me.flag_color || 'red'; displayFlagColor = myFlagColor;
+  myFlagColor = me.flag_color || 'red';
+  displayFlagColor = myFlagColor;
   setMinionFlagColor(myFlagColor);
 }
 
@@ -1196,8 +1447,24 @@ async function returnHome() {
   buildMode = true; updatePanel();
   $('target-name').textContent = '—';
   fail(t('returning'));
-  try { await loadOwnIsland(); await loadMe(); await loadEconomy(); } finally { ok(); }
+  try { await loadOwnIsland(); await loadMe(); await loadEconomy(); pollRaidAlert(); } finally { ok(); }
 }
+
+// ---------- ОПОВЕЩЕНИЕ О РЕЙДЕ ----------
+// Источник: /raids/history. Там видны и незакрытые сессии (status = active),
+// поэтому по ним можно понять, что против моего острова кто-то зашёл.
+async function pollRaidAlert() {
+  try {
+    const data = await api('/api/v1/raids/history?limit=8');
+    const wasAlert = myRaidAlert;
+    myRaidAlert = (data.raids || []).some(r => r.role === 'defender' && r.status === 'active');
+    refreshMinionMood();
+    if (myRaidAlert && !wasAlert && mode === 'own') {
+      toast(t('raidAlertToast'), 'warn');
+    }
+  } catch (e) { /* молча: оповещение не критично */ }
+}
+setInterval(() => { if (token) pollRaidAlert(); }, 25000);
 
 // ---------- ЭКОНОМИКА ----------
 function renderEconomy() {
@@ -1219,11 +1486,11 @@ async function claimEther() {
   try {
     const res = await api('/api/v1/economy/claim', { method: 'POST' });
     $('ether').textContent = res.ether_balance;
-    toast('+' + res.claimed + ' ' + t('ether'));
+    toast('+' + res.claimed + ' ' + t('ether'), 'tip');
     await loadEconomy();
   } catch (e) {
     if (e.code === 'CLAIM_TOO_EARLY') { await loadEconomy(); return; }
-    toast(e.message, true);
+    toast(e.message, 'error');
   }
 }
 
@@ -1254,7 +1521,11 @@ function buildBlockPalette() {
     const dot = document.createElement('button');
     dot.className = 'color-dot' + (key === selectedBlockColor ? ' selected' : '');
     dot.style.background = hex;
-    dot.addEventListener('click', () => { selectedBlockColor = key; closeAllPalettes(); });
+    dot.addEventListener('click', () => {
+      selectedBlockColor = key;
+      updateBlockSwatch();
+      closeAllPalettes();
+    });
     grid.appendChild(dot);
   }
 }
@@ -1294,12 +1565,12 @@ async function pickFlagColor(key) {
   try {
     const res = await api('/api/v1/me/flag-color', { method:'POST', body: JSON.stringify({ color:key }) });
     myFlagColor = res.flag_color;
-    if (mode === 'own') {
+    if (mode !== 'raid') {
       setFlagVisual(currentFlagHp, currentFlagMax, myFlagColor);
-      setMinionFlagColor(myFlagColor);
     }
-    closeAllPalettes(); toast(t('flagColorChanged'));
-  } catch (e) { toast(e.message, true); }
+    closeAllPalettes();
+    toast(t('flagColorChanged'), 'tip');
+  } catch (e) { toast(e.message, 'error'); }
 }
 
 // ---------- МИР ----------
@@ -1354,12 +1625,10 @@ async function visitIsland(userId, username) {
     targetUser = { user_id:userId, username };
     resetCubes(); detail.cubes.forEach(addCube); refreshCounters();
     setFlagVisual(detail.flag.hp, detail.flag.max_hp, detail.flag.color);
-    // На чужом острове Буй — хозяйский, и флажок у него хозяйского цвета.
-    setMinionFlagColor(detail.flag.color);
     placeMinionInitial();
     $('target-name').textContent = username;
     setMode('visit'); ok();
-  } catch (e) { ok(); toast(e.message, true); }
+  } catch (e) { ok(); toast(e.message, 'error'); }
 }
 
 // ---------- РЕЙД ----------
@@ -1373,10 +1642,9 @@ async function startRaid() {
     const detail = await api(`/api/v1/islands/${targetUser.user_id}`);
     resetCubes(); detail.cubes.forEach(addCube); refreshCounters();
     setFlagVisual(detail.flag.hp, detail.flag.max_hp, detail.flag.color);
-    setMinionFlagColor(detail.flag.color);
     placeMinionInitial();
-    setMode('raid'); updateFlagButton(); ok(); toast(t('raidStartOk'));
-  } catch (e) { ok(); toast(e.message, true); }
+    setMode('raid'); updateFlagButton(); ok(); toast(t('raidStartOk'), 'tip');
+  } catch (e) { ok(); toast(e.message, 'error'); }
 }
 
 function updateFlagButton() {
@@ -1387,7 +1655,7 @@ function updateFlagButton() {
 
 function raidGone(e) {
   if (e.code === 'RAID_NOT_FOUND' || e.code === 'RAID_ALREADY_FINISHED') {
-    toast(t('raidFinished')); raidId = null; setTimeout(returnHome, 1200); return true;
+    toast(t('raidFinished'), 'warn'); raidId = null; setTimeout(returnHome, 1200); return true;
   }
   return false;
 }
@@ -1403,20 +1671,19 @@ async function attackCube(cube) {
     $('ether').textContent = res.ether_balance; econ.ether_balance = res.ether_balance;
     if (res.cube.destroyed) {
       removeCube(res.cube.id);
-      // Разрушенный куб — сильный стресс для Буя: паника вспыхивает заново.
-      minion.panicBoost = 3;
+      minion.panicBoost = 3;   // чужой Буй пугается заново
       minion.path = [];
     } else updateCubeHp(res.cube.id, res.cube.hp);
     for (const c of res.collapsed) removeCube(c.id);
     refreshCounters(); updateFlagButton();
-  } catch (e) { if (!raidGone(e)) toast(e.message, true); }
+  } catch (e) { if (!raidGone(e)) toast(e.message, 'error'); }
   finally { attacking = false; }
 }
 
 async function attackFlag() {
   if (!raidId || attacking) return;
   const safe = countSafeCubes();
-  if (safe > 0) { toast(t('flagProtected', { n:safe }), true); return; }
+  if (safe > 0) { toast(t('flagProtected', { n:safe }), 'error'); return; }
   attacking = true;
   try {
     const res = await api(`/api/v1/raids/${raidId}/attack-flag`, {
@@ -1429,8 +1696,8 @@ async function attackFlag() {
       $('loot-stolen').textContent = res.loot.stolen_ether;
       $('loot-balance').textContent = res.loot.attacker_balance;
       showScreen('loot-screen');
-    } else toast('−' + res.damage + ' ' + t('dmgyou'));
-  } catch (e) { if (!raidGone(e)) toast(e.message, true); }
+    } else toast('−' + res.damage + ' ' + t('dmgyou'), 'tip');
+  } catch (e) { if (!raidGone(e)) toast(e.message, 'error'); }
   finally { attacking = false; }
 }
 
@@ -1457,18 +1724,16 @@ renderer.domElement.addEventListener('pointerup', async (ev) => {
   pointerStart = null;
   if (moved > TAP_MAX_MOVE || elapsed > TAP_MAX_TIME) return;
   if (loading) return;
-  if (camAnim.active) return;                                            // камера летит — не мешаем
-  if (!$('tip-screen').classList.contains('hidden')) return;             // открыт совет — ждём «Ок»
+  if (camAnim.active) return;
+  if (!$('tip-screen').classList.contains('hidden')) return;
 
   const ndcX = (ev.clientX / innerWidth) * 2 - 1;
   const ndcY = -(ev.clientY / innerHeight) * 2 + 1;
 
-  // Буй — первым приоритетом: он маленький и стоит на земле, случайно
-  // «построить в него» игрок не должен.
   raycaster.setFromCamera({ x:ndcX, y:ndcY }, camera);
   const minionHits = raycaster.intersectObjects(minionHitMeshes, false);
   if (minionHits.length) {
-    if (minion.mood === 'panic') { toast(t('minionPanic'), true); return; }
+    if (minion.mood === 'panic') { toast(t('minionPanic'), 'warn'); return; }
     openTip();
     return;
   }
@@ -1481,7 +1746,7 @@ renderer.domElement.addEventListener('pointerup', async (ev) => {
 async function handleBuildTap() {
   const p = computePlacement(aimPoint.x, aimPoint.y);
   if (!p) return;
-  if (!p.valid) { toast(p.reason, true); return; }
+  if (!p.valid) { toast(p.reason, 'error'); return; }
 
   try {
     const res = await api('/api/v1/build/cube', {
@@ -1496,7 +1761,7 @@ async function handleBuildTap() {
     $('ether').textContent = res.ether_balance;
     econ.ether_balance = res.ether_balance;
     $('cubes').textContent = res.island_cube_count;
-  } catch (e) { toast(e.message, true); }
+  } catch (e) { toast(e.message, 'error'); }
 }
 
 async function handleDemolishTap(ndcX, ndcY) {
@@ -1510,8 +1775,8 @@ async function handleDemolishTap(ndcX, ndcY) {
     refreshCounters();
     $('ether').textContent = res.ether_balance;
     econ.ether_balance = res.ether_balance;
-    toast('+' + res.ether_refunded + ' ' + t('refund'));
-  } catch (e) { toast(e.message, true); }
+    toast('+' + res.ether_refunded + ' ' + t('refund'), 'tip');
+  } catch (e) { toast(e.message, 'error'); }
 }
 
 async function handleRaidTap(ndcX, ndcY) {
@@ -1534,7 +1799,7 @@ document.querySelectorAll('#bottom-raid .charge').forEach(btn => {
 });
 
 $('claim-btn').addEventListener('click', claimEther);
-$('reload').addEventListener('click', () => loadOwnIsland().catch(e => toast(e.message, true)));
+$('reload').addEventListener('click', () => loadOwnIsland().catch(e => toast(e.message, 'error')));
 $('btn-build').addEventListener('click', () => setBuildMode(!buildMode));
 $('btn-demolish').addEventListener('click', () => setDemolish(!demolishMode));
 $('btn-size').addEventListener('click', () => togglePalette('size-palette'));
@@ -1573,9 +1838,8 @@ function animate() {
   const now = performance.now();
   const dt = Math.min((now - lastFrame) / 1000, 0.1);
   lastFrame = now;
+  const nowSec = now / 1000;
 
-  // Камера либо едет по анимации, либо подчиняется жестам. Совмещать нельзя:
-  // OrbitControls в своём update() перезапишет позицию, которую мы задаём.
   if (updateCameraAnim(dt)) {
     camera.lookAt(controls.target);
   } else {
@@ -1584,7 +1848,11 @@ function animate() {
 
   flagGroup.rotation.y += 0.005;
 
-  updateMinion(dt);   // Буй есть всегда: свой спокойный, чужой паникует в рейде
+  // Пауза на раздумье: по её концу запускаем печать текста.
+  if (minion.thinking && nowSec >= minion.thinkUntil) finishThinking();
+
+  updateMinion(dt);
+  updateBubbles(nowSec, dt);
   updateGhost();
 
   renderer.render(scene, camera);
@@ -1599,6 +1867,7 @@ animate();
     updateSizeLabel();
     updateGhostGeometry();
     updateRotateButton();
+    updateBlockSwatch();
     await auth();
     fail(t('loading'));
     await loadMe();
@@ -1608,6 +1877,7 @@ animate();
     buildMode = true;
     updatePanel();
     ok();
+    pollRaidAlert();
     if (!localStorage.getItem('adrift_onboarded')) showScreen('onboard-screen');
   } catch (e) { fail(t('error') + ': ' + e.message); }
 })();
