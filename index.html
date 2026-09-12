@@ -298,7 +298,10 @@ const I18N = {
     islandLoading: 'Загрузка острова',
     raidStart: 'Начинаем рейд...', raidStartOk: 'Рейд начался!',
     raidFinished: 'Рейд завершён',
-    flagProtected: 'Флаг защищён: в зоне {n} кубов',
+    flagProtected: 'Флаг пока закрыт',
+    flagNeedPercent: 'Снеси ещё {need} наземных блоков, чтобы Флаг открылся. Сейчас {percent}%, порог {min}%.',
+    flagNeedPath: 'К Флагу нет прохода: Буй не может подойти. Расчисти коридор шириной {width} клетки.',
+    flagOpened: 'Флаг открыт. Бей по нему.',
     flagReserved: 'Клетка Флага зарезервирована',
     flagColorChanged: 'Цвет флага изменён',
     noone: 'Пока никого нет в твоём регионе',
@@ -316,19 +319,19 @@ const I18N = {
       { text: 'Кнопка 🗑 сносит куб. Половина Эфира вернётся в кошелёк.', cond: 'hasCubes' },
       { text: 'Эфир капает сам, примерно десять в час. Следи за кнопкой ⚡.', cond: 'always' },
       { text: '🎨 меняет цвет флага. Его увидят все, кто зайдёт к тебе.', cond: 'always' },
-      { text: 'Стены вокруг Флага мешают рейдерам подойти. Ставь их плотнее.', cond: 'hasCubes' },
+      { text: 'Флаг откроется, когда снесена половина блоков на земле. Ставь их в несколько слоёв.', cond: 'hasCubes' },
       { text: 'Кнопка 🌍 открывает список соседей. Можно зайти в гости или начать рейд.', cond: 'always' },
-      { text: 'В рейде тапай по чужим кубам. Когда зона у Флага опустеет, откроется сам Флаг.', cond: 'always' },
-      { text: 'Флаг не пробить, пока рядом с ним стоит хотя бы один куб.', cond: 'hasCubes' },
-      { text: 'Сначала стены, потом башни. Башня без защиты сгорит быстро.', cond: 'always' },
+      { text: 'В рейде тапай по чужим кубам. Когда снесёшь половину наземных, откроется Флаг.', cond: 'always' },
+      { text: 'Флаг открывается только когда снесена половина блоков НА ЗЕМЛЕ. Башни в воздухе не считаются.', cond: 'hasCubes' },
+      { text: 'Главное — блоки на земле. Башни в воздухе в прогресс рейда не идут.', cond: 'always' },
       { text: 'Квадратик рядом с 📐 меняет цвет блока. Красный видно издалека.', cond: 'always' },
       { text: 'Заглядывай в ⚡ раз в час. Накопленное можно забрать одним тапом.', cond: 'always' },
       { text: 'Ставь блоки плотнее к Флагу, там их сложнее разбить.', cond: 'hasCubes' },
     ],
     alertTips: [
-      { text: 'На твой остров открыт рейд. Посмотри, с какой стороны подходят, и дострой стену.', cond: 'alert' },
-      { text: 'Кто-то точит зуб на твой Флаг. Загляни в 🌍 и проверь соседей.', cond: 'alert' },
-      { text: 'Рейд уже идёт. Укрепи зону вокруг Флага, пока не поздно.', cond: 'alert' },
+      { text: 'На твой остров открыт рейд. Дострой блоки на земле, чтобы поднять процент сноса.', cond: 'alert' },
+      { text: 'Кто-то рейдит твой остров. Смотри на наземные блоки, они считаются в прогрессе.', cond: 'alert' },
+      { text: 'Рейд уже идёт. Разбить Флаг получится только после половины снесённых наземных блоков.', cond: 'alert' },
     ],
   },
   en: {
@@ -349,7 +352,10 @@ const I18N = {
     islandLoading: 'Loading island',
     raidStart: 'Starting raid...', raidStartOk: 'Raid started!',
     raidFinished: 'Raid finished',
-    flagProtected: 'Flag protected: {n} cubes in zone',
+    flagProtected: 'The Flag is still closed',
+    flagNeedPercent: 'Destroy {need} more ground blocks to open the Flag. Now {percent}%, threshold {min}%.',
+    flagNeedPath: 'No path to the Flag: the Buoy cannot get through. Clear a corridor {width} cells wide.',
+    flagOpened: 'The Flag is open. Hit it.',
     flagReserved: 'Flag cell is reserved',
     flagColorChanged: 'Flag color changed',
     noone: 'Nobody in your region yet',
@@ -367,19 +373,19 @@ const I18N = {
       { text: 'The 🗑 button removes a cube. Half the Ether comes back to you.', cond: 'hasCubes' },
       { text: 'Ether accrues by itself, about ten per hour. Watch the ⚡ button.', cond: 'always' },
       { text: '🎨 changes your flag color. Everyone visiting you will see it.', cond: 'always' },
-      { text: 'Walls around the Flag make it harder for raiders to get close. Pack them tight.', cond: 'hasCubes' },
+      { text: 'The Flag opens when half the ground blocks are destroyed. Stack them in layers.', cond: 'hasCubes' },
       { text: 'The 🌍 button opens the list of neighbors. You can visit or start a raid.', cond: 'always' },
-      { text: 'During a raid, tap enemy cubes. Once the zone near the Flag is empty, the Flag opens up.', cond: 'always' },
-      { text: 'The Flag cannot be hit while at least one cube stands next to it.', cond: 'hasCubes' },
-      { text: 'Build walls first, towers later. A tower without cover burns fast.', cond: 'always' },
+      { text: 'During a raid tap enemy cubes. Once half the ground blocks are gone, the Flag opens.', cond: 'always' },
+      { text: 'The Flag opens only after half the blocks ON THE GROUND are destroyed. Towers in the air do not count.', cond: 'hasCubes' },
+      { text: 'Ground blocks are what matters. Towers in the air do not count for raid progress.', cond: 'always' },
       { text: 'The square next to 📐 changes the block color. Red is visible from far away.', cond: 'always' },
       { text: 'Check ⚡ once an hour. Accrued Ether is claimed with one tap.', cond: 'always' },
       { text: 'Place blocks closer to the Flag, they are harder to break there.', cond: 'hasCubes' },
     ],
     alertTips: [
-      { text: 'A raid is open against your island. Look where they are coming from and add a wall.', cond: 'alert' },
-      { text: 'Someone has their eye on your Flag. Open 🌍 and check your neighbors.', cond: 'alert' },
-      { text: 'The raid is already running. Reinforce the zone around your Flag while you can.', cond: 'alert' },
+      { text: 'A raid is open against your island. Add ground blocks to raise the destruction threshold.', cond: 'alert' },
+      { text: 'Someone is raiding your island. Watch the ground blocks, they count for progress.', cond: 'alert' },
+      { text: 'The raid is already running. The Flag can only be broken after half the ground blocks are gone.', cond: 'alert' },
     ],
   },
 };
@@ -446,6 +452,8 @@ let selectedBlockColor = 'wood';
 let selectedSize = BLOCK_SIZES[0];
 let selectedCharge = 2;
 let raidId = null;
+let raidFlagState = null;      // состояние Флага с сервера
+let flagWasOpen = false;       // чтобы один раз показать «Флаг открыт»
 let targetUser = null;
 let attacking = false;
 let econ = { accrued_now: 0, seconds_to_next: 0, ether_balance: 0 };
@@ -479,6 +487,7 @@ async function api(path, options = {}) {
   if (!res.ok) {
     const err = new Error(body?.error?.message || res.statusText);
     err.code = body?.error?.code || ('HTTP_' + res.status);
+    err.details = body?.error?.details;
     throw err;
   }
   return body;
@@ -618,7 +627,6 @@ function removeCube(id) {
   rebuildBlockedGround(); resetMinionPath();
 }
 function resetCubes() { for (const id of [...cubeMeshes.keys()]) removeCube(id); rebuildBlockedGround(); }
-function countSafeCubes() { let n = 0; for (const m of cubeMeshes.values()) if (m.userData.cube.is_safe_zone) n++; return n; }
 function refreshCounters() { $('cubes').textContent = cubeMeshes.size; }
 function setFlagVisual(hp, maxHp, color) {
   currentFlagHp = hp; currentFlagMax = maxHp;
@@ -1279,6 +1287,55 @@ function updateGhost() {
   priceEl.classList.remove('hidden');
 }
 
+// ---------- КНОПКА ФЛАГА ----------
+function flagLockedMessage(st) {
+  if (!st) return t('flagProtected');
+  if (st.percent < st.min_percent) {
+    return t('flagNeedPercent', {
+      need: st.cubes_left_to_min,
+      percent: st.percent,
+      min: st.min_percent,
+    });
+  }
+  return t('flagNeedPath', { width: st.corridor_width });
+}
+
+function applyFlagState(st) {
+  raidFlagState = st;
+  if (!st) { updateFlagButton(); return; }
+
+  // Один раз сообщаем, что Флаг стал доступен: это самый важный момент рейда.
+  if (st.can_attack && !flagWasOpen) {
+    flagWasOpen = true;
+    toast(t('flagOpened'), 'tip');
+  }
+  if (!st.can_attack && flagWasOpen) flagWasOpen = false;
+
+  updateFlagButton();
+}
+
+function updateFlagButton() {
+  const btn = $('btn-flag');
+
+  if (mode !== 'raid' || !raidFlagState) {
+    btn.textContent = '⚔️';
+    btn.classList.add('locked');
+    return;
+  }
+
+  if (raidFlagState.can_attack) {
+    btn.textContent = '⚔️';
+    btn.classList.remove('locked');
+    return;
+  }
+
+  // Показываем, чего именно не хватает: процента или прохода.
+  btn.textContent = raidFlagState.percent < raidFlagState.min_percent
+    ? `🔒 ${raidFlagState.percent}%`
+    : '🚧';
+  btn.classList.add('locked');
+}
+
 // ---------- ПАНЕЛЬ ----------
 function updatePanel() {
   const on = buildMode && mode === 'own';
@@ -1335,7 +1392,7 @@ async function loadMe() {
   setMinionFlagColor(myFlagColor);
 }
 async function returnHome() {
-  targetUser = null; raidId = null; hideScreens();
+  targetUser = null; raidId = null; raidFlagState = null; flagWasOpen = false; hideScreens();
   setDemolish(false); setMode('own');
   buildMode = true; updatePanel();
   $('target-name').textContent = '—';
@@ -1510,6 +1567,8 @@ async function startRaid() {
   try {
     const res = await api(`/api/v1/raids/${targetUser.user_id}/start`, { method:'POST' });
     raidId = res.raid_id;
+    flagWasOpen = false;
+    applyFlagState(res.flag_state);
     $('ether').textContent = res.ether_balance; econ.ether_balance = res.ether_balance;
     const detail = await api(`/api/v1/islands/${targetUser.user_id}`);
     resetCubes(); detail.cubes.forEach(addCube); refreshCounters();
@@ -1517,11 +1576,6 @@ async function startRaid() {
     placeMinionInitial();
     setMode('raid'); updateFlagButton(); ok(); toast(t('raidStartOk'), 'tip');
   } catch (e) { ok(); toast(e.message, 'error'); }
-}
-function updateFlagButton() {
-  const btn = $('btn-flag'); const safe = countSafeCubes();
-  if (safe > 0) { btn.textContent = `🔒 ${safe}`; btn.classList.add('locked'); }
-  else { btn.textContent = '⚔️'; btn.classList.remove('locked'); }
 }
 function raidGone(e) {
   if (e.code === 'RAID_NOT_FOUND' || e.code === 'RAID_ALREADY_FINISHED') {
@@ -1544,14 +1598,21 @@ async function attackCube(cube) {
       minion.path = [];
     } else updateCubeHp(res.cube.id, res.cube.hp);
     for (const c of res.collapsed) removeCube(c.id);
-    refreshCounters(); updateFlagButton();
+    refreshCounters();
+    if (res.flag_state) applyFlagState(res.flag_state);
   } catch (e) { if (!raidGone(e)) toast(e.message, 'error'); }
   finally { attacking = false; }
 }
 async function attackFlag() {
   if (!raidId || attacking) return;
-  const safe = countSafeCubes();
-  if (safe > 0) { toast(t('flagProtected', { n:safe }), 'error'); return; }
+
+  // Клиент не пускает удар, если сервер уже сказал, что Флаг закрыт:
+  // это экономит круг до сервера и даёт правильную подсказку сразу.
+  if (raidFlagState && !raidFlagState.can_attack) {
+    toast(flagLockedMessage(raidFlagState), 'error');
+    return;
+  }
+
   attacking = true;
   try {
     const res = await api(`/api/v1/raids/${raidId}/attack-flag`, {
@@ -1559,13 +1620,21 @@ async function attackFlag() {
     });
     $('ether').textContent = res.ether_balance; econ.ether_balance = res.ether_balance;
     setFlagVisual(res.flag_hp, res.flag_max_hp);
+    if (res.flag_state) applyFlagState(res.flag_state);
     if (res.flag_destroyed && res.loot) {
       raidId = null;
       $('loot-stolen').textContent = res.loot.stolen_ether;
       $('loot-balance').textContent = res.loot.attacker_balance;
       showScreen('loot-screen');
     } else toast('−' + res.damage + ' ' + t('dmgyou'), 'tip');
-  } catch (e) { if (!raidGone(e)) toast(e.message, 'error'); }
+  } catch (e) {
+    if (!raidGone(e)) {
+      // Отказ приходит с полным состоянием Флага в details: обновляем кнопку,
+      // чтобы игрок сразу увидел, сколько ещё снести.
+      if (e.code === 'FLAG_PROTECTED' && e.details) applyFlagState(e.details);
+      toast(e.code === 'FLAG_PROTECTED' ? flagLockedMessage(e.details) : e.message, 'error');
+    }
+  }
   finally { attacking = false; }
 }
 async function leaveRaid() {
