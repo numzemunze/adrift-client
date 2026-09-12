@@ -44,6 +44,8 @@
   button.primary { background:linear-gradient(180deg,#3b82f6,#1d4ed8); border-color:#60a5fa; font-weight:600; }
   button.icon { padding:10px 12px; }
   button.rot-on { background:linear-gradient(180deg,#3b82f6,#2563eb); border-color:#60a5fa; }
+  button.big { padding:13px 20px; font-size:15px; display:flex; align-items:center; gap:9px; }
+  button.big .ico { font-size:19px; line-height:1; }
 
   .swatch {
     display:block; width:22px; height:22px; border-radius:6px;
@@ -183,16 +185,19 @@
 </div>
 
 <div class="bar hidden" id="bottom-visit">
-  <button id="btn-back">↩</button>
-  <button id="btn-raid" class="danger">⚔️</button>
+  <button id="btn-back" class="big"><span class="ico">↩</span><span data-i18n="back">Назад</span></button>
+  <button id="btn-raid" class="danger big"><span class="ico">⚔️</span><span data-i18n="raid">Рейд</span></button>
 </div>
 
 <div class="bar hidden" id="bottom-raid">
-  <button class="charge" data-charge="1">1 · 10⚡</button>
-  <button class="charge on" data-charge="2">2 · 25⚡</button>
-  <button class="charge" data-charge="3">3 · 60⚡</button>
-  <button id="btn-flag" class="danger">⚔️</button>
-  <button id="btn-leave">🏳</button>
+  <button id="btn-flag" class="danger big">
+    <span id="btn-flag-ico" class="ico">🚩</span>
+    <span id="btn-flag-label" data-i18n="flag">Флаг</span>
+  </button>
+  <button id="btn-leave" class="big">
+    <span class="ico">🏳</span>
+    <span data-i18n="leave">Выйти</span>
+  </button>
 </div>
 
 <div id="palette" class="hidden">
@@ -278,11 +283,11 @@ const BLOCK_SIZES = [
   { key: '3x1x3', sx: 3, sy: 1, sz: 3, label: '3×3' },
 ];
 
-// Тексты. Советы захардкожены, не генерируются. cond — когда уместно.
+// Тексты. Советы захардкожены, не генерируются.
 const I18N = {
   ru: {
     flagColor: 'Цвет флага', blockColor: 'Цвет блока', sizeTitle: 'Размер блока',
-    worldTitle: '🌍 Мир',
+    worldTitle: '🌍 Мир', back: 'Назад', raid: 'Рейд', flag: 'Флаг', leave: 'Выйти',
     lootTitle: 'Флаг разрушен!', lootStolen: 'Украдено:', lootBalance: 'Баланс:',
     returnHome: 'Вернуться',
     tipTitle: 'Буй говорит', tipOk: 'Ок',
@@ -296,7 +301,7 @@ const I18N = {
     onboardOk: 'Понятно, играем',
     loading: 'Загрузка...', login: 'Вход...', returning: 'Возвращаемся...',
     islandLoading: 'Загрузка острова',
-    raidStart: 'Начинаем рейд...', raidStartOk: 'Рейд начался!',
+    raidStart: 'Начинаем рейд...', raidStartOk: 'Рейд начался. Тапни по чужому кубу',
     raidFinished: 'Рейд завершён',
     flagProtected: 'Флаг пока закрыт',
     flagNeedPercent: 'Снеси ещё {need} наземных блоков, чтобы Флаг открылся. Сейчас {percent}%, порог {min}%.',
@@ -321,7 +326,7 @@ const I18N = {
       { text: '🎨 меняет цвет флага. Его увидят все, кто зайдёт к тебе.', cond: 'always' },
       { text: 'Флаг откроется, когда снесена половина блоков на земле. Ставь их в несколько слоёв.', cond: 'hasCubes' },
       { text: 'Кнопка 🌍 открывает список соседей. Можно зайти в гости или начать рейд.', cond: 'always' },
-      { text: 'В рейде тапай по чужим кубам. Когда снесёшь половину наземных, откроется Флаг.', cond: 'always' },
+      { text: 'В рейде тапай по чужим кубам. Сила удара подбирается сама.', cond: 'always' },
       { text: 'Флаг открывается только когда снесена половина блоков НА ЗЕМЛЕ. Башни в воздухе не считаются.', cond: 'hasCubes' },
       { text: 'Главное — блоки на земле. Башни в воздухе в прогресс рейда не идут.', cond: 'always' },
       { text: 'Квадратик рядом с 📐 меняет цвет блока. Красный видно издалека.', cond: 'always' },
@@ -336,7 +341,7 @@ const I18N = {
   },
   en: {
     flagColor: 'Flag color', blockColor: 'Block color', sizeTitle: 'Block size',
-    worldTitle: '🌍 World',
+    worldTitle: '🌍 World', back: 'Back', raid: 'Raid', flag: 'Flag', leave: 'Leave',
     lootTitle: 'Flag destroyed!', lootStolen: 'Stolen:', lootBalance: 'Balance:',
     returnHome: 'Return',
     tipTitle: 'Buoy says', tipOk: 'OK',
@@ -350,7 +355,7 @@ const I18N = {
     onboardOk: 'Got it, let\'s play',
     loading: 'Loading...', login: 'Signing in...', returning: 'Returning...',
     islandLoading: 'Loading island',
-    raidStart: 'Starting raid...', raidStartOk: 'Raid started!',
+    raidStart: 'Starting raid...', raidStartOk: 'Raid started. Tap an enemy cube',
     raidFinished: 'Raid finished',
     flagProtected: 'The Flag is still closed',
     flagNeedPercent: 'Destroy {need} more ground blocks to open the Flag. Now {percent}%, threshold {min}%.',
@@ -375,7 +380,7 @@ const I18N = {
       { text: '🎨 changes your flag color. Everyone visiting you will see it.', cond: 'always' },
       { text: 'The Flag opens when half the ground blocks are destroyed. Stack them in layers.', cond: 'hasCubes' },
       { text: 'The 🌍 button opens the list of neighbors. You can visit or start a raid.', cond: 'always' },
-      { text: 'During a raid tap enemy cubes. Once half the ground blocks are gone, the Flag opens.', cond: 'always' },
+      { text: 'During a raid tap enemy cubes. Attack power is picked automatically.', cond: 'always' },
       { text: 'The Flag opens only after half the blocks ON THE GROUND are destroyed. Towers in the air do not count.', cond: 'hasCubes' },
       { text: 'Ground blocks are what matters. Towers in the air do not count for raid progress.', cond: 'always' },
       { text: 'The square next to 📐 changes the block color. Red is visible from far away.', cond: 'always' },
@@ -409,6 +414,9 @@ const FLAG_COLORS_CSS = { red:'#ef4444', orange:'#f97316', yellow:'#eab308', gre
 
 const BLOCK_COLORS_HEX = { wood:0xc9a06a, red:0xd94a4a, blue:0x4a7fd9, green:0x4ad96b, yellow:0xd9c94a, purple:0x9b4ad9, dark:0x6b6b6b, light:0xd9d9d9 };
 const BLOCK_COLORS_CSS = { wood:'#c9a06a', red:'#d94a4a', blue:'#4a7fd9', green:'#4ad96b', yellow:'#d9c94a', purple:'#9b4ad9', dark:'#6b6b6b', light:'#d9d9d9' };
+
+// Стоимость и урон заряда. Совпадает с CHARGE_LEVELS на сервере.
+const CHARGE_COST = { 1: 10, 2: 25, 3: 60 };
 
 const $ = (id) => document.getElementById(id);
 const statusEl = $('status'), errEl = $('err'), toastEl = $('toast'), priceEl = $('price-tag');
@@ -450,10 +458,9 @@ let demolishMode = false;
 let rotated = false;
 let selectedBlockColor = 'wood';
 let selectedSize = BLOCK_SIZES[0];
-let selectedCharge = 2;
 let raidId = null;
-let raidFlagState = null;      // состояние Флага с сервера
-let flagWasOpen = false;       // чтобы один раз показать «Флаг открыт»
+let raidFlagState = null;
+let flagWasOpen = false;
 let targetUser = null;
 let attacking = false;
 let econ = { accrued_now: 0, seconds_to_next: 0, ether_balance: 0 };
@@ -681,6 +688,11 @@ const PANIC_RADIUS_MIN = 3;
 const PANIC_RADIUS_MAX = 9;
 const THINK_TIME = 1.4;
 
+// Пул эмодзи для случайных «мыслей» в спокойном режиме. Порядок не важен,
+// выбираем случайно, чтобы Буй не повторялся.
+const MINION_BUBBLES = ['💬', '💭', '✨', '🎵', '❤️', '🎉', '😎', '🗿', '⚡', '🧠', '🥱', '😴'];
+const IDLE_ACTS = ['stretch', 'tapFoot', 'scratchHead', 'lookAround', 'dance', 'kick', 'whistle', 'think'];
+
 const minionGroup = new THREE.Group();
 const minionParts = {};
 let minionFlagMat = null;
@@ -783,6 +795,11 @@ const minion = {
   panicBoost: 0,
   nextTalk: 0,
   talkUntil: 0,
+  bubbleChar: '💬',
+  // Микроанимации в покое
+  nextIdleAct: 0,
+  idleAct: null,
+  idleActUntil: 0,
 };
 
 function setMinionFlagColor(color) {
@@ -869,6 +886,11 @@ function approach(current, target, dt, k) {
   return current + (target - current) * Math.min(1, dt * k);
 }
 
+function pickIdleAct(now) {
+  minion.idleAct = IDLE_ACTS[Math.floor(Math.random() * IDLE_ACTS.length)];
+  minion.idleActUntil = now + 1.8;
+}
+
 function updateBubbles(now, dt) {
   let char = null;
   let size = 1.1;
@@ -877,7 +899,7 @@ function updateBubbles(now, dt) {
   else if (minion.frozen) { char = '👋'; size = 1.15; }
   else if (minion.mood === 'panic') { char = '💦'; size = 0.95; }
   else if (minion.mood === 'alert') { char = '⚠️'; size = 1.0; }
-  else if (now < minion.talkUntil) { char = '💬'; size = 1.0; }
+  else if (now < minion.talkUntil) { char = minion.bubbleChar || '💬'; size = 1.0; }
 
   if (char) {
     setSpriteChar(bubbleSprite, char, size);
@@ -906,34 +928,84 @@ function idleMinion(now, dt) {
   const alert = minion.mood === 'alert';
   const breath = Math.sin(now * 1.7);
 
-  minionParts.legLPivot.rotation.x = approach(minionParts.legLPivot.rotation.x, 0, dt, 8);
-  minionParts.legRPivot.rotation.x = approach(minionParts.legRPivot.rotation.x, 0, dt, 8);
-  minionParts.bodyGroup.rotation.x = approach(minionParts.bodyGroup.rotation.x, 0, dt, 6);
-  minionGroup.position.y = approach(minionGroup.position.y, 0, dt, 10);
-  minionParts.armRPivot.rotation.x = Math.PI;
+  // Сбрасываем ноги — в покое они стоят.
+  let legLx = 0, legRx = 0;
+  let armLx = breath * 0.06, armRx = Math.PI;
+  let headZ = Math.sin(now * 0.7) * 0.05;
+  let headY = Math.sin(now * 0.45) * 0.16;
+  let rootY = breath * 0.015;
+  let bodyY = 0;
 
   if (panic) {
-    minionParts.armLPivot.rotation.x = Math.PI * 0.85 + Math.sin(now * 8) * 0.35;
-    minionParts.head.rotation.z = Math.sin(now * 9) * 0.1;
-    minionParts.head.rotation.y = Math.sin(now * 7) * 0.12;
-    minionParts.bodyGroup.position.y = Math.abs(Math.sin(now * 6)) * 0.03;
+    armLx = Math.PI * 0.85 + Math.sin(now * 8) * 0.35;
+    armRx = Math.PI;
+    headZ = Math.sin(now * 9) * 0.1;
+    headY = Math.sin(now * 7) * 0.12;
+    bodyY = Math.abs(Math.sin(now * 6)) * 0.03;
   } else if (alert) {
-    minionParts.armLPivot.rotation.x = 0.5 + Math.sin(now * 3) * 0.12;
-    minionParts.head.rotation.z = Math.sin(now * 2.2) * 0.05;
-    minionParts.head.rotation.y = Math.sin(now * 1.1) * 0.28;
-    minionParts.bodyGroup.position.y = breath * 0.012;
-  } else {
-    minionParts.armLPivot.rotation.x = breath * 0.06;
-    minionParts.head.rotation.z = Math.sin(now * 0.7) * 0.05;
-    minionParts.head.rotation.y = Math.sin(now * 0.45) * 0.16;
-    minionParts.bodyGroup.position.y = breath * 0.015;
+    armLx = 0.5 + Math.sin(now * 3) * 0.12;
+    armRx = Math.PI;
+    headZ = Math.sin(now * 2.2) * 0.05;
+    headY = Math.sin(now * 1.1) * 0.28;
+    bodyY = breath * 0.012;
+  } else if (minion.idleAct && now < minion.idleActUntil) {
+    // Микроанимация в покое. Каждая длится ~1.8 сек.
+    const t = now - (minion.idleActUntil - 1.8);
+    switch (minion.idleAct) {
+      case 'stretch':
+        armLx = -2.4; armRx = Math.PI - 0.4;
+        headZ = -0.1;
+        rootY = Math.sin(t * 2.5) * 0.03;
+        break;
+      case 'tapFoot':
+        armLx = 0.3; legLx = -0.1;
+        rootY = Math.abs(Math.sin(t * 9)) * 0.02;
+        break;
+      case 'scratchHead':
+        armLx = -2.55; headZ = 0.1;
+        headY = Math.sin(t * 1.2) * 0.1;
+        break;
+      case 'lookAround':
+        headY = Math.sin(t * 2.5) * 0.5;
+        break;
+      case 'dance':
+        armLx = -2.2 + Math.sin(t * 6) * 0.3;
+        armRx = Math.PI - 0.5 + Math.cos(t * 6) * 0.3;
+        headZ = Math.sin(t * 6) * 0.15;
+        rootY = Math.abs(Math.sin(t * 6)) * 0.06;
+        break;
+      case 'kick':
+        legLx = -0.8;
+        armLx = -0.4; armRx = Math.PI + 0.3;
+        break;
+      case 'whistle':
+        armLx = -1.9; headZ = 0.06;
+        headY = Math.sin(t * 3) * 0.05;
+        break;
+      case 'think':
+        armLx = -1.7; headZ = 0.08; headY = 0.1;
+        break;
+    }
   }
+
+  minionParts.legLPivot.rotation.x = approach(minionParts.legLPivot.rotation.x, legLx, dt, 8);
+  minionParts.legRPivot.rotation.x = approach(minionParts.legRPivot.rotation.x, legRx, dt, 8);
+  minionParts.armLPivot.rotation.x = approach(minionParts.armLPivot.rotation.x, armLx, dt, 9);
+  minionParts.armRPivot.rotation.x = approach(minionParts.armRPivot.rotation.x, armRx, dt, 9);
+  minionParts.head.rotation.z = approach(minionParts.head.rotation.z, headZ, dt, 8);
+  minionParts.head.rotation.y = approach(minionParts.head.rotation.y, headY, dt, 6);
+  minionParts.bodyGroup.rotation.x = approach(minionParts.bodyGroup.rotation.x, 0, dt, 6);
+  minionParts.bodyGroup.position.y = bodyY;
+  minionGroup.position.y = approach(minionGroup.position.y, rootY, dt, 10);
 }
 
 function updateMinion(dt) {
   const now = performance.now() / 1000;
 
   if (!minion.frozen && !cellFree(minion.x, minion.z)) placeMinionInitial();
+
+  // Сбрасываем завершённую микроанимацию
+  if (minion.idleAct && now >= minion.idleActUntil) minion.idleAct = null;
 
   if (minion.thinking) {
     minionParts.armLPivot.rotation.x = approach(minionParts.armLPivot.rotation.x, -1.9, dt, 7);
@@ -966,7 +1038,15 @@ function updateMinion(dt) {
   minion.panicBoost = Math.max(0, minion.panicBoost - dt * 0.6);
 
   if (minion.path.length === 0) {
-    if (now < minion.idleUntil) { idleMinion(now, dt); return; }
+    if (now < minion.idleUntil) {
+      idleMinion(now, dt);
+      // Иногда запускаем новую микроанимацию
+      if (now > minion.nextIdleAct) {
+        minion.nextIdleAct = now + 5 + Math.random() * 8;
+        if (Math.random() < 0.7) pickIdleAct(now);
+      }
+      return;
+    }
     pickMinionTarget();
     if (minion.path.length === 0) { minion.idleUntil = now + 1.0; return; }
     const basePause = panic ? 0.1 + Math.random() * 0.3
@@ -1038,8 +1118,9 @@ function updateMinion(dt) {
   }
 
   if (!panic && !alert && now > minion.nextTalk && now > minion.talkUntil) {
-    minion.talkUntil = now + 2.2;
+    minion.talkUntil = now + 2.0;
     minion.nextTalk = now + 6 + Math.random() * 8;
+    minion.bubbleChar = MINION_BUBBLES[Math.floor(Math.random() * MINION_BUBBLES.length)];
   }
 }
 
@@ -1123,6 +1204,7 @@ function openTip() {
   minion.thinking = true;
   minion.thinkUntil = performance.now() / 1000 + THINK_TIME;
   minion.path = [];
+  minion.idleAct = null;
 
   const mp = minionGroup.position;
   const toCam = new THREE.Vector3().subVectors(camera.position, mp).setY(0);
@@ -1304,7 +1386,6 @@ function applyFlagState(st) {
   raidFlagState = st;
   if (!st) { updateFlagButton(); return; }
 
-  // Один раз сообщаем, что Флаг стал доступен: это самый важный момент рейда.
   if (st.can_attack && !flagWasOpen) {
     flagWasOpen = true;
     toast(t('flagOpened'), 'tip');
@@ -1316,24 +1397,32 @@ function applyFlagState(st) {
 
 function updateFlagButton() {
   const btn = $('btn-flag');
+  const label = $('btn-flag-label');
+  const ico = $('btn-flag-ico');
 
   if (mode !== 'raid' || !raidFlagState) {
-    btn.textContent = '⚔️';
+    if (label) label.textContent = t('flag');
+    if (ico) ico.textContent = '🚩';
     btn.classList.add('locked');
     return;
   }
 
   if (raidFlagState.can_attack) {
-    btn.textContent = '⚔️';
+    if (label) label.textContent = t('flag');
+    if (ico) ico.textContent = '🚩';
     btn.classList.remove('locked');
     return;
   }
 
-  // Показываем, чего именно не хватает: процента или прохода.
-  btn.textContent = raidFlagState.percent < raidFlagState.min_percent
-    ? `🔒 ${raidFlagState.percent}%`
-    : '🚧';
+  // Показываем, чего не хватает: процента или прохода.
   btn.classList.add('locked');
+  if (raidFlagState.percent < raidFlagState.min_percent) {
+    if (ico) ico.textContent = '🔒';
+    if (label) label.textContent = raidFlagState.percent + '%';
+  } else {
+    if (ico) ico.textContent = '🚧';
+    if (label) label.textContent = t('flag');
+  }
 }
 
 // ---------- ПАНЕЛЬ ----------
@@ -1355,6 +1444,7 @@ function setMode(next) {
   if (next !== 'own') buildMode = false;
   minion.frozen = false; minion.thinking = false;
   minion.panicBoost = 0;
+  minion.idleAct = null;
   resetMinionPath();
   refreshMinionMood();
   closeAllPalettes();
@@ -1561,6 +1651,20 @@ async function visitIsland(userId, username) {
 }
 
 // ---------- РЕЙД ----------
+// Автоподбор заряда под цель. Берём минимальный, который вероятно добьёт куб,
+// и снижаем, если эфира не хватает. Клиент присылает ТОЛЬКО cube_id и charge,
+// весь урон и стоимость считает сервер.
+function pickCharge(cube) {
+  const hp = Math.max(0, cube.hp | 0);
+  const bal = econ.ether_balance | 0;
+  let want = 1;
+  if (hp > 25) want = 2;
+  if (hp > 75) want = 3;
+  // Понижаем уровень, если не хватает эфира на текущий.
+  while (want > 1 && bal < CHARGE_COST[want]) want--;
+  return want;
+}
+
 async function startRaid() {
   if (!targetUser) return;
   fail(t('raidStart'));
@@ -1585,11 +1689,12 @@ function raidGone(e) {
 }
 async function attackCube(cube) {
   if (!raidId || attacking) return;
+  const charge = pickCharge(cube);
   attacking = true;
   try {
     const res = await api(`/api/v1/raids/${raidId}/attack-cube`, {
       method:'POST', headers:{ 'Idempotency-Key': uid() },
-      body: JSON.stringify({ cube_id: cube.id, charge: selectedCharge }),
+      body: JSON.stringify({ cube_id: cube.id, charge }),
     });
     $('ether').textContent = res.ether_balance; econ.ether_balance = res.ether_balance;
     if (res.cube.destroyed) {
@@ -1606,8 +1711,6 @@ async function attackCube(cube) {
 async function attackFlag() {
   if (!raidId || attacking) return;
 
-  // Клиент не пускает удар, если сервер уже сказал, что Флаг закрыт:
-  // это экономит круг до сервера и даёт правильную подсказку сразу.
   if (raidFlagState && !raidFlagState.can_attack) {
     toast(flagLockedMessage(raidFlagState), 'error');
     return;
@@ -1629,8 +1732,6 @@ async function attackFlag() {
     } else toast('−' + res.damage + ' ' + t('dmgyou'), 'tip');
   } catch (e) {
     if (!raidGone(e)) {
-      // Отказ приходит с полным состоянием Флага в details: обновляем кнопку,
-      // чтобы игрок сразу увидел, сколько ещё снести.
       if (e.code === 'FLAG_PROTECTED' && e.details) applyFlagState(e.details);
       toast(e.code === 'FLAG_PROTECTED' ? flagLockedMessage(e.details) : e.message, 'error');
     }
@@ -1720,13 +1821,6 @@ async function handleRaidTap(ndcX, ndcY) {
 }
 
 // ---------- КНОПКИ ----------
-document.querySelectorAll('#bottom-raid .charge').forEach(btn => {
-  btn.addEventListener('click', () => {
-    document.querySelectorAll('#bottom-raid .charge').forEach(b => b.classList.remove('on'));
-    btn.classList.add('on');
-    selectedCharge = parseInt(btn.dataset.charge, 10);
-  });
-});
 $('claim-btn').addEventListener('click', claimEther);
 $('reload').addEventListener('click', () => loadOwnIsland().catch(e => toast(e.message, 'error')));
 $('btn-build').addEventListener('click', () => setBuildMode(!buildMode));
