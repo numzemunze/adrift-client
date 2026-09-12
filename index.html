@@ -23,7 +23,6 @@
   .pill-btn:active { background:rgba(255,255,255,.22); }
   .pill-btn.ready { background:#16a34a; border-color:#22c55e; }
   .pill-btn.ready b { color:#fff; }
-  .pill-btn.alert { background:#b45309; border-color:#f59e0b; }
   #claim-hint { font-size:12px; opacity:.8; }
   #target-pill b { color:#fca5a5; }
 
@@ -110,7 +109,6 @@
   .onboard-step b { color:#7dd3fc; }
   .onboard-card button { width:100%; margin-top:6px; }
 
-  /* Карточка совета: фон прозрачный, чтобы видеть Буя, которого подсветила камера */
   #tip-screen {
     background:linear-gradient(0deg, rgba(11,16,32,.95) 0%, rgba(11,16,32,.55) 45%, rgba(11,16,32,0) 100%);
     justify-content:flex-end;
@@ -122,8 +120,7 @@
     border:1px solid rgba(255,255,255,.18);
     border-radius:18px;
     padding:18px 20px 16px;
-    width:100%;
-    max-width:440px;
+    width:100%; max-width:440px;
     box-shadow:0 14px 44px rgba(0,0,0,.6);
   }
   .tip-head { display:flex; align-items:center; gap:10px; margin-bottom:10px; }
@@ -133,10 +130,7 @@
   .tip-text { font-size:15px; line-height:1.5; color:rgba(255,255,255,.94); margin-bottom:16px; min-height:44px; }
   .tip-word { display:inline-block; white-space:nowrap; }
   .tip-char { display:inline-block; opacity:0; animation: tipChar .32s ease-out forwards; }
-  @keyframes tipChar {
-    from { opacity:0; transform: translateY(7px) scale(.9); }
-    to   { opacity:1; transform: none; }
-  }
+  @keyframes tipChar { from { opacity:0; transform: translateY(7px) scale(.9); } to { opacity:1; transform: none; } }
   .tip-card button { width:100%; }
 
   #palette, #block-palette, #size-palette {
@@ -284,14 +278,7 @@ const BLOCK_SIZES = [
   { key: '3x1x3', sx: 3, sy: 1, sz: 3, label: '3×3' },
 ];
 
-// ---------------------------------------------------------------------------
-// ТЕКСТЫ.
-// Совет Буя это ЗАХАРДКОЖЕННАЯ строка, не генерация и не запрос к серверу.
-// Плюс: невозможно случайно соврать или дать совет про несуществующую механику.
-// Минус: при каждом патче тексты правятся руками. Ниже они приведены в
-// соответствие текущей сборке. Тире не используем, только точки и запятые.
-// cond: когда совет уместен. always | noCubes | hasCubes | alert
-// ---------------------------------------------------------------------------
+// Тексты. Советы захардкожены, не генерируются. cond — когда уместно.
 const I18N = {
   ru: {
     flagColor: 'Цвет флага', blockColor: 'Цвет блока', sizeTitle: 'Размер блока',
@@ -300,8 +287,6 @@ const I18N = {
     returnHome: 'Вернуться',
     tipTitle: 'Буй говорит', tipOk: 'Ок',
     minionPanic: 'Буй в панике. Сейчас ему не до разговоров.',
-    minionThinking: 'Буй думает…',
-    raidAlertTitle: 'Внимание',
     raidAlertToast: 'На твой остров открыт рейд. Проверь Флаг.',
     onboardTitle: 'Добро пожаловать в ADRIFT',
     onboard1: '<b>1.</b> Ты уже в режиме стройки. Наведи камеру, увидишь полупрозрачный блок там, куда встанет куб.',
@@ -353,8 +338,6 @@ const I18N = {
     returnHome: 'Return',
     tipTitle: 'Buoy says', tipOk: 'OK',
     minionPanic: 'Buoy is panicking. No time for a chat.',
-    minionThinking: 'Buoy is thinking…',
-    raidAlertTitle: 'Attention',
     raidAlertToast: 'A raid is open against your island. Check your Flag.',
     onboardTitle: 'Welcome to ADRIFT',
     onboard1: '<b>1.</b> You are already in build mode. Aim the camera, a translucent block shows where the cube will go.',
@@ -430,7 +413,6 @@ const ok = () => { loading = false; statusEl.classList.add('hidden'); };
 
 let toastTimer = null;
 function toast(msg, kind = 'info') {
-  // kind: info | error | tip | warn
   toastEl.textContent = msg;
   toastEl.classList.toggle('error', kind === 'error');
   toastEl.classList.toggle('tip', kind === 'tip');
@@ -446,7 +428,6 @@ function toast(msg, kind = 'info') {
 }
 
 const uid = () => (crypto.randomUUID ? crypto.randomUUID() : String(Date.now()) + Math.random().toString(16).slice(2));
-
 const fmtTime = (s) => {
   s = Math.max(0, Math.floor(s));
   const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), sec = s % 60;
@@ -471,7 +452,7 @@ let econ = { accrued_now: 0, seconds_to_next: 0, ether_balance: 0 };
 let myFlagColor = 'red';
 let displayFlagColor = 'red';
 let currentFlagHp = 0, currentFlagMax = 0;
-let myRaidAlert = false;   // против меня открыт рейд
+let myRaidAlert = false;
 
 // ---------- АВТОРИЗАЦИЯ ----------
 async function signIn() {
@@ -486,11 +467,7 @@ async function signIn() {
   localStorage.setItem('adrift_token', token);
   localStorage.setItem('adrift_id', myId);
 }
-
-function clearSession() {
-  token = null; myId = null;
-  localStorage.removeItem('adrift_token'); localStorage.removeItem('adrift_id');
-}
+function clearSession() { token = null; myId = null; localStorage.removeItem('adrift_token'); localStorage.removeItem('adrift_id'); }
 
 async function api(path, options = {}) {
   const res = await fetch(API_URL + path, {
@@ -506,7 +483,6 @@ async function api(path, options = {}) {
   }
   return body;
 }
-
 const AUTH_ERRORS = ['TOKEN_EXPIRED','TOKEN_INVALID','TOKEN_MISSING','UNAUTHORIZED'];
 
 async function auth() {
@@ -540,13 +516,12 @@ controls.maxPolarAngle = Math.PI / 2.2;
 controls.minDistance = 10;
 controls.maxDistance = 90;
 
-scene.add(new THREE.AmbientLight(0xffffff, 0.75));
+scene.add(new THREE.AmbientLight(0xffffff, 0.78));
 const sun = new THREE.DirectionalLight(0xffffff, 1.0);
 sun.position.set(30, 50, 20); scene.add(sun);
 
 const ground = new THREE.Mesh(new THREE.BoxGeometry(66,1,66), new THREE.MeshLambertMaterial({ color: 0x1e3a2f }));
 ground.position.y = -0.5; scene.add(ground);
-
 const grid = new THREE.GridHelper(64, 64, 0x3b82f6, 0x1e293b);
 grid.position.y = 0.01; scene.add(grid);
 
@@ -554,8 +529,7 @@ const flagGroup = new THREE.Group();
 const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.15,0.15,4,8), new THREE.MeshLambertMaterial({ color:0x94a3b8 }));
 pole.position.y = 2;
 const banner = new THREE.Mesh(new THREE.BoxGeometry(1.6,1,0.1), new THREE.MeshLambertMaterial({ color:0xef4444 }));
-banner.position.set(0.8, 3.3, 0.1 - 0.1);
-banner.position.z = 0;
+banner.position.set(0.8, 3.3, 0);
 flagGroup.add(pole, banner); scene.add(flagGroup);
 
 // ---------- ТЕКСТУРА ДЕРЕВА ----------
@@ -565,7 +539,6 @@ function makeWoodTexture() {
   canvas.width = canvas.height = size;
   const ctx = canvas.getContext('2d');
   ctx.fillStyle = '#ffffff'; ctx.fillRect(0,0,size,size);
-
   for (let i = 0; i < 22; i++) {
     const y = Math.random() * size;
     ctx.strokeStyle = `rgba(0,0,0,${0.04 + Math.random()*0.06})`;
@@ -599,12 +572,10 @@ function makeCubeMaterial(color) {
     color: new THREE.Color(BLOCK_COLORS_HEX[color] || BLOCK_COLORS_HEX.wood),
   });
 }
-
 function cubeCenter(c) {
   const sx = c.size_x||1, sy = c.size_y||1, sz = c.size_z||1;
   return { x: c.x + sx/2, y: c.y + sy/2, z: c.z + sz/2 };
 }
-
 function rebuildBlockedGround() {
   blockedGround = new Set();
   for (const m of cubeMeshes.values()) {
@@ -617,7 +588,6 @@ function rebuildBlockedGround() {
     }
   }
 }
-
 function addCube(c) {
   if (cubeMeshes.has(c.id)) return;
   const color = c.color || 'wood';
@@ -631,7 +601,6 @@ function addCube(c) {
   rebuildBlockedGround();
   resetMinionPath();
 }
-
 function paintCube(mesh) {
   const c = mesh.userData.cube;
   const ratio = c.max_hp > 0 ? Math.max(0, Math.min(1, c.hp/c.max_hp)) : 0;
@@ -639,24 +608,18 @@ function paintCube(mesh) {
   const hurt = new THREE.Color(0x7f1d1d);
   mesh.material.color.copy(base).lerp(hurt, 1 - ratio);
 }
-
 function updateCubeHp(id, hp) {
   const mesh = cubeMeshes.get(id); if (!mesh) return;
   mesh.userData.cube.hp = hp; paintCube(mesh);
 }
-
 function removeCube(id) {
   const mesh = cubeMeshes.get(id); if (!mesh) return;
   scene.remove(mesh); mesh.geometry.dispose(); mesh.material.dispose(); cubeMeshes.delete(id);
-  rebuildBlockedGround();
-  resetMinionPath();
+  rebuildBlockedGround(); resetMinionPath();
 }
-
 function resetCubes() { for (const id of [...cubeMeshes.keys()]) removeCube(id); rebuildBlockedGround(); }
-
 function countSafeCubes() { let n = 0; for (const m of cubeMeshes.values()) if (m.userData.cube.is_safe_zone) n++; return n; }
 function refreshCounters() { $('cubes').textContent = cubeMeshes.size; }
-
 function setFlagVisual(hp, maxHp, color) {
   currentFlagHp = hp; currentFlagMax = maxHp;
   if (color) displayFlagColor = color;
@@ -669,8 +632,6 @@ function setFlagVisual(hp, maxHp, color) {
 
 // ===========================================================================
 // ЭМОДЗИ СПРАЙТЫ
-// Рисуем эмодзи в canvas и вешаем как спрайт. Системный шрифт эмодзи есть и на
-// Android, и на iOS, поэтому внешние картинки не нужны.
 // ===========================================================================
 const emojiTexCache = new Map();
 function emojiTexture(char) {
@@ -680,24 +641,20 @@ function emojiTexture(char) {
   canvas.width = canvas.height = px;
   const ctx = canvas.getContext('2d');
   ctx.font = `${Math.floor(px * 0.76)}px "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif`;
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
   ctx.fillText(char, px/2, px/2 + px*0.04);
   const tex = new THREE.CanvasTexture(canvas);
   tex.colorSpace = THREE.SRGBColorSpace;
   emojiTexCache.set(char, tex);
   return tex;
 }
-
 function makeSprite(char, size) {
   const sp = new THREE.Sprite(new THREE.SpriteMaterial({
     map: emojiTexture(char), transparent: true, depthWrite: false, opacity: 0,
   }));
-  sp.scale.set(size, size, 1);
-  sp.userData.char = char;
+  sp.scale.set(size, size, 1); sp.userData.char = char;
   return sp;
 }
-
 function setSpriteChar(sp, char, size) {
   if (sp.userData.char !== char) {
     sp.material.map = emojiTexture(char);
@@ -709,133 +666,418 @@ function setSpriteChar(sp, char, size) {
 
 // ===========================================================================
 // МИНЬОН («Буй»)
-// Режимы:
-//   calm   свой остров или визит, Буй спокоен
-//   alert  против моего острова открыт рейд, Буй насторожен, над головой ⚠️
-//   panic  я рейжу чужой остров, чужой Буй в панике, вокруг летят 💦
+//
+// Модель: голова с лицом (глаза, зрачки, брови, рот, румянец), туловище с
+// поясом, руки и ноги с двумя суставами, ботинки с носком, флаг в правой руке.
+//
+// Поза: единый объект с числовыми осями. Каждый кадр вычисляем «желаемую»
+// позу под текущее состояние и плавно ведём текущую к ней через lerp. За счёт
+// этого переходы между эмоциями всегда мягкие, без щелчков.
+//
+// Эмоции: 12 состояний, каждое меняет лицо и базовую позу. Плюс оверрайды,
+// которые включаются на несколько секунд по игровым событиям.
 // ===========================================================================
+
 const MINION_RADIUS_MIN = 4;
 const MINION_RADIUS_MAX = 12;
 const PANIC_RADIUS_MIN = 3;
 const PANIC_RADIUS_MAX = 9;
-const THINK_TIME = 1.4;   // сколько Буй «думает» перед советом, сек
+const THINK_TIME = 1.3;
+
+// --- Цвета ---
+const MC = {
+  skin:   0xe8dcc8,
+  skinSh: 0xd3c6ae,
+  cloth:  0x9c9184,
+  cloth2: 0x87806f,
+  belt:   0x5f5647,
+  dark:   0x6b6152,
+  boot:   0x4a4339,
+  eye:    0x241f19,
+  brow:   0x4a3f33,
+  mouth:  0x3a2f27,
+  blush:  0xd98383,
+};
 
 const minionGroup = new THREE.Group();
 const minionParts = {};
 let minionFlagMat = null;
 const minionHitMeshes = [];
-
-let bubbleSprite = null;      // основная «мысль» над головой
-const droplets = [];          // три капли для паники
+let bubbleSprite = null;
+const droplets = [];
 
 (function buildMinion() {
-  const SKIN = 0xe8dcc8;
-  const CLOTH = 0x9c9184;
-  const DARK = 0x6b6152;
-  const EYE = 0x241f19;
+  const matSkin = new THREE.MeshLambertMaterial({ color: MC.skin });
+  const matCloth = new THREE.MeshLambertMaterial({ color: MC.cloth });
+  const matDark = new THREE.MeshLambertMaterial({ color: MC.dark });
+  const matBoot = new THREE.MeshLambertMaterial({ color: MC.boot });
+  const matEye = new THREE.MeshBasicMaterial({ color: MC.eye });
+  const matBrow = new THREE.MeshBasicMaterial({ color: MC.brow });
+  const matMouth = new THREE.MeshBasicMaterial({ color: MC.mouth });
+  const matBlush = new THREE.MeshBasicMaterial({ color: MC.blush, transparent: true, opacity: 0.75 });
 
-  const matSkin = new THREE.MeshLambertMaterial({ color: SKIN });
-  const matCloth = new THREE.MeshLambertMaterial({ color: CLOTH });
-  const matDark = new THREE.MeshLambertMaterial({ color: DARK });
-  const matEye = new THREE.MeshBasicMaterial({ color: EYE });
   minionFlagMat = new THREE.MeshLambertMaterial({ color: 0xef4444 });
 
   const bodyGroup = new THREE.Group();
 
-  const torso = new THREE.Mesh(new THREE.BoxGeometry(0.52, 0.6, 0.38), matCloth);
-  torso.position.y = 0.8;
-  bodyGroup.add(torso);
+  // --- Торс + пояс ---
+  const torso = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.58, 0.36), matCloth);
+  torso.position.y = 1.01;
+  const belt = new THREE.Mesh(new THREE.BoxGeometry(0.54, 0.09, 0.4), new THREE.MeshLambertMaterial({ color: MC.belt }));
+  belt.position.y = 0.76;
+  bodyGroup.add(torso, belt);
 
-  const head = new THREE.Mesh(new THREE.BoxGeometry(0.58, 0.54, 0.52), matSkin);
-  head.position.y = 1.38;
-  const eyeGeo = new THREE.BoxGeometry(0.1, 0.14, 0.02);
-  const eyeL = new THREE.Mesh(eyeGeo, matEye); eyeL.position.set(-0.13, 0.03, 0.27);
-  const eyeR = new THREE.Mesh(eyeGeo, matEye); eyeR.position.set( 0.13, 0.03, 0.27);
-  head.add(eyeL, eyeR);
+  // --- Голова + лицо ---
+  const head = new THREE.Group();
+  head.position.y = 1.55;
+
+  const headMesh = new THREE.Mesh(new THREE.BoxGeometry(0.58, 0.52, 0.5), matSkin);
+  head.add(headMesh);
+
+  // Глаза: светлая основа + тёмный зрачок.
+  const eyeBaseGeo = new THREE.BoxGeometry(0.16, 0.2, 0.02);
+  const pupilGeo = new THREE.BoxGeometry(0.1, 0.14, 0.02);
+  const eyeBaseL = new THREE.Mesh(eyeBaseGeo, new THREE.MeshBasicMaterial({ color: 0xf3ece0 }));
+  const eyeBaseR = new THREE.Mesh(eyeBaseGeo, new THREE.MeshBasicMaterial({ color: 0xf3ece0 }));
+  const pupilL = new THREE.Mesh(pupilGeo, matEye);
+  const pupilR = new THREE.Mesh(pupilGeo, matEye);
+  eyeBaseL.position.set(-0.13, 0.03, 0.251);
+  eyeBaseR.position.set( 0.13, 0.03, 0.251);
+  pupilL.position.set(-0.13, 0.03, 0.262);
+  pupilR.position.set( 0.13, 0.03, 0.262);
+  head.add(eyeBaseL, eyeBaseR, pupilL, pupilR);
+
+  // Брови: тонкие пластинки над глазами, вращаются для мимики.
+  const browGeo = new THREE.BoxGeometry(0.15, 0.035, 0.03);
+  const browL = new THREE.Mesh(browGeo, matBrow);
+  const browR = new THREE.Mesh(browGeo, matBrow);
+  browL.position.set(-0.13, 0.17, 0.262);
+  browR.position.set( 0.13, 0.17, 0.262);
+  head.add(browL, browR);
+
+  // Рот: пластинка, масштабируется под эмоцию.
+  const mouth = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.045, 0.02), matMouth);
+  mouth.position.set(0, -0.12, 0.256);
+  head.add(mouth);
+
+  // Румянец: виден только когда Буй рад или смущён.
+  const blushGeo = new THREE.BoxGeometry(0.11, 0.06, 0.02);
+  const blushL = new THREE.Mesh(blushGeo, matBlush);
+  const blushR = new THREE.Mesh(blushGeo, matBlush);
+  blushL.position.set(-0.21, -0.05, 0.256);
+  blushR.position.set( 0.21, -0.05, 0.256);
+  blushL.scale.setScalar(0.001); blushR.scale.setScalar(0.001);
+  head.add(blushL, blushR);
+
   bodyGroup.add(head);
 
-  const armGeo = new THREE.BoxGeometry(0.17, 0.46, 0.17);
-  const handGeo = new THREE.BoxGeometry(0.19, 0.14, 0.19);
+  // --- Левая рука (свободная) ---
+  const upperArmGeo = new THREE.BoxGeometry(0.16, 0.3, 0.16);
+  const lowerArmGeo = new THREE.BoxGeometry(0.14, 0.28, 0.14);
+  const handGeo = new THREE.BoxGeometry(0.17, 0.14, 0.17);
 
-  const armLPivot = new THREE.Group(); armLPivot.position.set(-0.35, 1.02, 0);
-  const armL = new THREE.Mesh(armGeo, matDark); armL.position.y = -0.23;
-  const handL = new THREE.Mesh(handGeo, matSkin); handL.position.y = -0.5;
-  armLPivot.add(armL, handL);
+  const armLPivot = new THREE.Group(); armLPivot.position.set(-0.33, 1.24, 0);
+  const armLUpper = new THREE.Mesh(upperArmGeo, matDark); armLUpper.position.y = -0.15;
+  const elbowLPivot = new THREE.Group(); elbowLPivot.position.y = -0.3;
+  const armLLower = new THREE.Mesh(lowerArmGeo, matDark); armLLower.position.y = -0.14;
+  const handL = new THREE.Mesh(handGeo, matSkin); handL.position.y = -0.31;
+  elbowLPivot.add(armLLower, handL);
+  armLPivot.add(armLUpper, elbowLPivot);
   bodyGroup.add(armLPivot);
 
-  const armRPivot = new THREE.Group(); armRPivot.position.set(0.35, 1.02, 0);
-  armRPivot.rotation.x = Math.PI;
-  const armR = new THREE.Mesh(armGeo, matDark); armR.position.y = -0.23;
-  const handR = new THREE.Mesh(handGeo, matSkin); handR.position.y = -0.5;
-  armRPivot.add(armR, handR);
+  // --- Правая рука (держит флаг) ---
+  const armRPivot = new THREE.Group(); armRPivot.position.set(0.33, 1.24, 0);
+  armRPivot.rotation.x = Math.PI;             // рука смотрит вверх
+  const armRUpper = new THREE.Mesh(upperArmGeo, matDark); armRUpper.position.y = -0.15;
+  const elbowRPivot = new THREE.Group(); elbowRPivot.position.y = -0.3;
+  const armRLower = new THREE.Mesh(lowerArmGeo, matDark); armRLower.position.y = -0.14;
+  const handR = new THREE.Mesh(handGeo, matSkin); handR.position.y = -0.31;
+  elbowRPivot.add(armRLower, handR);
+
+  // Флаг крепится к кисти: pole вверх, полотнище на конце.
+  const mPole = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, 0.95, 6), matDark);
+  mPole.position.set(0, -0.62, 0);
+  const mFlag = new THREE.Mesh(new THREE.BoxGeometry(0.44, 0.32, 0.02), minionFlagMat);
+  mFlag.position.set(0.23, -0.95, 0);
+  elbowRPivot.add(mPole, mFlag);
+
+  armRPivot.add(armRUpper, elbowRPivot);
   bodyGroup.add(armRPivot);
 
-  const mPole = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, 1.0, 6), matDark);
-  mPole.position.set(0.35, 1.72, 0);
-  const mFlag = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.3, 0.02), minionFlagMat);
-  mFlag.position.set(0.58, 2.02, 0);
-  bodyGroup.add(mPole, mFlag);
+  // --- Ноги ---
+  const upperLegGeo = new THREE.BoxGeometry(0.2, 0.32, 0.2);
+  const lowerLegGeo = new THREE.BoxGeometry(0.18, 0.3, 0.18);
+  const footGeo = new THREE.BoxGeometry(0.22, 0.1, 0.3);
 
-  const legGeo = new THREE.BoxGeometry(0.2, 0.5, 0.2);
-  const footGeo = new THREE.BoxGeometry(0.22, 0.1, 0.28);
+  const legLPivot = new THREE.Group(); legLPivot.position.set(-0.13, 0.72, 0);
+  const legLUpper = new THREE.Mesh(upperLegGeo, matDark); legLUpper.position.y = -0.16;
+  const kneeLPivot = new THREE.Group(); kneeLPivot.position.y = -0.32;
+  const legLLower = new THREE.Mesh(lowerLegGeo, matDark); legLLower.position.y = -0.15;
+  const footL = new THREE.Mesh(footGeo, matBoot); footL.position.set(0, -0.35, 0.05);
+  kneeLPivot.add(legLLower, footL);
+  legLPivot.add(legLUpper, kneeLPivot);
+  bodyGroup.add(legLPivot);
 
-  const legLPivot = new THREE.Group(); legLPivot.position.set(-0.13, 0.5, 0);
-  const legL = new THREE.Mesh(legGeo, matDark); legL.position.y = -0.25;
-  const footL = new THREE.Mesh(footGeo, matDark); footL.position.set(0, -0.45, 0.03);
-  legLPivot.add(legL, footL);
+  const legRPivot = new THREE.Group(); legRPivot.position.set(0.13, 0.72, 0);
+  const legRUpper = new THREE.Mesh(upperLegGeo, matDark); legRUpper.position.y = -0.16;
+  const kneeRPivot = new THREE.Group(); kneeRPivot.position.y = -0.32;
+  const legRLower = new THREE.Mesh(lowerLegGeo, matDark); legRLower.position.y = -0.15;
+  const footR = new THREE.Mesh(footGeo, matBoot); footR.position.set(0, -0.35, 0.05);
+  kneeRPivot.add(legRLower, footR);
+  legRPivot.add(legRUpper, kneeRPivot);
+  bodyGroup.add(legRPivot);
 
-  const legRPivot = new THREE.Group(); legRPivot.position.set(0.13, 0.5, 0);
-  const legR = new THREE.Mesh(legGeo, matDark); legR.position.y = -0.25;
-  const footR = new THREE.Mesh(footGeo, matDark); footR.position.set(0, -0.45, 0.03);
-  legRPivot.add(legR, footR);
+  minionGroup.add(bodyGroup);
 
-  minionGroup.add(bodyGroup, legLPivot, legRPivot);
-  minionHitMeshes.push(torso, head, armL, armR, legL, legR, mPole, mFlag, handL, handR);
+  // Кликабельные части: тап по любой из них открывает совет.
+  minionHitMeshes.push(headMesh, torso, belt, armLUpper, armLLower, handL, armRUpper, armRLower, handR, legLUpper, legLLower, legRUpper, legRLower, mPole, mFlag);
 
-  Object.assign(minionParts, { bodyGroup, torso, head, armLPivot, armRPivot, legLPivot, legRPivot });
-
-  // Мысль над головой
+  // Пузырь-мысль над головой.
   bubbleSprite = makeSprite('💬', 1.1);
-  bubbleSprite.position.set(0, 2.55, 0);
+  bubbleSprite.position.set(0, 2.6, 0);
   minionGroup.add(bubbleSprite);
 
-  // Три капли для паники. Летят вверх и в стороны, зациклено.
-  for (let i = 0; i < 3; i++) {
+  // Капли 💦 для паники: летят вверх и расходятся в стороны.
+  for (let i = 0; i < 4; i++) {
     const d = makeSprite('💦', 0.55);
-    d.userData.phase = i / 3;
-    d.position.set(0, 1.2, 0);
+    d.userData.phase = i / 4;
     minionGroup.add(d);
     droplets.push(d);
   }
 
+  Object.assign(minionParts, {
+    bodyGroup, torso, belt, head, headMesh,
+    eyeBaseL, eyeBaseR, pupilL, pupilR, browL, browR, mouth, blushL, blushR,
+    armLPivot, elbowLPivot, armLUpper, armLLower, handL,
+    armRPivot, elbowRPivot, armRUpper, armRLower, handR, mPole, mFlag,
+    legLPivot, kneeLPivot, legLUpper, legLLower, footL,
+    legRPivot, kneeRPivot, legRUpper, legRLower, footR,
+  });
+
   scene.add(minionGroup);
 })();
 
+// --- Поза ---
+// Все оси в одном объекте. Каждый кадр считаем target, ведём current к нему.
+const POSE_DEFAULT = {
+  armLx: 0, armLz: 0, elbowL: 0,
+  armRx: Math.PI, armRz: 0, elbowR: 0,
+  legLx: 0, legLz: 0, kneeL: 0,
+  legRx: 0, legRz: 0, kneeR: 0,
+  headX: 0, headY: 0, headZ: 0,
+  bodyX: 0, bodyY: 0, bodyZ: 0,
+  rootY: 0, rootOffsetY: 0,
+};
+const poseTarget = { ...POSE_DEFAULT };
+const poseCurrent = { ...POSE_DEFAULT };
+function resetPoseTarget() { Object.assign(poseTarget, POSE_DEFAULT); }
+
+const POSE_SPEED = { leg: 16, arm: 14, elbow: 12, head: 7, body: 6, root: 12 };
+
+function applyPose(dt) {
+  const lerp = (c, tt, k) => c + (tt - c) * Math.min(1, dt * k);
+
+  poseCurrent.armLx  = lerp(poseCurrent.armLx,  poseTarget.armLx,  POSE_SPEED.arm);
+  poseCurrent.armLz  = lerp(poseCurrent.armLz,  poseTarget.armLz,  POSE_SPEED.arm);
+  poseCurrent.elbowL = lerp(poseCurrent.elbowL, poseTarget.elbowL, POSE_SPEED.elbow);
+  poseCurrent.armRx  = lerp(poseCurrent.armRx,  poseTarget.armRx,  POSE_SPEED.arm);
+  poseCurrent.armRz  = lerp(poseCurrent.armRz,  poseTarget.armRz,  POSE_SPEED.arm);
+  poseCurrent.elbowR = lerp(poseCurrent.elbowR, poseTarget.elbowR, POSE_SPEED.elbow);
+  poseCurrent.legLx  = lerp(poseCurrent.legLx,  poseTarget.legLx,  POSE_SPEED.leg);
+  poseCurrent.legLz  = lerp(poseCurrent.legLz,  poseTarget.legLz,  POSE_SPEED.leg);
+  poseCurrent.kneeL  = lerp(poseCurrent.kneeL,  poseTarget.kneeL,  POSE_SPEED.leg);
+  poseCurrent.legRx  = lerp(poseCurrent.legRx,  poseTarget.legRx,  POSE_SPEED.leg);
+  poseCurrent.legRz  = lerp(poseCurrent.legRz,  poseTarget.legRz,  POSE_SPEED.leg);
+  poseCurrent.kneeR  = lerp(poseCurrent.kneeR,  poseTarget.kneeR,  POSE_SPEED.leg);
+  poseCurrent.headX  = lerp(poseCurrent.headX,  poseTarget.headX,  POSE_SPEED.head);
+  poseCurrent.headY  = lerp(poseCurrent.headY,  poseTarget.headY,  POSE_SPEED.head);
+  poseCurrent.headZ  = lerp(poseCurrent.headZ,  poseTarget.headZ,  POSE_SPEED.head);
+  poseCurrent.bodyX  = lerp(poseCurrent.bodyX,  poseTarget.bodyX,  POSE_SPEED.body);
+  poseCurrent.bodyY  = lerp(poseCurrent.bodyY,  poseTarget.bodyY,  POSE_SPEED.body);
+  poseCurrent.bodyZ  = lerp(poseCurrent.bodyZ,  poseTarget.bodyZ,  POSE_SPEED.body);
+  poseCurrent.rootY  = lerp(poseCurrent.rootY,  poseTarget.rootY,  POSE_SPEED.root);
+  poseCurrent.rootOffsetY = lerp(poseCurrent.rootOffsetY, poseTarget.rootOffsetY, POSE_SPEED.root);
+
+  minionParts.armLPivot.rotation.x = poseCurrent.armLx;
+  minionParts.armLPivot.rotation.z = poseCurrent.armLz;
+  minionParts.elbowLPivot.rotation.x = poseCurrent.elbowL;
+  minionParts.armRPivot.rotation.x = poseCurrent.armRx;
+  minionParts.armRPivot.rotation.z = poseCurrent.armRz;
+  minionParts.elbowRPivot.rotation.x = poseCurrent.elbowR;
+  minionParts.legLPivot.rotation.x = poseCurrent.legLx;
+  minionParts.legLPivot.rotation.z = poseCurrent.legLz;
+  minionParts.kneeLPivot.rotation.x = poseCurrent.kneeL;
+  minionParts.legRPivot.rotation.x = poseCurrent.legRx;
+  minionParts.legRPivot.rotation.z = poseCurrent.legRz;
+  minionParts.kneeRPivot.rotation.x = poseCurrent.kneeR;
+  minionParts.head.rotation.x = poseCurrent.headX;
+  minionParts.head.rotation.y = poseCurrent.headY;
+  minionParts.head.rotation.z = poseCurrent.headZ;
+  minionParts.bodyGroup.rotation.x = poseCurrent.bodyX;
+  minionParts.bodyGroup.rotation.y = poseCurrent.bodyY;
+  minionParts.bodyGroup.rotation.z = poseCurrent.bodyZ;
+  minionGroup.rotation.y = poseCurrent.rootY;
+  minionGroup.position.y = poseCurrent.rootOffsetY;
+}
+
+// --- Мимика ---
+// Значения по умолчанию. Любая эмоция меняет нужные поля, остальные остаются.
+const FACE_DEFAULT = {
+  pupilW: 0.1, pupilH: 0.14, pupilY: 0.03,
+  browL_rot: 0, browR_rot: 0, browY: 0.17,
+  mouthW: 0.14, mouthH: 0.045, mouthY: -0.12, mouthZ: 0,
+  blush: 0,
+};
+const faceTarget = { ...FACE_DEFAULT };
+const faceCurrent = { ...FACE_DEFAULT };
+function resetFaceTarget() { Object.assign(faceTarget, FACE_DEFAULT); }
+
+function applyFace(dt) {
+  const lerp = (c, tt, k) => c + (tt - c) * Math.min(1, dt * k);
+  const k = 10;
+  faceCurrent.pupilW = lerp(faceCurrent.pupilW, faceTarget.pupilW, k);
+  faceCurrent.pupilH = lerp(faceCurrent.pupilH, faceTarget.pupilH, k);
+  faceCurrent.pupilY = lerp(faceCurrent.pupilY, faceTarget.pupilY, k);
+  faceCurrent.browL_rot = lerp(faceCurrent.browL_rot, faceTarget.browL_rot, k);
+  faceCurrent.browR_rot = lerp(faceCurrent.browR_rot, faceTarget.browR_rot, k);
+  faceCurrent.browY = lerp(faceCurrent.browY, faceTarget.browY, k);
+  faceCurrent.mouthW = lerp(faceCurrent.mouthW, faceTarget.mouthW, k);
+  faceCurrent.mouthH = lerp(faceCurrent.mouthH, faceTarget.mouthH, k);
+  faceCurrent.mouthY = lerp(faceCurrent.mouthY, faceTarget.mouthY, k);
+  faceCurrent.mouthZ = lerp(faceCurrent.mouthZ, faceTarget.mouthZ, k);
+  faceCurrent.blush = lerp(faceCurrent.blush, faceTarget.blush, k);
+
+  minionParts.pupilL.scale.set(faceCurrent.pupilW / 0.1, faceCurrent.pupilH / 0.14, 1);
+  minionParts.pupilR.scale.copy(minionParts.pupilL.scale);
+  minionParts.pupilL.position.y = faceCurrent.pupilY;
+  minionParts.pupilR.position.y = faceCurrent.pupilY;
+
+  minionParts.browL.rotation.z = faceCurrent.browL_rot;
+  minionParts.browR.rotation.z = faceCurrent.browR_rot;
+  minionParts.browL.position.y = faceCurrent.browY;
+  minionParts.browR.position.y = faceCurrent.browY;
+
+  minionParts.mouth.scale.set(faceCurrent.mouthW / 0.14, faceCurrent.mouthH / 0.045, 1);
+  minionParts.mouth.position.y = faceCurrent.mouthY;
+  minionParts.mouth.position.z = faceCurrent.mouthZ;
+
+  const b = faceCurrent.blush;
+  minionParts.blushL.scale.setScalar(Math.max(0.001, b));
+  minionParts.blushR.scale.setScalar(Math.max(0.001, b));
+}
+
+// --- Эмоции: что каждая меняет в лице и позе ---
+// pose — функция от времени, добавляет движение поверх базовой позы.
+// bubble — эмодзи над головой.
+// priority — выше значит важнее.
+const EMOTIONS = {
+  calm: {
+    bubble: '💬', priority: 1,
+    face: { browY: 0.17, browL_rot: 0, browR_rot: 0, mouthW: 0.13, mouthH: 0.04, mouthY: -0.12, blush: 0 },
+  },
+  happy: {
+    bubble: '😊', priority: 2,
+    face: { browY: 0.19, browL_rot: -0.15, browR_rot: 0.15, pupilH: 0.06, mouthW: 0.17, mouthH: 0.055, mouthY: -0.11, blush: 1 },
+  },
+  excited: {
+    bubble: '✨', priority: 3,
+    face: { browY: 0.21, browL_rot: -0.2, browR_rot: 0.2, pupilW: 0.13, pupilH: 0.17, mouthW: 0.2, mouthH: 0.1, mouthY: -0.11, blush: 1 },
+    pose: (now) => ({ rootOffsetY: Math.abs(Math.sin(now * 6)) * 0.09 }),
+  },
+  thinking: {
+    bubble: '🤔', priority: 4,
+    face: { browY: 0.19, browL_rot: -0.35, browR_rot: 0, pupilW: 0.09, pupilH: 0.1, pupilY: 0.06, mouthW: 0.09, mouthH: 0.035 },
+  },
+  alert: {
+    bubble: '⚠️', priority: 5,
+    face: { browY: 0.15, browL_rot: 0.35, browR_rot: -0.35, pupilW: 0.12, pupilH: 0.16, mouthW: 0.1, mouthH: 0.03 },
+  },
+  panic: {
+    bubble: '💦', priority: 7,
+    face: { browY: 0.22, browL_rot: 0.4, browR_rot: -0.4, pupilW: 0.13, pupilH: 0.17, mouthW: 0.16, mouthH: 0.14, mouthY: -0.11 },
+  },
+  scared: {
+    bubble: '😱', priority: 8,
+    face: { browY: 0.23, browL_rot: 0.5, browR_rot: -0.5, pupilW: 0.15, pupilH: 0.19, mouthW: 0.13, mouthH: 0.17, mouthY: -0.12 },
+    pose: (now) => ({ headZ: Math.sin(now * 22) * 0.06, bodyX: 0.06 }),
+  },
+  sad: {
+    bubble: '😢', priority: 6,
+    face: { browY: 0.15, browL_rot: -0.35, browR_rot: 0.35, pupilH: 0.1, pupilY: -0.02, mouthW: 0.13, mouthH: 0.05, mouthY: -0.14 },
+  },
+  celebrate: {
+    bubble: '🎉', priority: 4,
+    face: { browY: 0.22, browL_rot: -0.2, browR_rot: 0.2, pupilH: 0.07, mouthW: 0.19, mouthH: 0.11, mouthY: -0.1, blush: 1 },
+    pose: (now) => ({ rootOffsetY: Math.abs(Math.sin(now * 8)) * 0.13, armLx: -2.6 }),
+  },
+  greeting: {
+    bubble: '👋', priority: 9,
+    face: { browY: 0.19, browL_rot: -0.15, browR_rot: 0.15, pupilH: 0.08, mouthW: 0.16, mouthH: 0.06, mouthY: -0.11, blush: 1 },
+    pose: (now) => ({ armLx: Math.PI * 0.72 + Math.sin(now * 6) * 0.3 }),
+  },
+  confused: {
+    bubble: '❓', priority: 3,
+    face: { browY: 0.19, browL_rot: -0.5, browR_rot: 0.1, pupilW: 0.09, pupilH: 0.13, mouthW: 0.08, mouthH: 0.03, mouthY: -0.12, mouthZ: 0.004 },
+  },
+  bored: {
+    bubble: '💤', priority: 1,
+    face: { browY: 0.16, browL_rot: 0, browR_rot: 0, pupilH: 0.03, pupilY: 0, mouthW: 0.1, mouthH: 0.05, mouthY: -0.13 },
+  },
+};
+
+function applyEmotionToTargets(name, now) {
+  const e = EMOTIONS[name] || EMOTIONS.calm;
+  Object.assign(faceTarget, e.face || {});
+  if (e.pose) Object.assign(poseTarget, e.pose(now));
+}
+
+// --- Общая логика Буя ---
 const minion = {
   x: 3, z: 3,
   path: [],
   phase: 0,
   idleUntil: 0,
-  facing: 0,
   lastTip: -1,
-  mood: 'calm',
+  mood: 'calm',       // базовое состояние от режима: calm | alert | panic
+  emotion: 'calm',    // текущая эмоция (может быть оверрайдом)
+  override: null,     // { name, until }
   frozen: false,
   thinking: false,
   thinkUntil: 0,
   panicBoost: 0,
   nextTalk: 0,
   talkUntil: 0,
+  nextIdleAct: 0,
+  idleAct: null,
+  idleActUntil: 0,
+  homeX: 0, homeZ: 0,  // «дом» — точка, вокруг которой он гуляет
 };
 
 function setMinionFlagColor(color) {
   minionFlagMat.color.set(FLAG_COLORS_HEX[color] || FLAG_COLORS_HEX.red);
 }
 
+function baseMood() {
+  if (mode === 'raid') return 'panic';
+  if (mode === 'own' && myRaidAlert) return 'alert';
+  return 'calm';
+}
+
 function refreshMinionMood() {
   if (minion.frozen || minion.thinking) return;
-  if (mode === 'raid') minion.mood = 'panic';
-  else if (mode === 'own' && myRaidAlert) minion.mood = 'alert';
-  else minion.mood = 'calm';
+  minion.mood = baseMood();
+  if (!minion.override) minion.emotion = minion.mood;
+}
+
+// Событие: включить эмоцию на несколько секунд. Не срабатывает поверх
+// «модальных» состояний (совет, паника), чтобы не сбить сцену.
+function setMinionEmotion(name, seconds) {
+  if (minion.frozen || minion.thinking) return;
+  const cur = EMOTIONS[minion.emotion];
+  const next = EMOTIONS[name];
+  if (next && cur && next.priority < cur.priority) return;
+  minion.override = { name, until: performance.now() / 1000 + seconds };
+  minion.emotion = name;
 }
 
 function cellFree(x, z) {
@@ -843,7 +1085,6 @@ function cellFree(x, z) {
   if (x === 0 && z === 0) return false;
   return !blockedGround.has(x + ',' + z);
 }
-
 function bfsPath(sx, sz, tx, tz) {
   if (!cellFree(tx, tz)) return null;
   const key = (x, z) => x + ',' + z;
@@ -851,7 +1092,6 @@ function bfsPath(sx, sz, tx, tz) {
   const prev = new Map();
   prev.set(key(sx, sz), null);
   let head = 0;
-
   while (head < queue.length) {
     const [x, z] = queue[head++];
     if (x === tx && z === tz) {
@@ -875,14 +1115,12 @@ function bfsPath(sx, sz, tx, tz) {
   }
   return null;
 }
-
 function resetMinionPath() { minion.path = []; }
 
 function pickMinionTarget() {
   const panic = minion.mood === 'panic';
   const rMin = panic ? PANIC_RADIUS_MIN : MINION_RADIUS_MIN;
   const rMax = panic ? PANIC_RADIUS_MAX : MINION_RADIUS_MAX;
-
   for (let i = 0; i < 14; i++) {
     const angle = Math.random() * Math.PI * 2;
     const r = rMin + Math.random() * (rMax - rMin);
@@ -894,7 +1132,6 @@ function pickMinionTarget() {
     if (path && path.length > 1) { minion.path = path.slice(1); return; }
   }
 }
-
 function placeMinionInitial() {
   for (let r = 2; r <= 10; r++) {
     for (let a = 0; a < 16; a++) {
@@ -912,114 +1149,205 @@ function placeMinionInitial() {
   minionGroup.position.set(2.5, 0, 2.5);
 }
 
-function approach(current, target, dt, k) {
-  return current + (target - current) * Math.min(1, dt * k);
+// Поворот в сторону движения. Отдельная функция, потому что yaw группы
+// живёт в poseCurrent.rootY и мы должны его менять в обход обычного lerp.
+let desiredYaw = 0;
+function faceTowards(tx, tz, dt, speed) {
+  const cur = minionGroup.rotation.y;
+  const target = Math.atan2(tx, tz);
+  let diff = target - cur;
+  while (diff > Math.PI) diff -= Math.PI * 2;
+  while (diff < -Math.PI) diff += Math.PI * 2;
+  minionGroup.rotation.y = cur + diff * Math.min(1, dt * speed);
 }
 
-// --- мысли и капли над головой ---
-function updateBubbles(now, dt) {
-  let char = null;
+// --- Мысли и капли ---
+function updateBubbles(now) {
+  const e = EMOTIONS[minion.emotion] || EMOTIONS.calm;
+  let char = e.bubble;
   let size = 1.1;
-
+  if (minion.frozen && !minion.thinking) { char = '👋'; size = 1.15; }
   if (minion.thinking) { char = '🤔'; size = 1.15; }
-  else if (minion.frozen) { char = '👋'; size = 1.15; }
-  else if (minion.mood === 'panic') { char = '💦'; size = 0.95; }
-  else if (minion.mood === 'alert') { char = '⚠️'; size = 1.0; }
-  else if (now < minion.talkUntil) { char = '💬'; size = 1.0; }
+  if (minion.emotion === 'panic') { char = '💦'; size = 0.95; }
+  if (minion.emotion === 'alert') { char = '⚠️'; size = 1.0; }
 
-  if (char) {
+  if (char && (minion.mood !== 'calm' || minion.frozen || minion.thinking || minion.emotion !== 'calm' || now < minion.talkUntil)) {
     setSpriteChar(bubbleSprite, char, size);
-    const pulse = char === '⚠️'
-      ? 1 + Math.sin(now * 5) * 0.1
-      : 1 + Math.sin(now * 2.4) * 0.04;
+    const pulse = char === '⚠️' ? 1 + Math.sin(now * 5) * 0.1 : 1 + Math.sin(now * 2.4) * 0.04;
     bubbleSprite.scale.set(size * pulse, size * pulse, 1);
-    bubbleSprite.position.y = 2.55 + Math.sin(now * 2.1) * 0.07;
+    bubbleSprite.position.y = 2.6 + Math.sin(now * 2.1) * 0.07;
     bubbleSprite.material.opacity = 1;
   } else {
     bubbleSprite.material.opacity = 0;
   }
 
-  // Капли: только в панике. Поднимаются вверх по кругу и обнуляются.
   for (const d of droplets) {
-    if (minion.mood !== 'panic') { d.material.opacity = 0; continue; }
-    const t = ((now * 0.75 + d.userData.phase) % 1);
+    if (minion.emotion !== 'panic' && minion.emotion !== 'scared') { d.material.opacity = 0; continue; }
+    const t = ((now * 0.85 + d.userData.phase) % 1);
     const ang = d.userData.phase * Math.PI * 2 + now * 2.2;
-    d.position.set(Math.cos(ang) * 0.42, 1.15 + t * 1.1, Math.sin(ang) * 0.32);
+    d.position.set(Math.cos(ang) * 0.45, 1.15 + t * 1.15, Math.sin(ang) * 0.35);
     d.material.opacity = Math.sin(t * Math.PI) * 0.95;
     d.scale.setScalar(0.45 + t * 0.25);
   }
 }
 
-function idleMinion(now, dt) {
-  const panic = minion.mood === 'panic';
-  const alert = minion.mood === 'alert';
-  const breath = Math.sin(now * 1.7);
+// --- Процедурные позы ---
+function walkPose(now, panic, alert) {
+  const freq = panic ? 13 + minion.panicBoost * 2 : (alert ? 8 : 6.5);
+  minion.phase += (1/60) * freq;   // приблизительно, точный dt применим снаружи
+  const s = Math.sin(minion.phase);
+  const cs = Math.cos(minion.phase);
 
-  minionParts.legLPivot.rotation.x = approach(minionParts.legLPivot.rotation.x, 0, dt, 8);
-  minionParts.legRPivot.rotation.x = approach(minionParts.legRPivot.rotation.x, 0, dt, 8);
-  minionParts.bodyGroup.rotation.x = approach(minionParts.bodyGroup.rotation.x, 0, dt, 6);
-  minionGroup.position.y = approach(minionGroup.position.y, 0, dt, 10);
-  minionParts.armRPivot.rotation.x = Math.PI;
+  const legAmp = panic ? 0.95 : (alert ? 0.75 : 0.65);
+  const armAmp = panic ? 0.6 : (alert ? 0.4 : 0.5);
 
+  const p = {};
+  p.legLx = s * legAmp;
+  p.legRx = -s * legAmp;
+  // Колено сгибается только при движении ноги назад (реалистичный шаг)
+  p.kneeL = Math.max(0, -s) * legAmp * 1.2;
+  p.kneeR = Math.max(0,  s) * legAmp * 1.2;
+
+  // Рука машет в противофазе ноге
   if (panic) {
-    minionParts.armLPivot.rotation.x = Math.PI * 0.85 + Math.sin(now * 8) * 0.35;
-    minionParts.head.rotation.z = Math.sin(now * 9) * 0.1;
-    minionParts.head.rotation.y = Math.sin(now * 7) * 0.12;
-    minionParts.bodyGroup.position.y = Math.abs(Math.sin(now * 6)) * 0.03;
+    p.armLx = Math.PI * 0.85 + Math.sin(minion.phase * 1.6) * 0.45;
+    p.armRx = Math.PI + Math.sin(minion.phase * 1.9 + 1) * 0.2;
+    p.elbowL = -0.5 + Math.sin(minion.phase * 2) * 0.3;
+    p.elbowR = 0.3;
   } else if (alert) {
-    // Насторожен: чуть присел, руки полусогнуты, голова поворачивается
-    minionParts.armLPivot.rotation.x = 0.5 + Math.sin(now * 3) * 0.12;
-    minionParts.head.rotation.z = Math.sin(now * 2.2) * 0.05;
-    minionParts.head.rotation.y = Math.sin(now * 1.1) * 0.28;
-    minionParts.bodyGroup.position.y = breath * 0.012;
+    p.armLx = 0.5 - s * 0.35;
+    p.armRx = Math.PI;
+    p.elbowL = -0.7;
+    p.elbowR = 0;
   } else {
-    minionParts.armLPivot.rotation.x = breath * 0.06;
-    minionParts.head.rotation.z = Math.sin(now * 0.7) * 0.05;
-    minionParts.head.rotation.y = Math.sin(now * 0.45) * 0.16;
-    minionParts.bodyGroup.position.y = breath * 0.015;
+    p.armLx = -s * armAmp;
+    p.armRx = Math.PI;
+    p.elbowL = -0.15 + Math.abs(cs) * 0.1;
+    p.elbowR = 0;
+  }
+
+  // Наклон корпуса вперёд при разгоне, покачивание при ходьбе
+  p.bodyX = panic ? 0.2 : (alert ? 0.12 : 0.07);
+  p.bodyZ = Math.sin(minion.phase * 0.5) * 0.03;
+  p.headX = panic ? -0.06 : 0.02;
+  p.headZ = Math.sin(minion.phase * 0.7) * (panic ? 0.13 : 0.04);
+  p.headY = alert ? Math.sin(now * 2.4) * 0.28 : 0;
+  p.rootOffsetY = Math.abs(s) * (panic ? 0.13 : 0.05);
+
+  return p;
+}
+
+function idleMicroPose(now) {
+  // Микро-движения в покое: дыхание + действия, которые включаются иногда.
+  const p = {};
+  const breath = Math.sin(now * 1.7);
+  p.armLx = breath * 0.06;
+  p.bodyX = 0;
+  p.rootOffsetY = breath * 0.015;
+  p.headZ = Math.sin(now * 0.7) * 0.05;
+  p.headY = Math.sin(now * 0.45) * 0.16;
+
+  if (minion.idleAct && now < minion.idleActUntil) {
+    const t = now - (minion.idleActUntil - 1.8);
+    switch (minion.idleAct) {
+      case 'stretch':
+        p.armLx = -2.4;
+        p.armRx = Math.PI - 0.4;
+        p.elbowL = -0.3;
+        p.headX = -0.15;
+        p.rootOffsetY = Math.sin(t * 2.5) * 0.03;
+        break;
+      case 'tapFoot':
+        p.legLx = 0;
+        p.kneeL = Math.abs(Math.sin(t * 9)) * 0.4;
+        p.armLx = 0.3;
+        p.headZ = Math.sin(t * 1.4) * 0.03;
+        break;
+      case 'scratchHead':
+        p.armLx = -2.55;
+        p.elbowL = -1.4 + Math.sin(t * 10) * 0.15;
+        p.headZ = 0.1;
+        p.headY = Math.sin(t * 1.2) * 0.1;
+        break;
+      case 'lookAround':
+        p.headY = Math.sin(t * 2.5) * 0.45;
+        p.headZ = 0.02;
+        break;
+      case 'yawn':
+        // Позы тут не меняем, рот откроем через faceTarget
+        p.armLx = -1.6;
+        p.headX = -0.2;
+        break;
+    }
+  }
+  return p;
+}
+
+function pickIdleAct(now) {
+  const pool = ['stretch', 'tapFoot', 'scratchHead', 'lookAround', 'yawn'];
+  const act = pool[Math.floor(Math.random() * pool.length)];
+  minion.idleAct = act;
+  minion.idleActUntil = now + 1.8;
+  if (act === 'yawn') {
+    faceTarget.mouthH = 0.16;
+    faceTarget.mouthW = 0.1;
+    faceTarget.mouthY = -0.09;
+    setTimeout(() => { /* вернём через lerp автоматически */ }, 900);
   }
 }
 
+// --- Обновление эмоций и позы ---
 function updateMinion(dt) {
   const now = performance.now() / 1000;
 
   if (!minion.frozen && !cellFree(minion.x, minion.z)) placeMinionInitial();
 
-  // 1. Пауза на раздумье: стоит, рука у подбородка, глаза вверх
+  // Сброс оверрайдов
+  if (minion.override && now >= minion.override.until) {
+    minion.override = null;
+    minion.emotion = minion.mood;
+  }
+
+  resetPoseTarget();
+  resetFaceTarget();
+
+  // 1. Особые состояния (совет, раздумье)
   if (minion.thinking) {
-    minionParts.armLPivot.rotation.x = approach(minionParts.armLPivot.rotation.x, -1.9, dt, 7);
-    minionParts.armRPivot.rotation.x = Math.PI;
-    minionParts.head.rotation.x = approach(minionParts.head.rotation.x, -0.22, dt, 6);
-    minionParts.head.rotation.z = approach(minionParts.head.rotation.z, 0.06, dt, 6);
-    minionParts.legLPivot.rotation.x = approach(minionParts.legLPivot.rotation.x, 0, dt, 8);
-    minionParts.legRPivot.rotation.x = approach(minionParts.legRPivot.rotation.x, 0, dt, 8);
-    minionParts.bodyGroup.rotation.x = approach(minionParts.bodyGroup.rotation.x, 0, dt, 6);
-    minionGroup.position.y = approach(minionGroup.position.y, 0, dt, 10);
+    minion.emotion = 'thinking';
+    poseTarget.armLx = -1.9;
+    poseTarget.elbowL = -0.9;
+    poseTarget.headX = -0.22;
+    poseTarget.headZ = 0.06;
+    applyEmotionToTargets('thinking', now);
     return;
   }
-
-  // 2. Заморожен, игрок читает совет: машет рукой
   if (minion.frozen) {
-    minionParts.armLPivot.rotation.x = Math.PI * 0.7 + Math.sin(now * 5) * 0.3;
-    minionParts.armRPivot.rotation.x = Math.PI;
-    minionParts.legLPivot.rotation.x = approach(minionParts.legLPivot.rotation.x, 0, dt, 8);
-    minionParts.legRPivot.rotation.x = approach(minionParts.legRPivot.rotation.x, 0, dt, 8);
-    minionParts.bodyGroup.rotation.x = approach(minionParts.bodyGroup.rotation.x, 0, dt, 6);
-    minionParts.head.rotation.x = approach(minionParts.head.rotation.x, 0, dt, 6);
-    minionParts.head.rotation.z = Math.sin(now * 1.4) * 0.09;
-    minionParts.head.rotation.y = approach(minionParts.head.rotation.y, 0, dt, 6);
-    minionParts.bodyGroup.position.y = Math.sin(now * 2.2) * 0.02;
-    minionGroup.position.y = approach(minionGroup.position.y, 0, dt, 10);
+    minion.emotion = 'greeting';
+    poseTarget.rootY = minionGroup.rotation.y;   // не крутим
+    applyEmotionToTargets('greeting', now);
     return;
   }
 
-  const panic = minion.mood === 'panic';
-  const alert = minion.mood === 'alert';
+  // 2. Базовая эмоция
+  const emoName = minion.emotion;
+  applyEmotionToTargets(emoName, now);
+
+  const panic = emoName === 'panic' || emoName === 'scared';
+  const alert = emoName === 'alert';
   minion.panicBoost = Math.max(0, minion.panicBoost - dt * 0.6);
 
-  // 3. Пауза между переходами
+  // 3. Пауза между переходами / выбор новой цели
   if (minion.path.length === 0) {
-    if (now < minion.idleUntil) { idleMinion(now, dt); return; }
+    if (now < minion.idleUntil) {
+      const p = idleMicroPose(now);
+      Object.assign(poseTarget, p);
+      // Иногда выбираем новую микро-анимацию
+      if (now > minion.nextIdleAct) {
+        minion.nextIdleAct = now + 4 + Math.random() * 6;
+        if (Math.random() < 0.35) pickIdleAct(now);
+      }
+      return;
+    }
     pickMinionTarget();
     if (minion.path.length === 0) { minion.idleUntil = now + 1.0; return; }
     const basePause = panic ? 0.1 + Math.random() * 0.3
@@ -1028,7 +1356,7 @@ function updateMinion(dt) {
     minion.idleUntil = now + basePause;
   }
 
-  // 4. Идём
+  // 4. Идём к следующей клетке
   const [nx, nz] = minion.path[0];
   const tx = nx + 0.5, tz = nz + 0.5;
   const px = minionGroup.position.x, pz = minionGroup.position.z;
@@ -1046,61 +1374,29 @@ function updateMinion(dt) {
     minionGroup.position.z += (dz / dist) * step;
   }
 
-  // 5. Плавный поворот
+  // 5. Поворот
   const targetAngle = Math.atan2(dx, dz);
-  let diff = targetAngle - minion.facing;
+  let diff = targetAngle - minionGroup.rotation.y;
   while (diff > Math.PI) diff -= Math.PI * 2;
   while (diff < -Math.PI) diff += Math.PI * 2;
-  minion.facing += diff * Math.min(1, dt * (panic ? 12 : 7));
-  minionGroup.rotation.y = minion.facing;
+  minionGroup.rotation.y += diff * Math.min(1, dt * (panic ? 12 : 7));
 
   // 6. Походка
-  const freq = panic ? 13 + minion.panicBoost * 2 : (alert ? 8 : 6.5);
-  minion.phase += dt * freq;
-  const s = Math.sin(minion.phase);
+  const walk = walkPose(now, panic, alert);
+  Object.assign(poseTarget, walk);
+  // Позицию по Y задаём вручную, минуя lerp позы, иначе шаг «отстаёт»
+  poseCurrent.rootOffsetY = poseTarget.rootOffsetY;
 
-  minionParts.head.rotation.x = approach(minionParts.head.rotation.x, 0, dt, 5);
-
-  if (panic) {
-    minionParts.legLPivot.rotation.x = s * 0.95;
-    minionParts.legRPivot.rotation.x = -s * 0.95;
-    minionParts.armLPivot.rotation.x = Math.PI * 0.85 + Math.sin(minion.phase * 1.6) * 0.45;
-    minionParts.armRPivot.rotation.x = Math.PI + Math.sin(minion.phase * 1.9 + 1) * 0.2;
-    minionParts.head.rotation.z = Math.sin(minion.phase * 0.7) * 0.13;
-    minionParts.head.rotation.y = approach(minionParts.head.rotation.y, 0, dt, 8);
-    minionParts.bodyGroup.rotation.x = 0.18;
-    minionParts.bodyGroup.position.y = 0;
-    minionGroup.position.y = Math.abs(s) * 0.13;
-  } else if (alert) {
-    minionParts.legLPivot.rotation.x = s * 0.75;
-    minionParts.legRPivot.rotation.x = -s * 0.75;
-    minionParts.armLPivot.rotation.x = 0.45 - s * 0.35;
-    minionParts.armRPivot.rotation.x = Math.PI;
-    minionParts.head.rotation.z = s * 0.05;
-    minionParts.head.rotation.y = Math.sin(performance.now() / 420) * 0.24;
-    minionParts.bodyGroup.rotation.x = 0.1;
-    minionParts.bodyGroup.position.y = 0;
-    minionGroup.position.y = Math.abs(s) * 0.06;
-  } else {
-    minionParts.legLPivot.rotation.x = s * 0.62;
-    minionParts.legRPivot.rotation.x = -s * 0.62;
-    minionParts.armLPivot.rotation.x = -s * 0.5;
-    minionParts.armRPivot.rotation.x = Math.PI;
-    minionParts.head.rotation.z = s * 0.04;
-    minionParts.head.rotation.y = approach(minionParts.head.rotation.y, 0, dt, 5);
-    minionParts.bodyGroup.rotation.x = 0.06;
-    minionParts.bodyGroup.position.y = 0;
-    minionGroup.position.y = Math.abs(s) * 0.05;
-  }
-
-  // 7. Редкие «мысли» в спокойном режиме
+  // 7. Редкая «мысль» над головой
   if (!panic && !alert && now > minion.nextTalk && now > minion.talkUntil) {
-    minion.talkUntil = now + 2.2;
+    minion.talkUntil = now + 2.0;
     minion.nextTalk = now + 6 + Math.random() * 8;
   }
 }
 
-// ---------- КАМЕРА: АНИМАЦИЯ ФОКУСА ----------
+// ===========================================================================
+// КАМЕРА: АНИМАЦИЯ ФОКУСА
+// ===========================================================================
 const camAnim = {
   active: false, t: 0, dur: 1,
   fromPos: new THREE.Vector3(), toPos: new THREE.Vector3(),
@@ -1118,16 +1414,13 @@ function animateCamera(toPos, toTgt, dur, onDone) {
   camAnim.onDone = onDone || null;
   controls.enabled = false;
 }
-
 function updateCameraAnim(dt) {
   if (!camAnim.active) return false;
   camAnim.t += dt;
   const k = Math.min(1, camAnim.t / camAnim.dur);
   const e = k < 0.5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2;
-
   camera.position.lerpVectors(camAnim.fromPos, camAnim.toPos, e);
   controls.target.lerpVectors(camAnim.fromTgt, camAnim.toTgt, e);
-
   if (k >= 1) {
     camAnim.active = false;
     const cb = camAnim.onDone; camAnim.onDone = null;
@@ -1136,31 +1429,27 @@ function updateCameraAnim(dt) {
   return true;
 }
 
-// ---------- СОВЕТ БУЯ ----------
+// ===========================================================================
+// СОВЕТ БУЯ
+// ===========================================================================
 function pickTip() {
   const alertTips = I18N[lang].alertTips || [];
   const tips = I18N[lang].tips;
-
-  // Когда на остров идёт рейд, Буй в первую очередь говорит об этом.
   if (minion.mood === 'alert' && alertTips.length && Math.random() < 0.6) {
     return alertTips[Math.floor(Math.random() * alertTips.length)].text;
   }
-
   const hasCubes = cubeMeshes.size > 0;
   const pool = tips.filter(tip => {
     if (tip.cond === 'hasCubes') return hasCubes;
     if (tip.cond === 'noCubes') return !hasCubes;
     return true;
   });
-
   let idx = Math.floor(Math.random() * pool.length);
   if (pool[idx].text === minion.lastTipText) idx = (idx + 1) % pool.length;
   minion.lastTipText = pool[idx].text;
   return pool[idx].text;
 }
 
-// Печать волной: каждое слово держим неразрывным, чтобы перенос строки не рвал
-// слова посередине, а буквы внутри слова появляются по очереди.
 function animateTipText(text) {
   const el = $('tip-text');
   el.innerHTML = '';
@@ -1173,8 +1462,7 @@ function animateTipText(text) {
       s.className = 'tip-char';
       s.textContent = ch;
       s.style.animationDelay = (i * 26) + 'ms';
-      w.appendChild(s);
-      i++;
+      w.appendChild(s); i++;
     }
     el.appendChild(w);
     el.appendChild(document.createTextNode(' '));
@@ -1186,7 +1474,6 @@ function animateTipText(text) {
 function openTip() {
   const text = pickTip();
   minion.lastTipText = text;
-
   minion.frozen = true;
   minion.thinking = true;
   minion.thinkUntil = performance.now() / 1000 + THINK_TIME;
@@ -1196,14 +1483,13 @@ function openTip() {
   const toCam = new THREE.Vector3().subVectors(camera.position, mp).setY(0);
   if (toCam.lengthSq() < 0.001) toCam.set(1, 0, 1);
   toCam.normalize();
-  minion.facing = Math.atan2(toCam.x, toCam.z);
-  minionGroup.rotation.y = minion.facing;
+  minionGroup.rotation.y = Math.atan2(toCam.x, toCam.z);
 
   savedCam.pos.copy(camera.position);
   savedCam.tgt.copy(controls.target);
 
   const camPos = new THREE.Vector3(mp.x + toCam.x * 4.2, mp.y + 2.3, mp.z + toCam.z * 4.2);
-  const camTgt = new THREE.Vector3(mp.x, mp.y + 0.85, mp.z);
+  const camTgt = new THREE.Vector3(mp.x, mp.y + 0.9, mp.z);
   animateCamera(camPos, camTgt, 0.55);
 
   $('tip-text').innerHTML = '';
@@ -1215,11 +1501,9 @@ function finishThinking() {
   if (!minion.thinking) return;
   minion.thinking = false;
   $('tip-text').innerHTML = '';
-
   const text = minion.pendingTip || pickTip();
   minion.pendingTip = null;
   const ms = animateTipText(text);
-
   setTimeout(() => { $('tip-ok').disabled = false; }, ms);
 }
 
@@ -1227,6 +1511,7 @@ function closeTip() {
   hideScreens();
   minion.frozen = false;
   minion.thinking = false;
+  setMinionEmotion('happy', 1.2);
   animateCamera(savedCam.pos, savedCam.tgt, 0.45, () => { controls.enabled = true; });
 }
 
@@ -1235,31 +1520,25 @@ const ghostMat = new THREE.MeshBasicMaterial({
   color: 0x22c55e, transparent: true, opacity: 0.4, depthWrite: false,
 });
 const ghost = new THREE.Mesh(new THREE.BoxGeometry(1,1,1), ghostMat);
-ghost.visible = false;
-scene.add(ghost);
+ghost.visible = false; scene.add(ghost);
 
 function effFootprint() {
   const s = selectedSize;
   return rotated ? { sx: s.sz, sz: s.sx } : { sx: s.sx, sz: s.sz };
 }
-
 function canRotate() { return selectedSize.sx !== selectedSize.sz; }
-
 function updateGhostGeometry() {
   const { sx, sz } = effFootprint();
   const sy = selectedSize.sy;
   ghost.geometry.dispose();
   ghost.geometry = new THREE.BoxGeometry(sx, sy, sz);
 }
-
 function updateRotateButton() {
   const btn = $('btn-rotate');
   btn.classList.toggle('hidden', !canRotate() || !(buildMode && mode === 'own'));
   btn.textContent = rotated ? '↕️' : '↔️';
   btn.classList.toggle('rot-on', rotated);
 }
-
-// Квадратик на кнопке всегда показывает выбранный цвет блока.
 function updateBlockSwatch() {
   $('swatch-block').style.background = BLOCK_COLORS_CSS[selectedBlockColor] || '#c9a06a';
 }
@@ -1269,10 +1548,8 @@ const plane = new THREE.Plane(new THREE.Vector3(0,1,0), 0);
 const hitPoint = new THREE.Vector3();
 const normalMatrix = new THREE.Matrix3();
 const projVec = new THREE.Vector3();
-
 const isTouch = window.matchMedia('(pointer: coarse)').matches;
 const aimPoint = { x: 0, y: 0 };
-
 window.addEventListener('pointermove', (ev) => {
   if (isTouch) return;
   aimPoint.x = (ev.clientX / innerWidth) * 2 - 1;
@@ -1282,25 +1559,20 @@ window.addEventListener('pointermove', (ev) => {
 function computePlacement(ndcX, ndcY) {
   const { sx, sz } = effFootprint();
   const sy = selectedSize.sy;
-
   raycaster.setFromCamera({ x: ndcX, y: ndcY }, camera);
   const cubeHits = raycaster.intersectObjects([...cubeMeshes.values()], false);
   let x, y, z;
-
   if (cubeHits.length) {
     const h = cubeHits[0];
     const base = h.object.userData.cube;
     const bsx = base.size_x||1, bsy = base.size_y||1, bsz = base.size_z||1;
     const bc = cubeCenter({ ...base, size_x:bsx, size_y:bsy, size_z:bsz });
-
     normalMatrix.getNormalMatrix(h.object.matrixWorld);
     const n = h.face.normal.clone().applyMatrix3(normalMatrix).normalize();
     const ax = Math.round(n.x), ay = Math.round(n.y), az = Math.round(n.z);
-
     if (ay !== 0) {
       y = ay > 0 ? base.y + bsy : base.y - sy;
-      x = Math.round(bc.x - sx/2);
-      z = Math.round(bc.z - sz/2);
+      x = Math.round(bc.x - sx/2); z = Math.round(bc.z - sz/2);
     } else if (ax !== 0) {
       x = ax > 0 ? base.x + bsx : base.x - sx;
       y = base.y + Math.round((bsy - sy)/2);
@@ -1314,9 +1586,7 @@ function computePlacement(ndcX, ndcY) {
     if (!raycaster.ray.intersectPlane(plane, hitPoint)) return null;
     x = Math.round(hitPoint.x - sx/2); y = 0; z = Math.round(hitPoint.z - sz/2);
   }
-
   const price = WOOD_BASE_COST * sx * sy * sz;
-
   if (x < -32 || x + sx - 1 > 32 || z < -32 || z + sz - 1 > 32 || y < 0 || y + sy - 1 > 32) {
     return { x, y, z, sx, sy, sz, valid:false, reason: t('outOfBounds'), price };
   }
@@ -1342,9 +1612,7 @@ function computePlacement(ndcX, ndcY) {
               c.x <= cx && c.x + csx - 1 >= cx &&
               c.z <= cz && c.z + csz - 1 >= cz) { supported = true; break; }
         }
-        if (!supported) {
-          return { x, y, z, sx, sy, sz, valid:false, reason: t('noSupport'), price };
-        }
+        if (!supported) return { x, y, z, sx, sy, sz, valid:false, reason: t('noSupport'), price };
       }
     }
   }
@@ -1360,15 +1628,12 @@ function updateGhost() {
   }
   const p = computePlacement(aimPoint.x, aimPoint.y);
   if (!p) { ghost.visible = false; priceEl.classList.add('hidden'); return; }
-
   const cc = cubeCenter(p);
   ghost.position.set(cc.x, cc.y, cc.z);
   ghostMat.color.set(p.valid ? 0x22c55e : 0xef4444);
   ghost.visible = true;
-
   priceEl.textContent = p.price + '⚡';
   priceEl.classList.toggle('bad', !p.valid);
-
   projVec.set(cc.x, cc.y + p.sy/2 + 0.35, cc.z).project(camera);
   if (projVec.z > 1) { priceEl.classList.add('hidden'); return; }
   const px = (projVec.x * 0.5 + 0.5) * innerWidth;
@@ -1377,7 +1642,7 @@ function updateGhost() {
   priceEl.classList.remove('hidden');
 }
 
-// ---------- ПАНЕЛЬ И РЕЖИМЫ ----------
+// ---------- ПАНЕЛЬ ----------
 function updatePanel() {
   const on = buildMode && mode === 'own';
   $('btn-build').classList.toggle('on', on);
@@ -1387,37 +1652,32 @@ function updatePanel() {
   $('btn-demolish').classList.toggle('hidden', !on);
   $('target-pill').classList.toggle('hidden', mode === 'own');
   updateRotateButton();
-
   $('bottom').classList.toggle('hidden', mode !== 'own');
   $('bottom-visit').classList.toggle('hidden', mode !== 'visit');
   $('bottom-raid').classList.toggle('hidden', mode !== 'raid');
 }
-
 function setMode(next) {
   mode = next;
   if (next !== 'own') buildMode = false;
-  minion.frozen = false;
-  minion.thinking = false;
+  minion.frozen = false; minion.thinking = false; minion.override = null;
   minion.panicBoost = 0;
   resetMinionPath();
-  refreshMinionMood();
+  minion.mood = baseMood();
+  minion.emotion = minion.mood;
   closeAllPalettes();
   updatePanel();
 }
-
 function setBuildMode(on) {
   buildMode = on;
   if (!on) setDemolish(false);
   closeAllPalettes();
   updatePanel();
 }
-
 function setDemolish(on) {
   demolishMode = on;
   $('btn-demolish').classList.toggle('demolish-on', on);
   updatePanel();
 }
-
 function showScreen(id) { $(id).classList.remove('hidden'); }
 function hideScreens() {
   ['world-screen','loot-screen','onboard-screen','tip-screen'].forEach(id => $(id).classList.add('hidden'));
@@ -1431,16 +1691,13 @@ async function loadOwnIsland() {
   setFlagVisual(data.flag.hp, data.flag.max_hp, myFlagColor);
   placeMinionInitial();
 }
-
 async function loadMe() {
   const me = await api('/api/v1/me');
   $('ether').textContent = me.ether_balance;
   econ.ether_balance = me.ether_balance;
-  myFlagColor = me.flag_color || 'red';
-  displayFlagColor = myFlagColor;
+  myFlagColor = me.flag_color || 'red'; displayFlagColor = myFlagColor;
   setMinionFlagColor(myFlagColor);
 }
-
 async function returnHome() {
   targetUser = null; raidId = null; hideScreens();
   setDemolish(false); setMode('own');
@@ -1451,18 +1708,14 @@ async function returnHome() {
 }
 
 // ---------- ОПОВЕЩЕНИЕ О РЕЙДЕ ----------
-// Источник: /raids/history. Там видны и незакрытые сессии (status = active),
-// поэтому по ним можно понять, что против моего острова кто-то зашёл.
 async function pollRaidAlert() {
   try {
     const data = await api('/api/v1/raids/history?limit=8');
     const wasAlert = myRaidAlert;
     myRaidAlert = (data.raids || []).some(r => r.role === 'defender' && r.status === 'active');
     refreshMinionMood();
-    if (myRaidAlert && !wasAlert && mode === 'own') {
-      toast(t('raidAlertToast'), 'warn');
-    }
-  } catch (e) { /* молча: оповещение не критично */ }
+    if (myRaidAlert && !wasAlert && mode === 'own') toast(t('raidAlertToast'), 'warn');
+  } catch (e) {}
 }
 setInterval(() => { if (token) pollRaidAlert(); }, 25000);
 
@@ -1472,7 +1725,6 @@ function renderEconomy() {
   if (econ.accrued_now >= 1) { btn.classList.add('ready'); hint.textContent = '+' + econ.accrued_now; }
   else { btn.classList.remove('ready'); hint.textContent = fmtTime(econ.seconds_to_next); }
 }
-
 async function loadEconomy() {
   try {
     econ = await api('/api/v1/economy/rates');
@@ -1480,20 +1732,19 @@ async function loadEconomy() {
     renderEconomy();
   } catch (e) {}
 }
-
 async function claimEther() {
   if (econ.accrued_now < 1) return;
   try {
     const res = await api('/api/v1/economy/claim', { method: 'POST' });
     $('ether').textContent = res.ether_balance;
     toast('+' + res.claimed + ' ' + t('ether'), 'tip');
+    setMinionEmotion('happy', 1.4);
     await loadEconomy();
   } catch (e) {
     if (e.code === 'CLAIM_TOO_EARLY') { await loadEconomy(); return; }
     toast(e.message, 'error');
   }
 }
-
 setInterval(() => {
   if (econ.accrued_now >= 1) return;
   if (econ.seconds_to_next > 0) { econ.seconds_to_next -= 1; renderEconomy(); }
@@ -1503,7 +1754,6 @@ setInterval(loadEconomy, 30000);
 
 // ---------- ПАЛИТРЫ ----------
 function closeAllPalettes() { ['palette','block-palette','size-palette'].forEach(id => $(id).classList.add('hidden')); }
-
 function buildFlagPalette() {
   const grid = $('palette-grid'); grid.innerHTML = '';
   for (const [key, hex] of Object.entries(FLAG_COLORS_CSS)) {
@@ -1514,7 +1764,6 @@ function buildFlagPalette() {
     grid.appendChild(dot);
   }
 }
-
 function buildBlockPalette() {
   const grid = $('block-palette-grid'); grid.innerHTML = '';
   for (const [key, hex] of Object.entries(BLOCK_COLORS_CSS)) {
@@ -1522,16 +1771,12 @@ function buildBlockPalette() {
     dot.className = 'color-dot' + (key === selectedBlockColor ? ' selected' : '');
     dot.style.background = hex;
     dot.addEventListener('click', () => {
-      selectedBlockColor = key;
-      updateBlockSwatch();
-      closeAllPalettes();
+      selectedBlockColor = key; updateBlockSwatch(); closeAllPalettes();
     });
     grid.appendChild(dot);
   }
 }
-
 function sizePrice(s) { return WOOD_BASE_COST * s.sx * s.sy * s.sz; }
-
 function buildSizePalette() {
   const grid = $('size-grid'); grid.innerHTML = '';
   for (const s of BLOCK_SIZES) {
@@ -1548,9 +1793,7 @@ function buildSizePalette() {
     grid.appendChild(btn);
   }
 }
-
 function updateSizeLabel() { $('size-label').textContent = selectedSize.label; }
-
 function togglePalette(id) {
   const wasHidden = $(id).classList.contains('hidden');
   closeAllPalettes();
@@ -1560,327 +1803,6 @@ function togglePalette(id) {
   if (id === 'size-palette') buildSizePalette();
   $(id).classList.remove('hidden');
 }
-
 async function pickFlagColor(key) {
   try {
-    const res = await api('/api/v1/me/flag-color', { method:'POST', body: JSON.stringify({ color:key }) });
-    myFlagColor = res.flag_color;
-    if (mode !== 'raid') {
-      setFlagVisual(currentFlagHp, currentFlagMax, myFlagColor);
-    }
-    closeAllPalettes();
-    toast(t('flagColorChanged'), 'tip');
-  } catch (e) { toast(e.message, 'error'); }
-}
-
-// ---------- МИР ----------
-function blockLabel(isl) {
-  switch (isl.raid_block_reason) {
-    case 'TARGET_SHIELDED': return '🛡 ' + fmtTime(isl.shield_seconds_left);
-    case 'COOLDOWN_ACTIVE': return '⏳ ' + fmtTime(isl.cooldown_seconds_left);
-    case 'TARGET_IS_SELF': return t('yourIsland');
-    default: return isl.raid_block_reason || '';
-  }
-}
-
-function makeIslandRow(isl) {
-  const row = document.createElement('button');
-  row.className = 'island-row' + (isl.can_raid ? '' : ' locked');
-  const name = document.createElement('div'); name.className = 'island-name'; name.textContent = isl.username;
-  const meta = document.createElement('div'); meta.className = 'island-meta';
-  meta.textContent = `🧱 ${isl.cube_count} · ⚡ ${isl.potential_loot} · 🚩 ${isl.flag_hp}`;
-  row.append(name, meta);
-  if (!isl.can_raid) {
-    const badge = document.createElement('div'); badge.className = 'island-badge'; badge.textContent = blockLabel(isl);
-    row.appendChild(badge);
-  }
-  row.addEventListener('click', () => visitIsland(isl.user_id, isl.username));
-  return row;
-}
-
-async function openWorld() {
-  closeAllPalettes(); showScreen('world-screen');
-  const list = $('world-list'); list.innerHTML = '';
-  const note = document.createElement('div'); note.className = 'screen-note'; note.textContent = t('loading');
-  list.appendChild(note);
-  try {
-    const data = await api('/api/v1/islands?limit=50');
-    list.innerHTML = '';
-    if (!data.islands.length) {
-      const empty = document.createElement('div'); empty.className = 'screen-note'; empty.textContent = t('noone');
-      list.appendChild(empty); return;
-    }
-    for (const isl of data.islands) list.appendChild(makeIslandRow(isl));
-  } catch (e) {
-    list.innerHTML = '';
-    const err = document.createElement('div'); err.className = 'screen-note'; err.textContent = t('error') + ': ' + e.message;
-    list.appendChild(err);
-  }
-}
-
-async function visitIsland(userId, username) {
-  hideScreens(); fail(t('islandLoading') + ' ' + username + '...');
-  try {
-    const detail = await api(`/api/v1/islands/${userId}`);
-    targetUser = { user_id:userId, username };
-    resetCubes(); detail.cubes.forEach(addCube); refreshCounters();
-    setFlagVisual(detail.flag.hp, detail.flag.max_hp, detail.flag.color);
-    placeMinionInitial();
-    $('target-name').textContent = username;
-    setMode('visit'); ok();
-  } catch (e) { ok(); toast(e.message, 'error'); }
-}
-
-// ---------- РЕЙД ----------
-async function startRaid() {
-  if (!targetUser) return;
-  fail(t('raidStart'));
-  try {
-    const res = await api(`/api/v1/raids/${targetUser.user_id}/start`, { method:'POST' });
-    raidId = res.raid_id;
-    $('ether').textContent = res.ether_balance; econ.ether_balance = res.ether_balance;
-    const detail = await api(`/api/v1/islands/${targetUser.user_id}`);
-    resetCubes(); detail.cubes.forEach(addCube); refreshCounters();
-    setFlagVisual(detail.flag.hp, detail.flag.max_hp, detail.flag.color);
-    placeMinionInitial();
-    setMode('raid'); updateFlagButton(); ok(); toast(t('raidStartOk'), 'tip');
-  } catch (e) { ok(); toast(e.message, 'error'); }
-}
-
-function updateFlagButton() {
-  const btn = $('btn-flag'); const safe = countSafeCubes();
-  if (safe > 0) { btn.textContent = `🔒 ${safe}`; btn.classList.add('locked'); }
-  else { btn.textContent = '⚔️'; btn.classList.remove('locked'); }
-}
-
-function raidGone(e) {
-  if (e.code === 'RAID_NOT_FOUND' || e.code === 'RAID_ALREADY_FINISHED') {
-    toast(t('raidFinished'), 'warn'); raidId = null; setTimeout(returnHome, 1200); return true;
-  }
-  return false;
-}
-
-async function attackCube(cube) {
-  if (!raidId || attacking) return;
-  attacking = true;
-  try {
-    const res = await api(`/api/v1/raids/${raidId}/attack-cube`, {
-      method:'POST', headers:{ 'Idempotency-Key': uid() },
-      body: JSON.stringify({ cube_id: cube.id, charge: selectedCharge }),
-    });
-    $('ether').textContent = res.ether_balance; econ.ether_balance = res.ether_balance;
-    if (res.cube.destroyed) {
-      removeCube(res.cube.id);
-      minion.panicBoost = 3;   // чужой Буй пугается заново
-      minion.path = [];
-    } else updateCubeHp(res.cube.id, res.cube.hp);
-    for (const c of res.collapsed) removeCube(c.id);
-    refreshCounters(); updateFlagButton();
-  } catch (e) { if (!raidGone(e)) toast(e.message, 'error'); }
-  finally { attacking = false; }
-}
-
-async function attackFlag() {
-  if (!raidId || attacking) return;
-  const safe = countSafeCubes();
-  if (safe > 0) { toast(t('flagProtected', { n:safe }), 'error'); return; }
-  attacking = true;
-  try {
-    const res = await api(`/api/v1/raids/${raidId}/attack-flag`, {
-      method:'POST', headers:{ 'Idempotency-Key': uid() },
-    });
-    $('ether').textContent = res.ether_balance; econ.ether_balance = res.ether_balance;
-    setFlagVisual(res.flag_hp, res.flag_max_hp);
-    if (res.flag_destroyed && res.loot) {
-      raidId = null;
-      $('loot-stolen').textContent = res.loot.stolen_ether;
-      $('loot-balance').textContent = res.loot.attacker_balance;
-      showScreen('loot-screen');
-    } else toast('−' + res.damage + ' ' + t('dmgyou'), 'tip');
-  } catch (e) { if (!raidGone(e)) toast(e.message, 'error'); }
-  finally { attacking = false; }
-}
-
-async function leaveRaid() {
-  if (raidId) { try { await api(`/api/v1/raids/${raidId}/finish`, { method:'POST' }); } catch (e) {} }
-  await returnHome();
-}
-
-// ---------- ТАПЫ ----------
-let pointerStart = null;
-const TAP_MAX_MOVE = 8, TAP_MAX_TIME = 400;
-
-renderer.domElement.addEventListener('pointerdown', (ev) => {
-  if (ev.button !== 0) return;
-  pointerStart = { x:ev.clientX, y:ev.clientY, t:performance.now(), id:ev.pointerId };
-});
-
-renderer.domElement.addEventListener('pointercancel', () => { pointerStart = null; });
-
-renderer.domElement.addEventListener('pointerup', async (ev) => {
-  if (!pointerStart || ev.pointerId !== pointerStart.id) return;
-  const moved = Math.hypot(ev.clientX - pointerStart.x, ev.clientY - pointerStart.y);
-  const elapsed = performance.now() - pointerStart.t;
-  pointerStart = null;
-  if (moved > TAP_MAX_MOVE || elapsed > TAP_MAX_TIME) return;
-  if (loading) return;
-  if (camAnim.active) return;
-  if (!$('tip-screen').classList.contains('hidden')) return;
-
-  const ndcX = (ev.clientX / innerWidth) * 2 - 1;
-  const ndcY = -(ev.clientY / innerHeight) * 2 + 1;
-
-  raycaster.setFromCamera({ x:ndcX, y:ndcY }, camera);
-  const minionHits = raycaster.intersectObjects(minionHitMeshes, false);
-  if (minionHits.length) {
-    if (minion.mood === 'panic') { toast(t('minionPanic'), 'warn'); return; }
-    openTip();
-    return;
-  }
-
-  if (mode === 'own' && demolishMode) return handleDemolishTap(ndcX, ndcY);
-  if (mode === 'own' && buildMode) return handleBuildTap();
-  if (mode === 'raid') return handleRaidTap(ndcX, ndcY);
-});
-
-async function handleBuildTap() {
-  const p = computePlacement(aimPoint.x, aimPoint.y);
-  if (!p) return;
-  if (!p.valid) { toast(p.reason, 'error'); return; }
-
-  try {
-    const res = await api('/api/v1/build/cube', {
-      method:'POST',
-      body: JSON.stringify({
-        x:p.x, y:p.y, z:p.z,
-        size_x:p.sx, size_y:p.sy, size_z:p.sz,
-        cube_type:'wood', color: selectedBlockColor,
-      }),
-    });
-    addCube(res.cube);
-    $('ether').textContent = res.ether_balance;
-    econ.ether_balance = res.ether_balance;
-    $('cubes').textContent = res.island_cube_count;
-  } catch (e) { toast(e.message, 'error'); }
-}
-
-async function handleDemolishTap(ndcX, ndcY) {
-  raycaster.setFromCamera({ x:ndcX, y:ndcY }, camera);
-  const hits = raycaster.intersectObjects([...cubeMeshes.values()], false);
-  if (!hits.length) return;
-  const cube = hits[0].object.userData.cube;
-  try {
-    const res = await api(`/api/v1/build/cube/${cube.id}`, { method:'DELETE' });
-    for (const c of res.removed) removeCube(c.id);
-    refreshCounters();
-    $('ether').textContent = res.ether_balance;
-    econ.ether_balance = res.ether_balance;
-    toast('+' + res.ether_refunded + ' ' + t('refund'), 'tip');
-  } catch (e) { toast(e.message, 'error'); }
-}
-
-async function handleRaidTap(ndcX, ndcY) {
-  raycaster.setFromCamera({ x:ndcX, y:ndcY }, camera);
-  const targets = [...cubeMeshes.values(), ...flagGroup.children];
-  const hits = raycaster.intersectObjects(targets, false);
-  if (!hits.length) return;
-  const obj = hits[0].object;
-  if (flagGroup.children.includes(obj)) { await attackFlag(); return; }
-  await attackCube(obj.userData.cube);
-}
-
-// ---------- КНОПКИ ----------
-document.querySelectorAll('#bottom-raid .charge').forEach(btn => {
-  btn.addEventListener('click', () => {
-    document.querySelectorAll('#bottom-raid .charge').forEach(b => b.classList.remove('on'));
-    btn.classList.add('on');
-    selectedCharge = parseInt(btn.dataset.charge, 10);
-  });
-});
-
-$('claim-btn').addEventListener('click', claimEther);
-$('reload').addEventListener('click', () => loadOwnIsland().catch(e => toast(e.message, 'error')));
-$('btn-build').addEventListener('click', () => setBuildMode(!buildMode));
-$('btn-demolish').addEventListener('click', () => setDemolish(!demolishMode));
-$('btn-size').addEventListener('click', () => togglePalette('size-palette'));
-$('btn-rotate').addEventListener('click', () => {
-  if (!canRotate()) return;
-  rotated = !rotated;
-  updateGhostGeometry();
-  updateRotateButton();
-});
-$('btn-block-color').addEventListener('click', () => togglePalette('block-palette'));
-$('btn-palette').addEventListener('click', () => togglePalette('palette'));
-$('btn-world').addEventListener('click', openWorld);
-$('world-close').addEventListener('click', hideScreens);
-$('btn-back').addEventListener('click', returnHome);
-$('btn-raid').addEventListener('click', startRaid);
-$('btn-flag').addEventListener('click', attackFlag);
-$('btn-leave').addEventListener('click', leaveRaid);
-$('loot-ok').addEventListener('click', returnHome);
-$('tip-ok').addEventListener('click', closeTip);
-$('onboard-ok').addEventListener('click', () => {
-  localStorage.setItem('adrift_onboarded', '1');
-  hideScreens();
-});
-
-// ---------- ЦИКЛ ----------
-addEventListener('resize', () => {
-  camera.aspect = innerWidth / innerHeight;
-  camera.updateProjectionMatrix();
-  renderer.setSize(innerWidth, innerHeight);
-});
-
-let lastFrame = performance.now();
-
-function animate() {
-  requestAnimationFrame(animate);
-  const now = performance.now();
-  const dt = Math.min((now - lastFrame) / 1000, 0.1);
-  lastFrame = now;
-  const nowSec = now / 1000;
-
-  if (updateCameraAnim(dt)) {
-    camera.lookAt(controls.target);
-  } else {
-    controls.update();
-  }
-
-  flagGroup.rotation.y += 0.005;
-
-  // Пауза на раздумье: по её концу запускаем печать текста.
-  if (minion.thinking && nowSec >= minion.thinkUntil) finishThinking();
-
-  updateMinion(dt);
-  updateBubbles(nowSec, dt);
-  updateGhost();
-
-  renderer.render(scene, camera);
-}
-
-animate();
-
-// ---------- СТАРТ ----------
-(async () => {
-  try {
-    applyI18n();
-    updateSizeLabel();
-    updateGhostGeometry();
-    updateRotateButton();
-    updateBlockSwatch();
-    await auth();
-    fail(t('loading'));
-    await loadMe();
-    await loadOwnIsland();
-    await loadEconomy();
-    setMode('own');
-    buildMode = true;
-    updatePanel();
-    ok();
-    pollRaidAlert();
-    if (!localStorage.getItem('adrift_onboarded')) showScreen('onboard-screen');
-  } catch (e) { fail(t('error') + ': ' + e.message); }
-})();
-</script>
-</body>
- </html>
+    const res
