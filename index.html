@@ -17,8 +17,6 @@
     padding-bottom:14px;
   }
 
-  /* Плавное появление нижних панелей: сдвиг снизу + fade. Срабатывает один
-     раз при переключении вкладки, а не на каждом кадре. */
   .bar.reveal { animation: barSlide .28s cubic-bezier(.2,.7,.3,1); }
   @keyframes barSlide {
     from { opacity:0; transform: translateY(18px); }
@@ -117,8 +115,6 @@
     border-radius:18px; padding:24px 22px; max-width:360px; width:100%;
     transition: transform .28s cubic-bezier(.3,.8,.4,1), opacity .28s ease;
   }
-  /* При нажатии «Ок» карточка сначала сжимается и растворяется, затем
-     панель скрывается. Порядок задаёт JS: сначала класс closing, потом hide. */
   #onboard-screen.closing .onboard-card {
     transform: scale(.94) translateY(6px);
     opacity: 0;
@@ -195,7 +191,8 @@
 <div class="bar" id="bottom">
   <button id="btn-build" class="primary icon" title="Build">🔨</button>
   <button id="btn-size" class="hidden">📐 <span id="size-label">1×1</span></button>
-  <button id="btn-rotate" class="hidden icon" title="Rotate">↔️</button>
+  <button id="btn-rotate" class="hidden icon" title="Rotate H">↔️</button>
+  <button id="btn-vertical" class="hidden icon" title="Rotate V">↕️</button>
   <button id="btn-block-color" class="hidden icon" title="Block color"><span class="swatch" id="swatch-block"></span></button>
   <button id="btn-palette" class="hidden icon" title="Flag color">🎨</button>
   <button id="btn-demolish" class="hidden icon" title="Demolish">🗑</button>
@@ -313,7 +310,7 @@ const I18N = {
     raidAlertToast: 'На твой остров открыт рейд. Проверь Флаг.',
     onboardTitle: 'Добро пожаловать в ADRIFT',
     onboard1: '<b>1.</b> Ты уже в режиме стройки. Наведи камеру, увидишь полупрозрачный блок там, куда встанет куб.',
-    onboard2: '<b>2.</b> Зелёный значит можно ставить, красный значит нельзя. <b>📐</b> размер, <b>↔️</b> поворот (для 2×1), квадратик рядом меняет цвет блока.',
+    onboard2: '<b>2.</b> Зелёный значит можно ставить, красный значит нельзя. <b>📐</b> размер, <b>↔️</b> и <b>↕️</b> поворот блока.',
     onboard3: '<b>3.</b> <b>⚡</b> вверху, забери накопленный Эфир. <b>🎨</b> меняет цвет флага.',
     onboard4: '<b>4.</b> Тапни по Буйку, он даст совет. <b>🌍</b> откроет список соседей.',
     onboardOk: 'Понятно, играем',
@@ -338,7 +335,7 @@ const I18N = {
     tips: [
       { text: 'Наведи камеру на клетку и тапни по экрану. Там появится куб.', cond: 'always' },
       { text: 'Кнопка 📐 меняет размер блока. Большие блоки стоят дороже.', cond: 'always' },
-      { text: 'Для размера 2×1 рядом появляется кнопка поворота. Так ставишь блок вдоль или поперёк.', cond: 'always' },
+      { text: 'Кнопка ↔️ крутит блок по горизонтали, ↕️ ставит его на бок как столб.', cond: 'always' },
       { text: 'Тапни по верхней грани куба, и новый встанет сверху. Так строят башни.', cond: 'always' },
       { text: 'Кнопка 🗑 сносит куб. Половина Эфира вернётся в кошелёк.', cond: 'hasCubes' },
       { text: 'Эфир капает сам, примерно десять в час. Следи за кнопкой ⚡.', cond: 'always' },
@@ -368,7 +365,7 @@ const I18N = {
     raidAlertToast: 'A raid is open against your island. Check your Flag.',
     onboardTitle: 'Welcome to ADRIFT',
     onboard1: '<b>1.</b> You are already in build mode. Aim the camera, a translucent block shows where the cube will go.',
-    onboard2: '<b>2.</b> Green means you can place, red means you cannot. <b>📐</b> size, <b>↔️</b> rotate (for 2×1), the square next to it changes the block color.',
+    onboard2: '<b>2.</b> Green means you can place, red means you cannot. <b>📐</b> size, <b>↔️</b> and <b>↕️</b> rotate the block.',
     onboard3: '<b>3.</b> <b>⚡</b> at the top, claim accrued Ether. <b>🎨</b> changes the flag color.',
     onboard4: '<b>4.</b> Tap the Buoy for a tip. <b>🌍</b> opens the list of neighbors.',
     onboardOk: 'Got it, let\'s play',
@@ -393,7 +390,7 @@ const I18N = {
     tips: [
       { text: 'Aim the camera at a cell and tap the screen. A cube appears there.', cond: 'always' },
       { text: 'The 📐 button changes block size. Bigger blocks cost more.', cond: 'always' },
-      { text: 'For a 2×1 block a rotate button appears next to it. Place it lengthwise or across.', cond: 'always' },
+      { text: '↔️ rotates the block around the vertical axis, ↕️ tips it on its side like a pillar.', cond: 'always' },
       { text: 'Tap the top face of a cube and the new one stacks on it. That is how towers are built.', cond: 'always' },
       { text: 'The 🗑 button removes a cube. Half the Ether comes back to you.', cond: 'hasCubes' },
       { text: 'Ether accrues by itself, about ten per hour. Watch the ⚡ button.', cond: 'always' },
@@ -474,7 +471,11 @@ let token = null, myId = null;
 let mode = 'own';
 let buildMode = true;
 let demolishMode = false;
+// Два независимых поворота. Горизонтальный меняет длинную сторону местами
+// (вдоль X или вдоль Z). Вертикальный переворачивает блок на бок: 2×1×1
+// становится 1×2×1, то есть столбом.
 let rotated = false;
+let vertical = false;
 let selectedBlockColor = 'wood';
 let selectedSize = BLOCK_SIZES[0];
 let raidId = null;
@@ -1261,22 +1262,35 @@ const ghostMat = new THREE.MeshBasicMaterial({
 const ghost = new THREE.Mesh(new THREE.BoxGeometry(1,1,1), ghostMat);
 ghost.visible = false; scene.add(ghost);
 
+// Итоговые размеры после двух поворотов. Порядок: сначала горизонтальный
+// (swap sx <-> sz), потом вертикальный (swap sx <-> sy). Оба поворота
+// независимы, объём не меняется, значит и цена не меняется.
 function effFootprint() {
   const s = selectedSize;
-  return rotated ? { sx: s.sz, sz: s.sx } : { sx: s.sx, sz: s.sz };
+  let a = s.sx, b = s.sy, c = s.sz;
+  if (rotated)  { const t = a; a = c; c = t; }
+  if (vertical) { const t = a; a = b; b = t; }
+  return { sx: a, sy: b, sz: c };
 }
 function canRotate() { return selectedSize.sx !== selectedSize.sz; }
+function canVertical() {
+  return selectedSize.sx !== selectedSize.sy || selectedSize.sz !== selectedSize.sy;
+}
 function updateGhostGeometry() {
-  const { sx, sz } = effFootprint();
-  const sy = selectedSize.sy;
+  const { sx, sy, sz } = effFootprint();
   ghost.geometry.dispose();
   ghost.geometry = new THREE.BoxGeometry(sx, sy, sz);
 }
 function updateRotateButton() {
-  const btn = $('btn-rotate');
-  btn.classList.toggle('hidden', !canRotate() || !(buildMode && mode === 'own'));
-  btn.textContent = rotated ? '↕️' : '↔️';
-  btn.classList.toggle('rot-on', rotated);
+  const btnH = $('btn-rotate');
+  const btnV = $('btn-vertical');
+  const on = buildMode && mode === 'own';
+  btnH.classList.toggle('hidden', !canRotate() || !on);
+  btnV.classList.toggle('hidden', !canVertical() || !on);
+  btnH.textContent = rotated ? '↕️' : '↔️';
+  btnV.textContent = '↕️';
+  btnH.classList.toggle('rot-on', rotated);
+  btnV.classList.toggle('rot-on', vertical);
 }
 function updateBlockSwatch() {
   $('swatch-block').style.background = BLOCK_COLORS_CSS[selectedBlockColor] || '#c9a06a';
@@ -1296,8 +1310,7 @@ window.addEventListener('pointermove', (ev) => {
 });
 
 function computePlacement(ndcX, ndcY) {
-  const { sx, sz } = effFootprint();
-  const sy = selectedSize.sy;
+  const { sx, sy, sz } = effFootprint();
   raycaster.setFromCamera({ x: ndcX, y: ndcY }, camera);
   const cubeHits = raycaster.intersectObjects([...cubeMeshes.values()], false);
   let x, y, z;
@@ -1437,15 +1450,13 @@ function updateFlagButton() {
 }
 
 // ---------- ПАНЕЛЬ ----------
-// Показываем бар с анимацией только при реальном переключении.
-// Если просто обновляем состояние (например, эфир), анимация не проигрывается.
 function applyTab(id, visible) {
   const el = $(id);
   if (visible) {
     if (el.classList.contains('hidden')) {
       el.classList.remove('hidden');
       el.classList.remove('reveal');
-      void el.offsetWidth;   // принудительный reflow — перезапускает анимацию
+      void el.offsetWidth;
       el.classList.add('reveal');
     }
   } else {
@@ -1460,7 +1471,6 @@ function updatePanel() {
   $('btn-block-color').classList.toggle('hidden', !on);
   $('btn-palette').classList.toggle('hidden', !on);
   $('btn-demolish').classList.toggle('hidden', !on);
-  // Кнопка перезагрузки не нужна во время стройки: она мешает и отвлекает.
   $('reload').classList.toggle('hidden', on);
   $('target-pill').classList.toggle('hidden', mode === 'own');
   updateRotateButton();
@@ -1496,8 +1506,6 @@ function hideScreens() {
   ['world-screen','loot-screen','onboard-screen','tip-screen'].forEach(id => $(id).classList.add('hidden'));
   closeAllPalettes();
 }
-
-// Плавное закрытие гайда: карточка сжимается и растворяется, затем скрываем панель.
 function closeOnboard() {
   const el = $('onboard-screen');
   el.classList.add('closing');
@@ -1608,7 +1616,11 @@ function buildSizePalette() {
     const price = document.createElement('span'); price.className = 'price'; price.textContent = sizePrice(s) + '⚡';
     btn.append(glyph, price);
     btn.addEventListener('click', () => {
-      selectedSize = s; rotated = false;
+      selectedSize = s;
+      // Смена размера сбрасывает оба поворота: у нового блока своя
+      // геометрия, и старая ориентация к ней неприменима.
+      rotated = false;
+      vertical = false;
       updateSizeLabel(); updateGhostGeometry(); updateRotateButton();
       closeAllPalettes();
     });
@@ -1865,6 +1877,12 @@ $('btn-size').addEventListener('click', () => togglePalette('size-palette'));
 $('btn-rotate').addEventListener('click', () => {
   if (!canRotate()) return;
   rotated = !rotated;
+  updateGhostGeometry();
+  updateRotateButton();
+});
+$('btn-vertical').addEventListener('click', () => {
+  if (!canVertical()) return;
+  vertical = !vertical;
   updateGhostGeometry();
   updateRotateButton();
 });
