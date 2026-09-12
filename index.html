@@ -55,6 +55,7 @@
   }
   #toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
   #toast.error { background:rgba(127,29,29,.96); border-color:rgba(239,68,68,.5); }
+  #toast.tip { background:rgba(21,128,61,.96); border-color:rgba(74,222,128,.5); }
 
   #price-tag {
     position:fixed; top:0; left:0;
@@ -226,7 +227,6 @@ const API_URL = 'https://adrift-backend-ys3i.onrender.com';
 
 const WOOD_BASE_COST = 10;
 
-// Размеры. Вертикаль набирается стекингом — отдельные «столбы» не нужны.
 const BLOCK_SIZES = [
   { key: '1x1x1', sx: 1, sy: 1, sz: 1, label: '1×1' },
   { key: '2x1x1', sx: 2, sy: 1, sz: 1, label: '2×1' },
@@ -244,7 +244,7 @@ const I18N = {
     onboard1: '<b>1.</b> Ты уже в режиме стройки. Наведи камеру — увидишь полупрозрачный блок там, куда встанет куб.',
     onboard2: '<b>2.</b> Зелёный — можно ставить, красный — нельзя. <b>📐</b> — размер, <b>↔️</b> — поворот, <b>🟫</b> — цвет.',
     onboard3: '<b>3.</b> <b>⚡</b> вверху — забери накопленный Эфир, он капает 10 в час. <b>🎨</b> — цвет твоего флага.',
-    onboard4: '<b>4.</b> <b>🌍</b> — сходи к соседу в гости или в рейд: укради его Эфир.',
+    onboard4: '<b>4.</b> <b>🌍</b> — сходи к соседу в гости или в рейд: укради его Эфир. Тапни по Буйку — он подскажет.',
     onboardOk: 'Понятно, играем',
     loading: 'Загрузка...', login: 'Вход...', returning: 'Возвращаемся...',
     islandLoading: 'Загрузка острова',
@@ -261,6 +261,17 @@ const I18N = {
     occupied: 'Здесь уже стоит блок',
     noEther: 'Не хватает Эфира',
     outOfBounds: 'За границей острова',
+    tips: [
+      'Тапни по верхней грани блока — новый куб встанет сверху',
+      'Кнопка 📐 меняет размер: 3×3 строит быстрее, но дороже',
+      '🎨 — цвет твоего флага. Его увидят все, кто зайдёт к тебе',
+      'Во время рейда тапни по чужому кубу, чтобы разбить его',
+      'Эфир капает сам — заглядывай в ⚡ раз в час',
+      'Снеси блок кнопкой 🗑 — вернётся половина Эфира',
+      'Стены вокруг Флага защищают его от рейдеров',
+      '🌍 Мир — сходи в гости к соседу или в рейд',
+      'Флаг бить нельзя, пока в зоне есть хоть один куб',
+    ],
   },
   en: {
     flagColor: 'Flag color', blockColor: 'Block color', sizeTitle: 'Block size',
@@ -271,7 +282,7 @@ const I18N = {
     onboard1: '<b>1.</b> You are already in build mode. Aim the camera — a translucent block shows where the cube will go.',
     onboard2: '<b>2.</b> Green — can place, red — cannot. <b>📐</b> — size, <b>↔️</b> — rotate, <b>🟫</b> — color.',
     onboard3: '<b>3.</b> <b>⚡</b> at the top — claim accrued Ether, 10 per hour. <b>🎨</b> — your flag color.',
-    onboard4: '<b>4.</b> <b>🌍</b> — visit a neighbor or raid: steal their Ether.',
+    onboard4: '<b>4.</b> <b>🌍</b> — visit a neighbor or raid: steal their Ether. Tap the Buoy for tips.',
     onboardOk: 'Got it, let\'s play',
     loading: 'Loading...', login: 'Signing in...', returning: 'Returning...',
     islandLoading: 'Loading island',
@@ -288,12 +299,20 @@ const I18N = {
     occupied: 'Already occupied',
     noEther: 'Not enough Ether',
     outOfBounds: 'Out of bounds',
+    tips: [
+      'Tap the top face of a block — the new cube stacks on it',
+      'The 📐 button changes size: 3×3 builds faster but costs more',
+      '🎨 — your flag color. Everyone visiting you will see it',
+      'During a raid tap an enemy cube to break it',
+      'Ether accrues by itself — check ⚡ once an hour',
+      'Demolish with 🗑 — you get half the Ether back',
+      'Walls around the Flag protect it from raiders',
+      '🌍 World — visit a neighbor or start a raid',
+      'The Flag cannot be hit while any cube is inside the zone',
+    ],
   },
 };
 
-// Язык берётся ТОЛЬКО из системы устройства. Кнопки переключения нет:
-// игрок и так видит интерфейс на своём языке, а лишняя кнопка в шапке
-// отнимала место и внимание.
 const lang = (navigator.language || 'ru').toLowerCase().startsWith('ru') ? 'ru' : 'en';
 
 function t(key, vars) {
@@ -322,16 +341,17 @@ const fail = (msg) => { loading = true; statusEl.classList.remove('hidden'); sta
 const ok = () => { loading = false; statusEl.classList.add('hidden'); };
 
 let toastTimer = null;
-function toast(msg, isError = false) {
+function toast(msg, isError = false, isTip = false) {
   toastEl.textContent = msg;
   toastEl.classList.toggle('error', !!isError);
+  toastEl.classList.toggle('tip', !!isTip);
   toastEl.classList.remove('hidden');
   requestAnimationFrame(() => toastEl.classList.add('show'));
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => {
     toastEl.classList.remove('show');
     setTimeout(() => toastEl.classList.add('hidden'), 220);
-  }, isError ? 2600 : 1600);
+  }, isTip ? 3400 : (isError ? 2600 : 1600));
 }
 
 const uid = () => (crypto.randomUUID ? crypto.randomUUID() : String(Date.now()) + Math.random().toString(16).slice(2));
@@ -349,8 +369,6 @@ let token = null, myId = null;
 let mode = 'own';
 let buildMode = true;
 let demolishMode = false;
-// Поворот: меняет местами длинную сторону блока. Для квадратных в плане
-// блоков (1×1, 2×2, 3×3) смысла не имеет, поэтому кнопка для них скрыта.
 let rotated = false;
 let selectedBlockColor = 'wood';
 let selectedSize = BLOCK_SIZES[0];
@@ -440,6 +458,7 @@ ground.position.y = -0.5; scene.add(ground);
 const grid = new THREE.GridHelper(64, 64, 0x3b82f6, 0x1e293b);
 grid.position.y = 0.01; scene.add(grid);
 
+// Флаг острова
 const flagGroup = new THREE.Group();
 const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.15,0.15,4,8), new THREE.MeshLambertMaterial({ color:0x94a3b8 }));
 pole.position.y = 2;
@@ -480,6 +499,7 @@ const WOOD_TEXTURE = makeWoodTexture();
 
 // ---------- КУБЫ ----------
 const cubeMeshes = new Map();
+let blockedGround = new Set();   // "x,z" клетки, занятые кубами на уровне земли
 
 function makeCubeMaterial(color) {
   return new THREE.MeshLambertMaterial({
@@ -493,6 +513,21 @@ function cubeCenter(c) {
   return { x: c.x + sx/2, y: c.y + sy/2, z: c.z + sz/2 };
 }
 
+// Пересчёт клеток, где стоит блок НА ЗЕМЛЕ (y <= 0 <= y+sy-1).
+// Именно эти клетки миньон не может пройти: он ходит только по земле.
+function rebuildBlockedGround() {
+  blockedGround = new Set();
+  for (const m of cubeMeshes.values()) {
+    const c = m.userData.cube;
+    const sx = c.size_x||1, sy = c.size_y||1, sz = c.size_z||1;
+    if (c.y <= 0 && c.y + sy - 1 >= 0) {
+      for (let dx = 0; dx < sx; dx++)
+        for (let dz = 0; dz < sz; dz++)
+          blockedGround.add((c.x+dx) + ',' + (c.z+dz));
+    }
+  }
+}
+
 function addCube(c) {
   if (cubeMeshes.has(c.id)) return;
   const color = c.color || 'wood';
@@ -503,6 +538,8 @@ function addCube(c) {
   mesh.userData.cube = { ...c, color, size_x:sx, size_y:sy, size_z:sz };
   scene.add(mesh); cubeMeshes.set(c.id, mesh);
   paintCube(mesh);
+  rebuildBlockedGround();
+  resetMinionPath();
 }
 
 function paintCube(mesh) {
@@ -521,9 +558,11 @@ function updateCubeHp(id, hp) {
 function removeCube(id) {
   const mesh = cubeMeshes.get(id); if (!mesh) return;
   scene.remove(mesh); mesh.geometry.dispose(); mesh.material.dispose(); cubeMeshes.delete(id);
+  rebuildBlockedGround();
+  resetMinionPath();
 }
 
-function resetCubes() { for (const id of [...cubeMeshes.keys()]) removeCube(id); }
+function resetCubes() { for (const id of [...cubeMeshes.keys()]) removeCube(id); rebuildBlockedGround(); }
 
 function countSafeCubes() { let n = 0; for (const m of cubeMeshes.values()) if (m.userData.cube.is_safe_zone) n++; return n; }
 function refreshCounters() { $('cubes').textContent = cubeMeshes.size; }
@@ -535,28 +574,228 @@ function setFlagVisual(hp, maxHp, color) {
   const base = new THREE.Color(FLAG_COLORS_HEX[displayFlagColor] || FLAG_COLORS_HEX.red);
   banner.material.color.copy(base).lerp(new THREE.Color(0x7f1d1d), 1 - ratio);
   $('flag').textContent = Math.max(0, hp) + ' / ' + maxHp;
+  // Флажок в руках Буя — тоже цвета игрока
+  minionFlagMat.color.set(FLAG_COLORS_HEX[displayFlagColor] || FLAG_COLORS_HEX.red);
 }
 
-// ---------- ПОВОРОТ ----------
-// Поворот для коробки = обмен местами size_x и size_z. 180° даёт тот же
-// силуэт, что 0°, поэтому в UI не 4 состояния, а переключатель «длинная
-// сторона вдоль X / вдоль Z». Кнопка видна только для блоков 2×1: у 1×1,
-// 2×2 и 3×3 в плане квадрат, поворачивать нечего.
-function effFootprint() {
-  const s = selectedSize;
-  return rotated ? { sx: s.sz, sz: s.sx } : { sx: s.sx, sz: s.sz };
+// ===========================================================================
+// МИНЬОН («Буй») — кубический человечек с флажком в руке.
+// Ходит только по земле (y=0), обходит кубы, при тапе даёт подсказку.
+// Анимация нарочно «топорная»: шаг дискретными ступенями, левая рука машет,
+// правая держит флаг. Это читается как ретро-мультик, а не как баг.
+// ===========================================================================
+const MINION_RADIUS_MIN = 4;   // не подходит вплотную к флагу
+const MINION_RADIUS_MAX = 12;  // и не убегает на край острова
+
+const minionGroup = new THREE.Group();
+const minionParts = {};        // pivots для анимации
+let minionFlagMat = null;      // материал полотнища в руке — обновляется цветом игрока
+const minionHitMeshes = [];    // по ним проверяем тап
+
+(function buildMinion() {
+  const SKIN  = 0xdccfbb;   // светлая «голова» из референса
+  const CLOTH = 0x8c8172;   // серо-бежевый корпус
+  const DARK  = 0x5e564b;   // руки-ноги
+  const EYE   = 0x1f1b16;
+
+  const matSkin  = new THREE.MeshLambertMaterial({ color: SKIN });
+  const matCloth = new THREE.MeshLambertMaterial({ color: CLOTH });
+  const matDark  = new THREE.MeshLambertMaterial({ color: DARK });
+  const matEye   = new THREE.MeshBasicMaterial({ color: EYE });
+  minionFlagMat  = new THREE.MeshLambertMaterial({ color: 0xef4444 });
+
+  // --- ноги: пивот на бедре, сама нога висит вниз ---
+  const legGeo = new THREE.BoxGeometry(0.22, 0.5, 0.22);
+  const legLPivot = new THREE.Group(); legLPivot.position.set(-0.14, 0.5, 0);
+  const legL = new THREE.Mesh(legGeo, matDark); legL.position.y = -0.25; legLPivot.add(legL);
+  const legRPivot = new THREE.Group(); legRPivot.position.set( 0.14, 0.5, 0);
+  const legR = new THREE.Mesh(legGeo, matDark); legR.position.y = -0.25; legRPivot.add(legR);
+
+  // --- корпус ---
+  const torso = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.56, 0.36), matCloth);
+  torso.position.y = 0.78;
+
+  // --- голова + глаза ---
+  const head = new THREE.Mesh(new THREE.BoxGeometry(0.56, 0.52, 0.5), matSkin);
+  head.position.y = 1.32;
+  const eyeGeo = new THREE.BoxGeometry(0.11, 0.15, 0.02);
+  const eyeL = new THREE.Mesh(eyeGeo, matEye); eyeL.position.set(-0.13, 0.04, 0.26);
+  const eyeR = new THREE.Mesh(eyeGeo, matEye); eyeR.position.set( 0.13, 0.04, 0.26);
+  head.add(eyeL, eyeR);
+
+  // --- левая рука: машет при ходьбе ---
+  const armGeo = new THREE.BoxGeometry(0.18, 0.5, 0.18);
+  const armLPivot = new THREE.Group(); armLPivot.position.set(-0.34, 1.0, 0);
+  const armL = new THREE.Mesh(armGeo, matDark); armL.position.y = -0.25; armLPivot.add(armL);
+
+  // --- правая рука: поднята вверх, держит древко ---
+  const armRPivot = new THREE.Group(); armRPivot.position.set(0.34, 1.0, 0);
+  const armR = new THREE.Mesh(armGeo, matDark); armR.position.y = -0.25;
+  armRPivot.add(armR);
+  armRPivot.rotation.x = Math.PI;   // переворачиваем: рука смотрит вверх
+  // плечо поднятой руки подстраиваем, чтобы кисть оказалась на уровне головы
+  armRPivot.position.y = 0.98;
+
+  // --- флаг в руке ---
+  const mPole = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, 0.95, 6), matDark);
+  mPole.position.set(0.34, 1.62, 0);
+  const mFlag = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.28, 0.02), minionFlagMat);
+  mFlag.position.set(0.55, 1.9, 0);
+
+  minionGroup.add(legLPivot, legRPivot, torso, head, armLPivot, armRPivot, mPole, mFlag);
+
+  // Всё, что можно «ткнуть», собираем в один список.
+  minionHitMeshes.push(torso, head, legL, legR, armL, armR, mPole, mFlag);
+
+  minionParts.legLPivot = legLPivot;
+  minionParts.legRPivot = legRPivot;
+  minionParts.armLPivot = armLPivot;
+  minionParts.head = head;
+  minionParts.torso = torso;
+
+  scene.add(minionGroup);
+})();
+
+// Состояние блуждания. Миньон всегда идёт по клеткам (центр клетки = +0.5).
+const minion = {
+  x: 3, z: 3,
+  path: [],          // очередь клеток [x,z]
+  speed: 1.6,        // клеток в секунду
+  phase: 0,          // фаза шага
+  idleUntil: 0,      // когда снова идти
+  facing: 0,         // текущий поворот группы
+  lastTip: -1,       // индекс последней подсказки, чтобы не повторяться
+};
+
+function cellFree(x, z) {
+  if (x < -32 || x > 32 || z < -32 || z > 32) return false;
+  if (x === 0 && z === 0) return false;   // клетка флага — не для ходьбы
+  return !blockedGround.has(x + ',' + z);
 }
 
-function canRotate() { return selectedSize.sx !== selectedSize.sz; }
+// BFS по клеткам земли. Карта 65×65 = 4225 клеток, на телефоне это мгновенно.
+function bfsPath(sx, sz, tx, tz) {
+  if (!cellFree(tx, tz)) return null;
+  const key = (x, z) => x + ',' + z;
+  const queue = [[sx, sz]];
+  const prev = new Map();
+  prev.set(key(sx, sz), null);
+  let head = 0;
 
-function updateRotateButton() {
-  const btn = $('btn-rotate');
-  btn.classList.toggle('hidden', !canRotate() || !(buildMode && mode === 'own'));
-  btn.textContent = rotated ? '↕️' : '↔️';
-  btn.classList.toggle('rot-on', rotated);
+  while (head < queue.length) {
+    const [x, z] = queue[head++];
+    if (x === tx && z === tz) {
+      const path = [];
+      let cur = key(x, z);
+      while (cur !== null) {
+        const [px, pz] = cur.split(',').map(Number);
+        path.push([px, pz]);
+        cur = prev.get(cur);
+      }
+      return path.reverse();
+    }
+    for (const [dx, dz] of [[1,0],[-1,0],[0,1],[0,-1]]) {
+      const nx = x + dx, nz = z + dz;
+      const k = key(nx, nz);
+      if (prev.has(k)) continue;
+      if (!cellFree(nx, nz)) continue;
+      prev.set(k, key(x, z));
+      queue.push([nx, nz]);
+    }
+  }
+  return null;
 }
 
-// ---------- ПРИЗРАК БЛОКА ----------
+function resetMinionPath() { minion.path = []; }
+
+function pickMinionTarget() {
+  // Несколько попыток: случайная клетка в кольце вокруг флага, куда реально
+  // есть путь. Раньше выходило бы, что миньон «застревает» в тупике.
+  for (let i = 0; i < 12; i++) {
+    const angle = Math.random() * Math.PI * 2;
+    const r = MINION_RADIUS_MIN + Math.random() * (MINION_RADIUS_MAX - MINION_RADIUS_MIN);
+    const tx = Math.round(Math.cos(angle) * r);
+    const tz = Math.round(Math.sin(angle) * r);
+    if (!cellFree(tx, tz)) continue;
+    if (tx === minion.x && tz === minion.z) continue;
+    const path = bfsPath(minion.x, minion.z, tx, tz);
+    if (path && path.length > 1) { minion.path = path.slice(1); return; }
+  }
+}
+
+function updateMinion(dt) {
+  const now = performance.now() / 1000;
+
+  if (minion.path.length === 0) {
+    if (now < minion.idleUntil) {
+      // Стоит: ноги на месте, голова слегка покачивается — «скучает».
+      minionParts.legLPivot.rotation.x = 0;
+      minionParts.legRPivot.rotation.x = 0;
+      minionParts.armLPivot.rotation.x = Math.sin(now * 1.3) * 0.08;
+      minionParts.head.rotation.z = Math.sin(now * 0.9) * 0.05;
+      minionGroup.position.y = 0;
+      return;
+    }
+    pickMinionTarget();
+    if (minion.path.length === 0) { minion.idleUntil = now + 1.5; return; }
+    minion.idleUntil = now + 0.6 + Math.random() * 2.2;
+  }
+
+  const [nx, nz] = minion.path[0];
+  const tx = nx + 0.5, tz = nz + 0.5;
+  const cx = minionGroup.position.x, cz = minionGroup.position.z;
+  const dx = tx - cx, dz = tz - cz;
+  const dist = Math.hypot(dx, dz);
+  const step = minion.speed * dt;
+
+  if (dist <= step) {
+    minionGroup.position.x = tx;
+    minionGroup.position.z = tz;
+    minion.x = nx; minion.z = nz;
+    minion.path.shift();
+  } else {
+    minionGroup.position.x += dx / dist * step;
+    minionGroup.position.z += dz / dist * step;
+  }
+
+  // Поворот в сторону движения. Плавно, но с лёгким «перелётом» —
+  // тоже часть неряшливости персонажа.
+  const targetAngle = Math.atan2(dx, dz);
+  let diff = targetAngle - minion.facing;
+  while (diff > Math.PI) diff -= Math.PI * 2;
+  while (diff < -Math.PI) diff += Math.PI * 2;
+  minion.facing += diff * Math.min(1, dt * 8);
+  minionGroup.rotation.y = minion.facing;
+
+  // --- шаг ---
+  minion.phase += dt * 7.5;
+  const raw = Math.sin(minion.phase);
+  // Дискретизация до 5 уровней: шаг читается как «топ-топ», а не плавное скольжение.
+  const stepped = Math.round(raw * 2) / 2;
+
+  minionParts.legLPivot.rotation.x =  stepped * 0.65;
+  minionParts.legRPivot.rotation.x = -stepped * 0.65;
+  minionParts.armLPivot.rotation.x = -stepped * 0.55;
+
+  // Корпус подпрыгивает на каждый шаг, голова слегка отстаёт — «инерция».
+  const bob = Math.abs(raw) * 0.06;
+  minionGroup.position.y = bob;
+  minionParts.head.rotation.z = -stepped * 0.06;
+  minionParts.head.rotation.x = Math.sin(minion.phase * 0.5) * 0.04;
+}
+
+// Тап по миньону → случайная подсказка без повторов подряд.
+function tapMinion() {
+  const tips = I18N[lang].tips;
+  let idx = Math.floor(Math.random() * tips.length);
+  if (idx === minion.lastTip) idx = (idx + 1) % tips.length;
+  minion.lastTip = idx;
+  toast(tips[idx], false, true);
+}
+
+// ===========================================================================
+// ПРИЗРАК БЛОКА
+// ===========================================================================
 const ghostMat = new THREE.MeshBasicMaterial({
   color: 0x22c55e, transparent: true, opacity: 0.4, depthWrite: false,
 });
@@ -564,11 +803,25 @@ const ghost = new THREE.Mesh(new THREE.BoxGeometry(1,1,1), ghostMat);
 ghost.visible = false;
 scene.add(ghost);
 
+function effFootprint() {
+  const s = selectedSize;
+  return rotated ? { sx: s.sz, sz: s.sx } : { sx: s.sx, sz: s.sz };
+}
+
+function canRotate() { return selectedSize.sx !== selectedSize.sz; }
+
 function updateGhostGeometry() {
   const { sx, sz } = effFootprint();
   const sy = selectedSize.sy;
   ghost.geometry.dispose();
   ghost.geometry = new THREE.BoxGeometry(sx, sy, sz);
+}
+
+function updateRotateButton() {
+  const btn = $('btn-rotate');
+  btn.classList.toggle('hidden', !canRotate() || !(buildMode && mode === 'own'));
+  btn.textContent = rotated ? '↕️' : '↔️';
+  btn.classList.toggle('rot-on', rotated);
 }
 
 const raycaster = new THREE.Raycaster();
@@ -622,7 +875,6 @@ function computePlacement(ndcX, ndcY) {
     x = Math.round(hitPoint.x - sx/2); y = 0; z = Math.round(hitPoint.z - sz/2);
   }
 
-  // Цена зависит от объёма, а не от ориентации: поворот бесплатен.
   const price = WOOD_BASE_COST * sx * sy * sz;
 
   if (x < -32 || x + sx - 1 > 32 || z < -32 || z + sz - 1 > 32 || y < 0 || y + sy - 1 > 32) {
@@ -739,6 +991,7 @@ async function loadMe() {
   $('ether').textContent = me.ether_balance;
   econ.ether_balance = me.ether_balance;
   myFlagColor = me.flag_color || 'red'; displayFlagColor = myFlagColor;
+  minionFlagMat.color.set(FLAG_COLORS_HEX[myFlagColor] || FLAG_COLORS_HEX.red);
 }
 
 async function returnHome() {
@@ -821,10 +1074,7 @@ function buildSizePalette() {
     const price = document.createElement('span'); price.className = 'price'; price.textContent = sizePrice(s) + '⚡';
     btn.append(glyph, price);
     btn.addEventListener('click', () => {
-      selectedSize = s;
-      // Смена размера сбрасывает поворот: иначе блок «прилипал» бы
-      // в неожиданной ориентации после переключения.
-      rotated = false;
+      selectedSize = s; rotated = false;
       updateSizeLabel(); updateGhostGeometry(); updateRotateButton();
       closeAllPalettes();
     });
@@ -1002,6 +1252,14 @@ renderer.domElement.addEventListener('pointerup', async (ev) => {
   const ndcX = (ev.clientX / innerWidth) * 2 - 1;
   const ndcY = -(ev.clientY / innerHeight) * 2 + 1;
 
+  // 1. Миньон — приоритетнее всего. Он маленький и стоит на земле,
+  //    так что случайно «строить в него» игрок не должен.
+  if (mode === 'own') {
+    raycaster.setFromCamera({ x:ndcX, y:ndcY }, camera);
+    const minionHits = raycaster.intersectObjects(minionHitMeshes, false);
+    if (minionHits.length) { tapMinion(); return; }
+  }
+
   if (mode === 'own' && demolishMode) return handleDemolishTap(ndcX, ndcY);
   if (mode === 'own' && buildMode) return handleBuildTap();
   if (mode === 'raid') return handleRaidTap(ndcX, ndcY);
@@ -1094,13 +1352,45 @@ addEventListener('resize', () => {
   renderer.setSize(innerWidth, innerHeight);
 });
 
+let lastFrame = performance.now();
+
 function animate() {
   requestAnimationFrame(animate);
+  const now = performance.now();
+  const dt = Math.min((now - lastFrame) / 1000, 0.1);   // ограничиваем прыжок после сворачивания вкладки
+  lastFrame = now;
+
   controls.update();
   flagGroup.rotation.y += 0.005;
+
+  if (mode === 'own') {
+    minionGroup.visible = true;
+    updateMinion(dt);
+  } else {
+    minionGroup.visible = false;
+  }
+
   updateGhost();
   renderer.render(scene, camera);
 }
+
+// Миньона ставим в свободную клетку недалеко от флага — до первого кадра.
+function placeMinionInitial() {
+  for (let r = 2; r <= 8; r++) {
+    for (let a = 0; a < 12; a++) {
+      const ang = (a / 12) * Math.PI * 2;
+      const x = Math.round(Math.cos(ang) * r);
+      const z = Math.round(Math.sin(ang) * r);
+      if (cellFree(x, z)) {
+        minion.x = x; minion.z = z;
+        minionGroup.position.set(x + 0.5, 0, z + 0.5);
+        return;
+      }
+    }
+  }
+  minionGroup.position.set(2.5, 0, 2.5);
+}
+
 animate();
 
 // ---------- СТАРТ ----------
@@ -1115,6 +1405,7 @@ animate();
     await loadMe();
     await loadOwnIsland();
     await loadEconomy();
+    placeMinionInitial();
     setMode('own');
     buildMode = true;
     updatePanel();
