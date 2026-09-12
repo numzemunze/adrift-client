@@ -87,7 +87,7 @@
   .onboard-step b { color:#7dd3fc; }
   .onboard-card button { width:100%; margin-top:6px; }
 
-  #palette, #block-palette {
+  #palette, #block-palette, #size-palette {
     position:fixed; bottom:78px; left:50%; transform:translateX(-50%);
     background:rgba(17,26,51,.98); backdrop-filter:blur(12px);
     border:1px solid rgba(255,255,255,.15); border-radius:16px;
@@ -100,6 +100,15 @@
   .color-dot { width:46px; height:46px; border-radius:12px; border:2px solid rgba(255,255,255,.2); cursor:pointer; padding:0; box-shadow:inset 0 2px 4px rgba(0,0,0,.2); }
   .color-dot:active { transform:scale(.86); }
   .color-dot.selected { border-color:#fff; border-width:3px; box-shadow:0 0 0 3px rgba(255,255,255,.25); }
+
+  .size-grid { display:grid; grid-template-columns:repeat(3, 1fr); gap:10px; }
+  .size-btn {
+    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px;
+    min-width:86px; padding:12px 10px; border-radius:12px;
+  }
+  .size-btn .glyph { font-family:ui-monospace,monospace; font-size:15px; font-weight:700; letter-spacing:.5px; }
+  .size-btn .price { font-size:11px; opacity:.75; }
+  .size-btn.selected { background:linear-gradient(180deg,#3b82f6,#2563eb); border-color:#60a5fa; }
 
   .hidden { display:none !important; }
 </style>
@@ -126,6 +135,7 @@
 </div>
 
 <div class="bar hidden" id="bottom-build">
+  <button id="btn-size">📐 <span id="size-label">1×1</span></button>
   <button id="btn-block-color">🟫 <span data-i18n="color">Цвет</span></button>
   <button id="btn-demolish" class="icon">🗑</button>
   <button id="btn-build-done" class="go" data-i18n="done">✅ Готово</button>
@@ -152,6 +162,11 @@
 <div id="block-palette" class="hidden">
   <div class="palette-title" data-i18n="blockColor">Цвет блока</div>
   <div class="palette-grid" id="block-palette-grid"></div>
+</div>
+
+<div id="size-palette" class="hidden">
+  <div class="palette-title" data-i18n="sizeTitle">Размер блока</div>
+  <div class="size-grid" id="size-grid"></div>
 </div>
 
 <div class="screen hidden" id="world-screen">
@@ -204,22 +219,34 @@ const SUPABASE_ANON_KEY = 'sb_publishable_pT2H1bpnu_fcBbevfvfOoQ_AhzZLQjH';
 const API_URL = 'https://adrift-backend-ys3i.onrender.com';
 // ===================================
 
-// ======================== ПЕРЕВОДЫ ========================
-// Автоопределение языка по navigator.language. Русский — если начинается на
-// 'ru', иначе английский. Игрок может переключить вручную кнопкой 🌐,
-// выбор запоминается в localStorage.
+// Базовая цена дерева. Дублируется на сервере в cube_types.cost — здесь нужна
+// только чтобы показать цену на кнопке размера, до отправки запроса.
+const WOOD_BASE_COST = 10;
+
+// Размеры блоков. Порядок = порядок кнопок в панели.
+// sx/sy/sz — сколько клеток занимает блок по каждой оси.
+const BLOCK_SIZES = [
+  { key: '1x1x1', sx: 1, sy: 1, sz: 1, label: '1×1'   },
+  { key: '2x1x1', sx: 2, sy: 1, sz: 1, label: '2×1'   },
+  { key: '1x1x2', sx: 1, sy: 1, sz: 2, label: '1×2'   },
+  { key: '2x1x2', sx: 2, sy: 1, sz: 2, label: '2×2'   },
+  { key: '3x1x3', sx: 3, sy: 1, sz: 3, label: '3×3'   },
+  { key: '1x2x1', sx: 1, sy: 2, sz: 1, label: '1×1↑'  },
+  { key: '1x3x1', sx: 1, sy: 3, sz: 1, label: '1×1↑↑' },
+];
+
 const I18N = {
   ru: {
     build: '🔨 Строить', world: '🌍 Мир', done: '✅ Готово',
     color: 'Цвет', back: '↩ Назад', raid: '⚔️ Рейд',
     flag: 'Флаг', leave: '🏳 Выйти',
-    flagColor: 'Цвет флага', blockColor: 'Цвет блока',
+    flagColor: 'Цвет флага', blockColor: 'Цвет блока', sizeTitle: 'Размер блока',
     worldTitle: '🌍 Мир',
     lootTitle: 'Флаг разрушен!', lootStolen: 'Украдено Эфира:',
     lootBalance: 'Твой баланс:', returnHome: 'Вернуться на свой остров',
     onboardTitle: 'Добро пожаловать в ADRIFT',
-    onboard1: '<b>1.</b> Нажми <b>🔨 Строить</b> — появятся кнопки. Тапни по земле или по верху блока, чтобы поставить деревянный куб.',
-    onboard2: '<b>2.</b> <b>🟫 Цвет</b> — выбери цвет блока. Блоки ставятся друг на друга: тапни по верхней грани.',
+    onboard1: '<b>1.</b> Нажми <b>🔨 Строить</b>. Выбери размер блока кнопкой <b>📐</b> и тапни по земле или по верху блока.',
+    onboard2: '<b>2.</b> Блоки ставятся друг на друга: тапни по верхней грани. <b>🟫 Цвет</b> — палитра.',
     onboard3: '<b>3.</b> <b>⚡</b> вверху — забери накопленный Эфир. Он капает 10 в час.',
     onboard4: '<b>4.</b> <b>🌍 Мир</b> — сходи в гости к соседу. Или в рейд: укради его Эфир.',
     onboardOk: 'Понятно, играем',
@@ -231,23 +258,23 @@ const I18N = {
     flagReserved: 'Клетка Флага зарезервирована',
     flagColorChanged: 'Цвет флага изменён',
     noone: 'Пока никого нет в твоём регионе',
-    error: 'Ошибка', loadError: 'Ошибка загрузки',
+    error: 'Ошибка',
     shield: 'щит', cooldown: 'кулдаун', yourIsland: 'это твой остров',
     dmgyou: 'Флагу', refund: 'Эфира возвращено', ether: 'Эфира',
-    notEnough: 'Не хватает Эфира',
+    size: 'Размер',
   },
   en: {
     build: '🔨 Build', world: '🌍 World', done: '✅ Done',
     color: 'Color', back: '↩ Back', raid: '⚔️ Raid',
     flag: 'Flag', leave: '🏳 Leave',
-    flagColor: 'Flag color', blockColor: 'Block color',
+    flagColor: 'Flag color', blockColor: 'Block color', sizeTitle: 'Block size',
     worldTitle: '🌍 World',
     lootTitle: 'Flag destroyed!', lootStolen: 'Ether stolen:',
     lootBalance: 'Your balance:', returnHome: 'Return to your island',
     onboardTitle: 'Welcome to ADRIFT',
-    onboard1: '<b>1.</b> Tap <b>🔨 Build</b> — buttons appear. Tap the ground or the top of a block to place a wooden cube.',
-    onboard2: '<b>2.</b> <b>🟫 Color</b> — pick a block color. Blocks stack: tap the top face.',
-    onboard3: '<b>3.</b> <b>⚡</b> at the top — claim accrued Ether. It generates 10 per hour.',
+    onboard1: '<b>1.</b> Tap <b>🔨 Build</b>. Pick a size with <b>📐</b> and tap the ground or the top of a block.',
+    onboard2: '<b>2.</b> Blocks stack: tap the top face. <b>🟫 Color</b> — palette.',
+    onboard3: '<b>3.</b> <b>⚡</b> at the top — claim accrued Ether. 10 per hour.',
     onboard4: '<b>4.</b> <b>🌍 World</b> — visit a neighbor. Or raid: steal their Ether.',
     onboardOk: 'Got it, let\'s play',
     loading: 'Loading...', login: 'Signing in...', returning: 'Returning...',
@@ -258,10 +285,10 @@ const I18N = {
     flagReserved: 'Flag cell is reserved',
     flagColorChanged: 'Flag color changed',
     noone: 'Nobody in your region yet',
-    error: 'Error', loadError: 'Load error',
+    error: 'Error',
     shield: 'shield', cooldown: 'cooldown', yourIsland: 'your island',
     dmgyou: 'Flag damage', refund: 'Ether refunded', ether: 'Ether',
-    notEnough: 'Not enough Ether',
+    size: 'Size',
   },
 };
 
@@ -281,12 +308,8 @@ function t(key, vars) {
 }
 
 function applyI18n() {
-  document.querySelectorAll('[data-i18n]').forEach(el => {
-    el.textContent = t(el.dataset.i18n);
-  });
-  document.querySelectorAll('[data-i18n-html]').forEach(el => {
-    el.innerHTML = t(el.dataset.i18nHtml);
-  });
+  document.querySelectorAll('[data-i18n]').forEach(el => { el.textContent = t(el.dataset.i18n); });
+  document.querySelectorAll('[data-i18n-html]').forEach(el => { el.innerHTML = t(el.dataset.i18nHtml); });
   document.documentElement.lang = lang;
 }
 
@@ -296,8 +319,8 @@ function setLang(next) {
   applyI18n();
   renderEconomy();
   updateBottom();
+  updateSizeLabel();
 }
-// ==========================================================
 
 const FLAG_COLORS_HEX = {
   red: 0xef4444, orange: 0xf97316, yellow: 0xeab308, green: 0x22c55e,
@@ -310,33 +333,19 @@ const FLAG_COLORS_CSS = {
   white: '#f1f5f9', black: '#334155',
 };
 
-// Цвета блоков. Теперь это НАСТОЯЩИЕ цвета: текстура белая и только добавляет
-// волокна, поэтому выбранный оттенок доходит до экрана без искажений.
-// hex и css совпадают один в один — то, что видно в палитре, то и на блоке.
+// Цвета блоков. База текстуры БЕЛАЯ, поэтому эти значения доходят до экрана
+// один в один: то, что видно в палитре, то и на блоке.
 const BLOCK_COLORS_HEX = {
-  wood: 0xc9a06a,
-  red: 0xd94a4a,
-  blue: 0x4a7fd9,
-  green: 0x4ad96b,
-  yellow: 0xd9c94a,
-  purple: 0x9b4ad9,
-  dark: 0x6b6b6b,
-  light: 0xd9d9d9,
+  wood: 0xc9a06a, red: 0xd94a4a, blue: 0x4a7fd9, green: 0x4ad96b,
+  yellow: 0xd9c94a, purple: 0x9b4ad9, dark: 0x6b6b6b, light: 0xd9d9d9,
 };
 const BLOCK_COLORS_CSS = {
-  wood: '#c9a06a',
-  red: '#d94a4a',
-  blue: '#4a7fd9',
-  green: '#4ad96b',
-  yellow: '#d9c94a',
-  purple: '#9b4ad9',
-  dark: '#6b6b6b',
-  light: '#d9d9d9',
+  wood: '#c9a06a', red: '#d94a4a', blue: '#4a7fd9', green: '#4ad96b',
+  yellow: '#d9c94a', purple: '#9b4ad9', dark: '#6b6b6b', light: '#d9d9d9',
 };
 
 const $ = (id) => document.getElementById(id);
-const statusEl = $('status'), errEl = $('err');
-const toastEl = $('toast');
+const statusEl = $('status'), errEl = $('err'), toastEl = $('toast');
 
 let loading = false;
 const fail = (msg) => { loading = true; statusEl.classList.remove('hidden'); statusEl.firstChild.textContent = msg; };
@@ -371,6 +380,7 @@ let mode = 'own';
 let buildMode = false;
 let demolishMode = false;
 let selectedBlockColor = 'wood';
+let selectedSize = BLOCK_SIZES[0];
 let selectedCharge = 2;
 let raidId = null;
 let targetUser = null;
@@ -490,22 +500,18 @@ flagGroup.add(pole, banner);
 scene.add(flagGroup);
 
 // ---------- ТЕКСТУРА ДЕРЕВА ----------
-// Рисуем процедурно на canvas: ни одного внешнего файла, работает офлайн,
-// и один и тот же паттерн даёт узнаваемое «дерево» на всех блоках.
+// Белая база: цвет задаёт material.color, текстура добавляет только волокна.
+// Никаких рамок по краю — они повторялись на каждой грани и читались как
+// «обводка» вокруг блока.
 function makeWoodTexture() {
   const size = 128;
   const canvas = document.createElement('canvas');
   canvas.width = canvas.height = size;
   const ctx = canvas.getContext('2d');
 
-  // База БЕЛАЯ. Тон задаёт material.color, а текстура только затемняет
-  // отдельные волокна. Раньше база была коричневой, и она перемножалась
-  // с выбранным цветом — красный блок получался грязно-бурым.
   ctx.fillStyle = '#ffffff';
   ctx.fillRect(0, 0, size, size);
 
-  // Горизонтальные волокна: серый с низкой альфой. На любом цвете это даёт
-  // тень нужной плотности, не меняя оттенок.
   for (let i = 0; i < 22; i++) {
     const y = Math.random() * size;
     ctx.strokeStyle = `rgba(0, 0, 0, ${0.04 + Math.random() * 0.06})`;
@@ -518,7 +524,6 @@ function makeWoodTexture() {
     ctx.stroke();
   }
 
-  // Пара «сучков» — чуть плотнее волокон
   for (let i = 0; i < 2; i++) {
     const cx = Math.random() * size, cy = Math.random() * size;
     for (let r = 2; r < 8; r += 2) {
@@ -529,9 +534,6 @@ function makeWoodTexture() {
       ctx.stroke();
     }
   }
-
-  // Рамку по краю НЕ рисуем. Текстура повторяется на каждой грани куба,
-  // и рамка превращалась в «обводку» вокруг каждого блока.
 
   const tex = new THREE.CanvasTexture(canvas);
   tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
@@ -544,27 +546,31 @@ const WOOD_TEXTURE = makeWoodTexture();
 // ---------- КУБЫ ----------
 const cubeMeshes = new Map();
 
-function makeCubeMaterial(color, inSafeZone) {
-  const mat = new THREE.MeshLambertMaterial({
+function makeCubeMaterial(color) {
+  // Подсветку safe zone убрали: в 3D она читалась как «блок другого цвета»,
+  // а нужная информация и так есть в HUD (кнопка ⚔️ Флаг показывает 🔒 N).
+  return new THREE.MeshLambertMaterial({
     map: WOOD_TEXTURE,
     color: new THREE.Color(BLOCK_COLORS_HEX[color] || BLOCK_COLORS_HEX.wood),
   });
-  // Кубы в safe zone подсвечиваем ИХ ЖЕ цветом. Раньше был синий emissive —
-  // он подмешивался к любому оттенку и красил красное в фиолетовое.
-  if (inSafeZone) {
-    mat.emissive.copy(mat.color).multiplyScalar(0.18);
-  }
-  return mat;
+}
+
+// Блок занимает клетки [x, x+sx-1] и так далее. Значит его геометрический
+// центр — на x + sx/2 (а не x + 0.5, как было при фиксированном 1×1×1).
+function cubeCenter(c) {
+  const sx = c.size_x || 1, sy = c.size_y || 1, sz = c.size_z || 1;
+  return { x: c.x + sx / 2, y: c.y + sy / 2, z: c.z + sz / 2 };
 }
 
 function addCube(c) {
   if (cubeMeshes.has(c.id)) return;
   const color = c.color || 'wood';
-  const mat = makeCubeMaterial(color, !!c.is_safe_zone);
-  const mesh = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), mat);
-  mesh.position.set(c.x, c.y + 0.5, c.z);
-  // Нормализуем поле: paintCube() читает c.color и не должен гадать про undefined
-  mesh.userData.cube = { ...c, color };
+  const sx = c.size_x || 1, sy = c.size_y || 1, sz = c.size_z || 1;
+
+  const mesh = new THREE.Mesh(new THREE.BoxGeometry(sx, sy, sz), makeCubeMaterial(color));
+  const cc = cubeCenter({ ...c, size_x: sx, size_y: sy, size_z: sz });
+  mesh.position.set(cc.x, cc.y, cc.z);
+  mesh.userData.cube = { ...c, color, size_x: sx, size_y: sy, size_z: sz };
   scene.add(mesh);
   cubeMeshes.set(c.id, mesh);
   paintCube(mesh);
@@ -642,7 +648,7 @@ function setMode(next) {
 function setBuildMode(on) {
   buildMode = on;
   if (on) setDemolish(false);
-  if (!on) { closePalette(); closeBlockPalette(); }
+  if (!on) closeAllPalettes();
   updateBottom();
 }
 
@@ -654,7 +660,7 @@ function setDemolish(on) {
 function showScreen(id) { $(id).classList.remove('hidden'); }
 function hideScreens() {
   ['world-screen','loot-screen','onboard-screen'].forEach(id => $(id).classList.add('hidden'));
-  closePalette(); closeBlockPalette();
+  closeAllPalettes();
 }
 
 // ---------- СВОЙ ОСТРОВ ----------
@@ -728,41 +734,23 @@ setInterval(() => {
 }, 1000);
 setInterval(loadEconomy, 30000);
 
-// ---------- ПАЛИТРА ЦВЕТА ФЛАГА ----------
-function buildPalette() {
+// ---------- ПАЛИТРЫ ----------
+function closeAllPalettes() {
+  ['palette','block-palette','size-palette'].forEach(id => $(id).classList.add('hidden'));
+}
+
+function buildFlagPalette() {
   const grid = $('palette-grid');
   grid.innerHTML = '';
   for (const [key, hex] of Object.entries(FLAG_COLORS_CSS)) {
     const dot = document.createElement('button');
     dot.className = 'color-dot' + (key === myFlagColor ? ' selected' : '');
     dot.style.background = hex;
-    dot.addEventListener('click', () => pickColor(key));
+    dot.addEventListener('click', () => pickFlagColor(key));
     grid.appendChild(dot);
   }
 }
 
-function openPalette() { closeBlockPalette(); buildPalette(); $('palette').classList.remove('hidden'); }
-function closePalette() { $('palette').classList.add('hidden'); }
-function togglePalette() {
-  $('palette').classList.contains('hidden') ? openPalette() : closePalette();
-}
-
-async function pickColor(key) {
-  try {
-    const res = await api('/api/v1/me/flag-color', {
-      method: 'POST',
-      body: JSON.stringify({ color: key }),
-    });
-    myFlagColor = res.flag_color;
-    if (mode === 'own') setFlagVisual(currentFlagHp, currentFlagMax, myFlagColor);
-    closePalette();
-    toast(t('flagColorChanged'));
-  } catch (e) {
-    toast(e.message, true);
-  }
-}
-
-// ---------- ПАЛИТРА ЦВЕТА БЛОКА ----------
 function buildBlockPalette() {
   const grid = $('block-palette-grid');
   grid.innerHTML = '';
@@ -772,15 +760,71 @@ function buildBlockPalette() {
     dot.style.background = hex;
     dot.addEventListener('click', () => {
       selectedBlockColor = key;
-      closeBlockPalette();
+      closeAllPalettes();
       toast(t('blockColor') + ': ' + key);
     });
     grid.appendChild(dot);
   }
 }
 
-function openBlockPalette() { closePalette(); buildBlockPalette(); $('block-palette').classList.remove('hidden'); }
-function closeBlockPalette() { $('block-palette').classList.add('hidden'); }
+function sizePrice(s) {
+  return WOOD_BASE_COST * s.sx * s.sy * s.sz;
+}
+
+function buildSizePalette() {
+  const grid = $('size-grid');
+  grid.innerHTML = '';
+  for (const s of BLOCK_SIZES) {
+    const btn = document.createElement('button');
+    btn.className = 'size-btn' + (s.key === selectedSize.key ? ' selected' : '');
+
+    const glyph = document.createElement('span');
+    glyph.className = 'glyph';
+    glyph.textContent = s.label;
+
+    const price = document.createElement('span');
+    price.className = 'price';
+    price.textContent = price.price + '⚡';
+
+    btn.append(glyph, price);
+    btn.addEventListener('click', () => {
+      selectedSize = s;
+      updateSizeLabel();
+      closeAllPalettes();
+    });
+    grid.appendChild(btn);
+  }
+}
+
+function updateSizeLabel() {
+  $('size-label').textContent = selectedSize.label;
+}
+
+function togglePalette(id) {
+  const wasHidden = $(id).classList.contains('hidden');
+  closeAllPalettes();
+  if (wasHidden) {
+    if (id === 'palette') buildFlagPalette();
+    if (id === 'block-palette') buildBlockPalette();
+    if (id === 'size-palette') buildSizePalette();
+    $(id).classList.remove('hidden');
+  }
+}
+
+async function pickFlagColor(key) {
+  try {
+    const res = await api('/api/v1/me/flag-color', {
+      method: 'POST',
+      body: JSON.stringify({ color: key }),
+    });
+    myFlagColor = res.flag_color;
+    if (mode === 'own') setFlagVisual(currentFlagHp, currentFlagMax, myFlagColor);
+    closeAllPalettes();
+    toast(t('flagColorChanged'));
+  } catch (e) {
+    toast(e.message, true);
+  }
+}
 
 // ---------- МИР ----------
 function blockLabel(isl) {
@@ -818,7 +862,7 @@ function makeIslandRow(isl) {
 }
 
 async function openWorld() {
-  closePalette(); closeBlockPalette();
+  closeAllPalettes();
   showScreen('world-screen');
   const list = $('world-list');
   list.innerHTML = '';
@@ -1017,40 +1061,71 @@ renderer.domElement.addEventListener('pointerup', async (ev) => {
   if (mode === 'raid') return handleRaidTap();
 });
 
-// Тап по кубу ставит НА него (по нормали грани), тап по земле — на y = 0.
-// Это даёт стекинг без слайдеров высоты.
+// Вычисляем минимальный угол новой постройки.
+//
+// При тапе по грани блока: центрируем новый блок на центре старого по осям,
+// перпендикулярным грани, и сдвигаем по оси грани на её размер. Это даёт
+// предсказуемый стекинг: 3×3 поверх 1×1 встанет ровно над ним, а не углом.
+//
+// При тапе по земле: центрируем на точке касания.
 async function handleBuildTap() {
-  const cubeTargets = [...cubeMeshes.values()];
-  const cubeHits = raycaster.intersectObjects(cubeTargets, false);
+  const sx = selectedSize.sx, sy = selectedSize.sy, sz = selectedSize.sz;
+  const cubeHits = raycaster.intersectObjects([...cubeMeshes.values()], false);
 
   let x, y, z;
 
   if (cubeHits.length) {
     const h = cubeHits[0];
-    const c = h.object.userData.cube;
+    const base = h.object.userData.cube;
+    const bsx = base.size_x || 1, bsy = base.size_y || 1, bsz = base.size_z || 1;
+    const bc = cubeCenter({ ...base, size_x: bsx, size_y: bsy, size_z: bsz });
+
     normalMatrix.getNormalMatrix(h.object.matrixWorld);
     const n = h.face.normal.clone().applyMatrix3(normalMatrix).normalize();
+    // Доминирующая ось нормали: у куба она всегда одна из ±1 по x/y/z
+    const ax = Math.round(n.x), ay = Math.round(n.y), az = Math.round(n.z);
 
-    // Сдвигаемся от центра куба к его грани по нормали. Округление гасит
-    // накопленную ошибку float: иначе сосед оказывался бы на 0.999 от центра.
-    x = Math.round(c.x + n.x);
-    y = Math.round(c.y + n.y);
-    z = Math.round(c.z + n.z);
+    if (ay !== 0) {
+      // Грань сверху/снизу — новый блок встаёт на старый (или под него)
+      y = ay > 0 ? base.y + bsy : base.y - sy;
+      x = Math.round(bc.x - sx / 2);
+      z = Math.round(bc.z - sz / 2);
+    } else if (ax !== 0) {
+      x = ax > 0 ? base.x + bsx : base.x - sx;
+      y = base.y + Math.round((bsy - sy) / 2);
+      z = Math.round(bc.z - sz / 2);
+    } else {
+      z = az > 0 ? base.z + bsz : base.z - sz;
+      y = base.y + Math.round((bsy - sy) / 2);
+      x = Math.round(bc.x - sx / 2);
+    }
   } else {
     if (!raycaster.ray.intersectPlane(plane, hitPoint)) return;
-    x = Math.round(hitPoint.x);
+    x = Math.round(hitPoint.x - sx / 2);
     y = 0;
-    z = Math.round(hitPoint.z);
+    z = Math.round(hitPoint.z - sz / 2);
   }
 
-  if (Math.abs(x) > 32 || Math.abs(z) > 32) return;
-  if (y < 0 || y > 32) return;
-  if (x === 0 && y === 0 && z === 0) { toast(t('flagReserved')); return; }
+  // Границы сетки: блок занимает [x, x+sx-1], поэтому проверяем максимум
+  if (x < -32 || x + sx - 1 > 32) return;
+  if (z < -32 || z + sz - 1 > 32) return;
+  if (y < 0 || y + sy - 1 > 32) return;
+
+  // Клетка Флага: запрещаем любому блоку накрывать (0,0,0)
+  if (x <= 0 && 0 <= x + sx - 1 && y <= 0 && 0 <= y + sy - 1 && z <= 0 && 0 <= z + sz - 1) {
+    toast(t('flagReserved'));
+    return;
+  }
 
   try {
     const res = await api('/api/v1/build/cube', {
       method: 'POST',
-      body: JSON.stringify({ x, y, z, cube_type: 'wood', color: selectedBlockColor }),
+      body: JSON.stringify({
+        x, y, z,
+        size_x: sx, size_y: sy, size_z: sz,
+        cube_type: 'wood',
+        color: selectedBlockColor,
+      }),
     });
     addCube(res.cube);
     $('ether').textContent = res.ether_balance;
@@ -1062,8 +1137,7 @@ async function handleBuildTap() {
 }
 
 async function handleDemolishTap() {
-  const targets = [...cubeMeshes.values()];
-  const hits = raycaster.intersectObjects(targets, false);
+  const hits = raycaster.intersectObjects([...cubeMeshes.values()], false);
   if (!hits.length) return;
 
   const cube = hits[0].object.userData.cube;
@@ -1103,10 +1177,9 @@ $('reload').addEventListener('click', () => loadOwnIsland().catch(e => toast(e.m
 $('btn-build').addEventListener('click', () => setBuildMode(true));
 $('btn-build-done').addEventListener('click', () => { setDemolish(false); setBuildMode(false); });
 $('btn-demolish').addEventListener('click', () => setDemolish(!demolishMode));
-$('btn-block-color').addEventListener('click', () => {
-  $('block-palette').classList.contains('hidden') ? openBlockPalette() : closeBlockPalette();
-});
-$('btn-palette').addEventListener('click', togglePalette);
+$('btn-size').addEventListener('click', () => togglePalette('size-palette'));
+$('btn-block-color').addEventListener('click', () => togglePalette('block-palette'));
+$('btn-palette').addEventListener('click', () => togglePalette('palette'));
 $('btn-world').addEventListener('click', openWorld);
 $('btn-lang').addEventListener('click', () => setLang(lang === 'ru' ? 'en' : 'ru'));
 $('world-close').addEventListener('click', hideScreens);
@@ -1139,6 +1212,7 @@ animate();
 (async () => {
   try {
     applyI18n();
+    updateSizeLabel();
     await auth();
     fail(t('loading'));
     await loadMe();
@@ -1154,4 +1228,4 @@ animate();
 })();
 </script>
 </body>
- </html>
+</html>
