@@ -1805,4 +1805,322 @@ function togglePalette(id) {
 }
 async function pickFlagColor(key) {
   try {
-    const res
+    const res = await api('/api/v1/me/flag-color', { method:'POST', body: JSON.stringify({ color:key }) });
+    myFlagColor = res.flag_color;
+    if (mode !== 'raid') setFlagVisual(currentFlagHp, currentFlagMax, myFlagColor);
+    closeAllPalettes();
+    toast(t('flagColorChanged'), 'tip');
+    setMinionEmotion('celebrate', 1.6);
+  } catch (e) { toast(e.message, 'error'); }
+}
+
+// ---------- МИР ----------
+function blockLabel(isl) {
+  switch (isl.raid_block_reason) {
+    case 'TARGET_SHIELDED': return '🛡 ' + fmtTime(isl.shield_seconds_left);
+    case 'COOLDOWN_ACTIVE': return '⏳ ' + fmtTime(isl.cooldown_seconds_left);
+    case 'TARGET_IS_SELF': return t('yourIsland');
+    default: return isl.raid_block_reason || '';
+  }
+}
+function makeIslandRow(isl) {
+  const row = document.createElement('button');
+  row.className = 'island-row' + (isl.can_raid ? '' : ' locked');
+  const name = document.createElement('div'); name.className = 'island-name'; name.textContent = isl.username;
+  const meta = document.createElement('div'); meta.className = 'island-meta';
+  meta.textContent = `🧱 ${isl.cube_count} · ⚡ ${isl.potential_loot} · 🚩 ${isl.flag_hp}`;
+  row.append(name, meta);
+  if (!isl.can_raid) {
+    const badge = document.createElement('div'); badge.className = 'island-badge'; badge.textContent = blockLabel(isl);
+    row.appendChild(badge);
+  }
+  row.addEventListener('click', () => visitIsland(isl.user_id, isl.username));
+  return row;
+}
+async function openWorld() {
+  closeAllPalettes(); showScreen('world-screen');
+  const list = $('world-list'); list.innerHTML = '';
+  const note = document.createElement('div'); note.className = 'screen-note'; note.textContent = t('loading');
+  list.appendChild(note);
+  try {
+    const data = await api('/api/v1/islands?limit=50');
+    list.innerHTML = '';
+    if (!data.islands.length) {
+      const empty = document.createElement('div'); empty.className = 'screen-note'; empty.textContent = t('noone');
+      list.appendChild(empty); return;
+    }
+    for (const isl of data.islands) list.appendChild(makeIslandRow(isl));
+  } catch (e) {
+    list.innerHTML = '';
+    const err = document.createElement('div'); err.className = 'screen-note'; err.textContent = t('error') + ': ' + e.message;
+    list.appendChild(err);
+  }
+}
+async function visitIsland(userId, username) {
+  hideScreens(); fail(t('islandLoading') + ' ' + username + '...');
+  try {
+    const detail = await api(`/api/v1/islands/${userId}`);
+    targetUser = { user_id:userId, username };
+    resetCubes(); detail.cubes.forEach(addCube); refreshCounters();
+    setFlagVisual(detail.flag.hp, detail.flag.max_hp, detail.flag.color);
+    placeMinionInitial();
+    $('target-name').textContent = username;
+    setMode('visit'); ok();
+  } catch (e) { ok(); toast(e.message, 'error'); }
+}
+
+// ---------- РЕЙД ----------
+async function startRaid() {
+  if (!targetUser) return;
+  fail(t('raidStart'));
+  try {
+    const res = await api(`/api/v1/raids/${targetUser.user_id}/start`, { method:'POST' });
+    raidId = res.raid_id;
+    $('ether').textContent = res.ether_balance; econ.ether_balance = res.ether_balance;
+    const detail = await api(`/api/v1/islands/${targetUser.user_id}`);
+    resetCubes(); detail.cubes.forEach(addCube); refreshCounters();
+    setFlagVisual(detail.flag.hp, detail.flag.max_hp, detail.flag.color);
+    placeMinionInitial();
+    setMode('raid'); updateFlagButton(); ok(); toast(t('raidStartOk'), 'tip');
+  } catch (e) { ok(); toast(e.message, 'error'); }
+}
+function updateFlagButton() {
+  const btn = $('btn-flag'); const safe = countSafeCubes();
+  if (safe > 0) { btn.textContent = `🔒 ${safe}`; btn.classList.add('locked'); }
+  else { btn.textContent = '⚔️'; btn.classList.remove('locked'); }
+}
+function raidGone(e) {
+  if (e.code === 'RAID_NOT_FOUND' || e.code === 'RAID_ALREADY_FINISHED') {
+    toast(t('raidFinished'), 'warn'); raidId = null; setTimeout(returnHome, 1200); return true;
+  }
+  return false;
+}
+async function attackCube(cube) {
+  if (!raidId || attacking) return;
+  attacking = true;
+  try {
+    const res = await api(`/api/v1/raids/${raidId}/attack-cube`, {
+      method:'POST', headers:{ 'Idempotency-Key': uid() },
+      body: JSON.stringify({ cube_id: cube.id, charge: selectedCharge }),
+    });
+    $('ether').textContent = res.ether_balance; econ.ether_balance = res.ether_balance;
+    if (res.cube.destroyed) {
+      removeCube(res.cube.id);
+      minion.panicBoost = 3;
+      minion.path = [];
+      setMinionEmotion('scared', 1.2);
+    } else {
+      updateCubeHp(res.cube.id, res.cube.hp);
+    }
+    for (const c of res.collapsed) removeCube(c.id);
+    refreshCounters(); updateFlagButton();
+  } catch (e) { if (!raidGone(e)) toast(e.message, 'error'); }
+  finally { attacking = false; }
+}
+async function attackFlag() {
+  if (!raidId || attacking) return;
+  const safe = countSafeCubes();
+  if (safe > 0) { toast(t('flagProtected', { n:safe }), 'error'); return; }
+  attacking = true;
+  try {
+    const res = await api(`/api/v1/raids/${raidId}/attack-flag`, {
+      method:'POST', headers:{ 'Idempotency-Key': uid() },
+    });
+    $('ether').textContent = res.ether_balance; econ.ether_balance = res.ether_balance;
+    setFlagVisual(res.flag_hp, res.flag_max_hp);
+    if (res.flag_destroyed && res.loot) {
+      raidId = null;
+      $('loot-stolen').textContent = res.loot.stolen_ether;
+      $('loot-balance').textContent = res.loot.attacker_balance;
+      setMinionEmotion('sad', 3);
+      showScreen('loot-screen');
+    } else toast('−' + res.damage + ' ' + t('dmgyou'), 'tip');
+  } catch (e) { if (!raidGone(e)) toast(e.message, 'error'); }
+  finally { attacking = false; }
+}
+async function leaveRaid() {
+  if (raidId) { try { await api(`/api/v1/raids/${raidId}/finish`, { method:'POST' }); } catch (e) {} }
+  await returnHome();
+}
+
+// ---------- ТАПЫ ----------
+let pointerStart = null;
+const TAP_MAX_MOVE = 8, TAP_MAX_TIME = 400;
+renderer.domElement.addEventListener('pointerdown', (ev) => {
+  if (ev.button !== 0) return;
+  pointerStart = { x:ev.clientX, y:ev.clientY, t:performance.now(), id:ev.pointerId };
+});
+renderer.domElement.addEventListener('pointercancel', () => { pointerStart = null; });
+renderer.domElement.addEventListener('pointerup', async (ev) => {
+  if (!pointerStart || ev.pointerId !== pointerStart.id) return;
+  const moved = Math.hypot(ev.clientX - pointerStart.x, ev.clientY - pointerStart.y);
+  const elapsed = performance.now() - pointerStart.t;
+  pointerStart = null;
+  if (moved > TAP_MAX_MOVE || elapsed > TAP_MAX_TIME) return;
+  if (loading) return;
+  if (camAnim.active) return;
+  if (!$('tip-screen').classList.contains('hidden')) return;
+
+  const ndcX = (ev.clientX / innerWidth) * 2 - 1;
+  const ndcY = -(ev.clientY / innerHeight) * 2 + 1;
+
+  raycaster.setFromCamera({ x:ndcX, y:ndcY }, camera);
+  const minionHits = raycaster.intersectObjects(minionHitMeshes, false);
+  if (minionHits.length) {
+    if (minion.mood === 'panic') { toast(t('minionPanic'), 'warn'); return; }
+    openTip();
+    return;
+  }
+
+  if (mode === 'own' && demolishMode) return handleDemolishTap(ndcX, ndcY);
+  if (mode === 'own' && buildMode) return handleBuildTap();
+  if (mode === 'raid') return handleRaidTap(ndcX, ndcY);
+});
+
+async function handleBuildTap() {
+  const p = computePlacement(aimPoint.x, aimPoint.y);
+  if (!p) return;
+  if (!p.valid) { toast(p.reason, 'error'); return; }
+  try {
+    const res = await api('/api/v1/build/cube', {
+      method:'POST',
+      body: JSON.stringify({
+        x:p.x, y:p.y, z:p.z,
+        size_x:p.sx, size_y:p.sy, size_z:p.sz,
+        cube_type:'wood', color: selectedBlockColor,
+      }),
+    });
+    addCube(res.cube);
+    $('ether').textContent = res.ether_balance;
+    econ.ether_balance = res.ether_balance;
+    $('cubes').textContent = res.island_cube_count;
+    setMinionEmotion('excited', 1.3);
+  } catch (e) { toast(e.message, 'error'); }
+}
+async function handleDemolishTap(ndcX, ndcY) {
+  raycaster.setFromCamera({ x:ndcX, y:ndcY }, camera);
+  const hits = raycaster.intersectObjects([...cubeMeshes.values()], false);
+  if (!hits.length) return;
+  const cube = hits[0].object.userData.cube;
+  try {
+    const res = await api(`/api/v1/build/cube/${cube.id}`, { method:'DELETE' });
+    for (const c of res.removed) removeCube(c.id);
+    refreshCounters();
+    $('ether').textContent = res.ether_balance;
+    econ.ether_balance = res.ether_balance;
+    toast('+' + res.ether_refunded + ' ' + t('refund'), 'tip');
+    setMinionEmotion('sad', 1.2);
+  } catch (e) { toast(e.message, 'error'); }
+}
+async function handleRaidTap(ndcX, ndcY) {
+  raycaster.setFromCamera({ x:ndcX, y:ndcY }, camera);
+  const targets = [...cubeMeshes.values(), ...flagGroup.children];
+  const hits = raycaster.intersectObjects(targets, false);
+  if (!hits.length) return;
+  const obj = hits[0].object;
+  if (flagGroup.children.includes(obj)) { await attackFlag(); return; }
+  await attackCube(obj.userData.cube);
+}
+
+// ---------- КНОПКИ ----------
+document.querySelectorAll('#bottom-raid .charge').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('#bottom-raid .charge').forEach(b => b.classList.remove('on'));
+    btn.classList.add('on');
+    selectedCharge = parseInt(btn.dataset.charge, 10);
+  });
+});
+$('claim-btn').addEventListener('click', claimEther);
+$('reload').addEventListener('click', () => loadOwnIsland().catch(e => toast(e.message, 'error')));
+$('btn-build').addEventListener('click', () => setBuildMode(!buildMode));
+$('btn-demolish').addEventListener('click', () => setDemolish(!demolishMode));
+$('btn-size').addEventListener('click', () => togglePalette('size-palette'));
+$('btn-rotate').addEventListener('click', () => {
+  if (!canRotate()) return;
+  rotated = !rotated;
+  updateGhostGeometry();
+  updateRotateButton();
+});
+$('btn-block-color').addEventListener('click', () => togglePalette('block-palette'));
+$('btn-palette').addEventListener('click', () => togglePalette('palette'));
+$('btn-world').addEventListener('click', openWorld);
+$('world-close').addEventListener('click', hideScreens);
+$('btn-back').addEventListener('click', returnHome);
+$('btn-raid').addEventListener('click', startRaid);
+$('btn-flag').addEventListener('click', attackFlag);
+$('btn-leave').addEventListener('click', leaveRaid);
+$('loot-ok').addEventListener('click', returnHome);
+$('tip-ok').addEventListener('click', closeTip);
+$('onboard-ok').addEventListener('click', () => {
+  localStorage.setItem('adrift_onboarded', '1');
+  hideScreens();
+});
+
+// ---------- ЦИКЛ ----------
+addEventListener('resize', () => {
+  camera.aspect = innerWidth / innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
+});
+
+let lastFrame = performance.now();
+
+function animate() {
+  requestAnimationFrame(animate);
+  const now = performance.now();
+  const dt = Math.min((now - lastFrame) / 1000, 0.1);
+  lastFrame = now;
+  const nowSec = now / 1000;
+
+  if (updateCameraAnim(dt)) {
+    camera.lookAt(controls.target);
+  } else {
+    controls.update();
+  }
+  flagGroup.rotation.y += 0.005;
+
+  if (minion.thinking && nowSec >= minion.thinkUntil) finishThinking();
+
+  // Точный dt нужен для фазы шага, а walkPose вызывается внутри updateMinion.
+  // Поэтому фазу подкручиваем здесь, а не внутри функции.
+  if (!minion.frozen && !minion.thinking) {
+    const panic = minion.emotion === 'panic' || minion.emotion === 'scared';
+    const alert = minion.emotion === 'alert';
+    const freq = panic ? 13 + minion.panicBoost * 2 : (alert ? 8 : 6.5);
+    if (minion.path.length > 0) minion.phase += dt * freq;
+  }
+
+  updateMinion(dt);
+  applyPose(dt);
+  applyFace(dt);
+  updateBubbles(nowSec);
+  updateGhost();
+
+  renderer.render(scene, camera);
+}
+animate();
+
+// ---------- СТАРТ ----------
+(async () => {
+  try {
+    applyI18n();
+    updateSizeLabel();
+    updateGhostGeometry();
+    updateRotateButton();
+    updateBlockSwatch();
+    await auth();
+    fail(t('loading'));
+    await loadMe();
+    await loadOwnIsland();
+    await loadEconomy();
+    setMode('own');
+    buildMode = true;
+    updatePanel();
+    ok();
+    pollRaidAlert();
+    if (!localStorage.getItem('adrift_onboarded')) showScreen('onboard-screen');
+  } catch (e) { fail(t('error') + ': ' + e.message); }
+})();
+</script>
+</body>
+ </html>
