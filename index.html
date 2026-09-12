@@ -41,6 +41,7 @@
   button.go { background:linear-gradient(180deg,#22c55e,#15803d); border-color:#4ade80; }
   button.demolish-on { background:linear-gradient(180deg,#dc2626,#7f1d1d); border-color:#ef4444; }
   button.primary { background:linear-gradient(180deg,#3b82f6,#1d4ed8); border-color:#60a5fa; font-weight:600; }
+  button.icon { padding:11px 13px; }
 
   #toast {
     position:fixed; top:64px; left:50%; transform:translateX(-50%) translateY(-8px);
@@ -86,7 +87,7 @@
   .onboard-step b { color:#7dd3fc; }
   .onboard-card button { width:100%; margin-top:6px; }
 
-  #palette {
+  #palette, #block-palette {
     position:fixed; bottom:78px; left:50%; transform:translateX(-50%);
     background:rgba(17,26,51,.98); backdrop-filter:blur(12px);
     border:1px solid rgba(255,255,255,.15); border-radius:16px;
@@ -95,8 +96,8 @@
   }
   @keyframes popIn { from { opacity:0; transform:translateX(-50%) scale(.92); } to { opacity:1; transform:translateX(-50%) scale(1); } }
   .palette-title { font-size:12px; color:rgba(255,255,255,.65); margin-bottom:10px; text-align:center; letter-spacing:.5px; text-transform:uppercase; }
-  .palette-grid { display:grid; grid-template-columns:repeat(5, 1fr); gap:10px; }
-  .color-dot { width:42px; height:42px; border-radius:50%; border:2px solid rgba(255,255,255,.2); cursor:pointer; padding:0; box-shadow:inset 0 2px 4px rgba(0,0,0,.2); }
+  .palette-grid { display:grid; grid-template-columns:repeat(4, 1fr); gap:10px; }
+  .color-dot { width:46px; height:46px; border-radius:12px; border:2px solid rgba(255,255,255,.2); cursor:pointer; padding:0; box-shadow:inset 0 2px 4px rgba(0,0,0,.2); }
   .color-dot:active { transform:scale(.86); }
   .color-dot.selected { border-color:#fff; border-width:3px; box-shadow:0 0 0 3px rgba(255,255,255,.25); }
 
@@ -107,51 +108,55 @@
 <div id="app"></div>
 
 <div class="bar" id="top">
-  <button class="pill pill-btn" id="claim-btn" title="Забрать накопленный Эфир">
+  <button class="pill pill-btn" id="claim-btn" title="Claim">
     ⚡ <b id="ether">—</b>
     <span id="claim-hint">…</span>
   </button>
   <div class="pill">🧱 <b id="cubes">—</b></div>
   <div class="pill">🚩 <b id="flag">—</b></div>
   <div class="pill hidden" id="target-pill">👁 <b id="target-name">—</b></div>
+  <button class="pill icon" id="btn-lang" title="Language">🌐</button>
 </div>
 
 <div class="bar" id="bottom-idle">
-  <button id="btn-build" class="primary">🔨 Строить</button>
-  <button id="btn-palette">🎨</button>
-  <button id="btn-world">🌍 Мир</button>
-  <button id="reload">↻</button>
+  <button id="btn-build" class="primary" data-i18n="build">🔨 Строить</button>
+  <button id="btn-palette" class="icon">🎨</button>
+  <button id="btn-world" data-i18n="world">🌍 Мир</button>
+  <button id="reload" class="icon">↻</button>
 </div>
 
 <div class="bar hidden" id="bottom-build">
-  <button data-type="floor">Пол · 10</button>
-  <button data-type="wall" class="on">Стена · 25</button>
-  <button data-type="tower">Башня · 80</button>
-  <button id="btn-demolish">🗑</button>
-  <button id="btn-build-done" class="go">✅ Готово</button>
+  <button id="btn-block-color">🟫 <span data-i18n="color">Цвет</span></button>
+  <button id="btn-demolish" class="icon">🗑</button>
+  <button id="btn-build-done" class="go" data-i18n="done">✅ Готово</button>
 </div>
 
 <div class="bar hidden" id="bottom-visit">
-  <button id="btn-back">↩ Назад</button>
-  <button id="btn-raid" class="danger">⚔️ Рейд</button>
+  <button id="btn-back" data-i18n="back">↩ Назад</button>
+  <button id="btn-raid" class="danger" data-i18n="raid">⚔️ Рейд</button>
 </div>
 
 <div class="bar hidden" id="bottom-raid">
   <button class="charge" data-charge="1">1 · 10⚡</button>
   <button class="charge on" data-charge="2">2 · 25⚡</button>
   <button class="charge" data-charge="3">3 · 60⚡</button>
-  <button id="btn-flag" class="danger">⚔️ Флаг</button>
-  <button id="btn-leave">🏳 Выйти</button>
+  <button id="btn-flag" class="danger">⚔️ <span data-i18n="flag">Флаг</span></button>
+  <button id="btn-leave" data-i18n="leave">🏳 Выйти</button>
 </div>
 
 <div id="palette" class="hidden">
-  <div class="palette-title">Цвет флага</div>
+  <div class="palette-title" data-i18n="flagColor">Цвет флага</div>
   <div class="palette-grid" id="palette-grid"></div>
+</div>
+
+<div id="block-palette" class="hidden">
+  <div class="palette-title" data-i18n="blockColor">Цвет блока</div>
+  <div class="palette-grid" id="block-palette-grid"></div>
 </div>
 
 <div class="screen hidden" id="world-screen">
   <div class="screen-head">
-    <div class="screen-title">🌍 Мир</div>
+    <div class="screen-title" data-i18n="worldTitle">🌍 Мир</div>
     <button id="world-close">✕</button>
   </div>
   <div id="world-list"></div>
@@ -160,27 +165,27 @@
 <div class="screen hidden" id="loot-screen">
   <div class="loot-card">
     <div class="loot-emoji">🏆</div>
-    <div class="loot-title">Флаг разрушен!</div>
-    <div class="loot-row">Украдено Эфира: <b id="loot-stolen">0</b></div>
-    <div class="loot-row">Твой баланс: <b id="loot-balance">0</b></div>
-    <button id="loot-ok" class="go">Вернуться на свой остров</button>
+    <div class="loot-title" data-i18n="lootTitle">Флаг разрушен!</div>
+    <div class="loot-row"><span data-i18n="lootStolen">Украдено Эфира:</span> <b id="loot-stolen">0</b></div>
+    <div class="loot-row"><span data-i18n="lootBalance">Твой баланс:</span> <b id="loot-balance">0</b></div>
+    <button id="loot-ok" class="go" data-i18n="returnHome">Вернуться на свой остров</button>
   </div>
 </div>
 
 <div class="screen hidden" id="onboard-screen">
   <div class="onboard-card">
     <div class="onboard-emoji">🏝️</div>
-    <div class="onboard-title">Добро пожаловать в ADRIFT</div>
-    <div class="onboard-step"><b>1.</b> Нажми <b>🔨 Строить</b> — появятся типы кубов. Тапни по клетке, чтобы поставить.</div>
-    <div class="onboard-step"><b>2.</b> <b>✅ Готово</b> — выходишь из режима строительства и просто любуешься островом.</div>
-    <div class="onboard-step"><b>3.</b> <b>⚡</b> вверху — забери накопленный Эфир. Он капает 10 в час.</div>
-    <div class="onboard-step"><b>4.</b> <b>🌍 Мир</b> — сходи в гости к соседу. Или в рейд: укради его Эфир.</div>
-    <button id="onboard-ok" class="go">Понятно, играем</button>
+    <div class="onboard-title" data-i18n="onboardTitle">Добро пожаловать в ADRIFT</div>
+    <div class="onboard-step" data-i18n-html="onboard1"></div>
+    <div class="onboard-step" data-i18n-html="onboard2"></div>
+    <div class="onboard-step" data-i18n-html="onboard3"></div>
+    <div class="onboard-step" data-i18n-html="onboard4"></div>
+    <button id="onboard-ok" class="go" data-i18n="onboardOk">Понятно, играем</button>
   </div>
 </div>
 
 <div id="toast" class="hidden"></div>
-<div id="status">Загрузка...<br><span id="err"></span></div>
+<div id="status">Loading...<br><span id="err"></span></div>
 
 <script type="importmap">
 { "imports": {
@@ -199,8 +204,101 @@ const SUPABASE_ANON_KEY = 'sb_publishable_pT2H1bpnu_fcBbevfvfOoQ_AhzZLQjH';
 const API_URL = 'https://adrift-backend-ys3i.onrender.com';
 // ===================================
 
-// Те же 10 цветов, что в CHECK-констрейнте users.flag_color. Держим их
-// в двух представлениях: hex для three.js и css для палитры.
+// ======================== ПЕРЕВОДЫ ========================
+// Автоопределение языка по navigator.language. Русский — если начинается на
+// 'ru', иначе английский. Игрок может переключить вручную кнопкой 🌐,
+// выбор запоминается в localStorage.
+const I18N = {
+  ru: {
+    build: '🔨 Строить', world: '🌍 Мир', done: '✅ Готово',
+    color: 'Цвет', back: '↩ Назад', raid: '⚔️ Рейд',
+    flag: 'Флаг', leave: '🏳 Выйти',
+    flagColor: 'Цвет флага', blockColor: 'Цвет блока',
+    worldTitle: '🌍 Мир',
+    lootTitle: 'Флаг разрушен!', lootStolen: 'Украдено Эфира:',
+    lootBalance: 'Твой баланс:', returnHome: 'Вернуться на свой остров',
+    onboardTitle: 'Добро пожаловать в ADRIFT',
+    onboard1: '<b>1.</b> Нажми <b>🔨 Строить</b> — появятся кнопки. Тапни по земле или по верху блока, чтобы поставить деревянный куб.',
+    onboard2: '<b>2.</b> <b>🟫 Цвет</b> — выбери цвет блока. Блоки ставятся друг на друга: тапни по верхней грани.',
+    onboard3: '<b>3.</b> <b>⚡</b> вверху — забери накопленный Эфир. Он капает 10 в час.',
+    onboard4: '<b>4.</b> <b>🌍 Мир</b> — сходи в гости к соседу. Или в рейд: укради его Эфир.',
+    onboardOk: 'Понятно, играем',
+    loading: 'Загрузка...', login: 'Вход в игру...', returning: 'Возвращаемся...',
+    islandLoading: 'Загрузка острова',
+    raidStart: 'Начинаем рейд...', raidStartOk: 'Рейд начался! Тапни по кубу',
+    raidFinished: 'Рейд завершён',
+    flagProtected: 'Флаг защищён: в зоне ещё {n} кубов',
+    flagReserved: 'Клетка Флага зарезервирована',
+    flagColorChanged: 'Цвет флага изменён',
+    noone: 'Пока никого нет в твоём регионе',
+    error: 'Ошибка', loadError: 'Ошибка загрузки',
+    shield: 'щит', cooldown: 'кулдаун', yourIsland: 'это твой остров',
+    dmgyou: 'Флагу', refund: 'Эфира возвращено', ether: 'Эфира',
+    notEnough: 'Не хватает Эфира',
+  },
+  en: {
+    build: '🔨 Build', world: '🌍 World', done: '✅ Done',
+    color: 'Color', back: '↩ Back', raid: '⚔️ Raid',
+    flag: 'Flag', leave: '🏳 Leave',
+    flagColor: 'Flag color', blockColor: 'Block color',
+    worldTitle: '🌍 World',
+    lootTitle: 'Flag destroyed!', lootStolen: 'Ether stolen:',
+    lootBalance: 'Your balance:', returnHome: 'Return to your island',
+    onboardTitle: 'Welcome to ADRIFT',
+    onboard1: '<b>1.</b> Tap <b>🔨 Build</b> — buttons appear. Tap the ground or the top of a block to place a wooden cube.',
+    onboard2: '<b>2.</b> <b>🟫 Color</b> — pick a block color. Blocks stack: tap the top face.',
+    onboard3: '<b>3.</b> <b>⚡</b> at the top — claim accrued Ether. It generates 10 per hour.',
+    onboard4: '<b>4.</b> <b>🌍 World</b> — visit a neighbor. Or raid: steal their Ether.',
+    onboardOk: 'Got it, let\'s play',
+    loading: 'Loading...', login: 'Signing in...', returning: 'Returning...',
+    islandLoading: 'Loading island',
+    raidStart: 'Starting raid...', raidStartOk: 'Raid started! Tap a cube',
+    raidFinished: 'Raid finished',
+    flagProtected: 'Flag protected: {n} cubes still in the zone',
+    flagReserved: 'Flag cell is reserved',
+    flagColorChanged: 'Flag color changed',
+    noone: 'Nobody in your region yet',
+    error: 'Error', loadError: 'Load error',
+    shield: 'shield', cooldown: 'cooldown', yourIsland: 'your island',
+    dmgyou: 'Flag damage', refund: 'Ether refunded', ether: 'Ether',
+    notEnough: 'Not enough Ether',
+  },
+};
+
+let lang = detectLang();
+
+function detectLang() {
+  const saved = localStorage.getItem('adrift_lang');
+  if (saved === 'ru' || saved === 'en') return saved;
+  const nav = (navigator.language || 'ru').toLowerCase();
+  return nav.startsWith('ru') ? 'ru' : 'en';
+}
+
+function t(key, vars) {
+  let s = (I18N[lang] && I18N[lang][key]) || I18N.ru[key] || key;
+  if (vars) for (const [k, v] of Object.entries(vars)) s = s.replace('{' + k + '}', v);
+  return s;
+}
+
+function applyI18n() {
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    el.textContent = t(el.dataset.i18n);
+  });
+  document.querySelectorAll('[data-i18n-html]').forEach(el => {
+    el.innerHTML = t(el.dataset.i18nHtml);
+  });
+  document.documentElement.lang = lang;
+}
+
+function setLang(next) {
+  lang = next;
+  localStorage.setItem('adrift_lang', next);
+  applyI18n();
+  renderEconomy();
+  updateBottom();
+}
+// ==========================================================
+
 const FLAG_COLORS_HEX = {
   red: 0xef4444, orange: 0xf97316, yellow: 0xeab308, green: 0x22c55e,
   teal: 0x14b8a6, blue: 0x3b82f6, purple: 0xa855f7, pink: 0xec4899,
@@ -210,6 +308,16 @@ const FLAG_COLORS_CSS = {
   red: '#ef4444', orange: '#f97316', yellow: '#eab308', green: '#22c55e',
   teal: '#14b8a6', blue: '#3b82f6', purple: '#a855f7', pink: '#ec4899',
   white: '#f1f5f9', black: '#334155',
+};
+
+// Цвета блоков. 'wood' — базовый, без тонировки (белый множитель).
+const BLOCK_COLORS_HEX = {
+  wood: 0xffffff, red: 0xd94a4a, blue: 0x4a7fd9, green: 0x4ad96b,
+  yellow: 0xd9c94a, purple: 0x9b4ad9, dark: 0x6b6b6b, light: 0xd9d9d9,
+};
+const BLOCK_COLORS_CSS = {
+  wood: '#b8845a', red: '#d94a4a', blue: '#4a7fd9', green: '#4ad96b',
+  yellow: '#d9c94a', purple: '#9b4ad9', dark: '#6b6b6b', light: '#d9d9d9',
 };
 
 const $ = (id) => document.getElementById(id);
@@ -238,25 +346,24 @@ const uid = () => (crypto.randomUUID ? crypto.randomUUID() : String(Date.now()) 
 const fmtTime = (s) => {
   s = Math.max(0, Math.floor(s));
   const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), sec = s % 60;
-  if (h > 0) return h + 'ч ' + m + 'м';
+  if (h > 0) return h + 'h ' + m + 'm';
   if (m > 0) return m + ':' + String(sec).padStart(2, '0');
   return '0:' + String(sec).padStart(2, '0');
 };
 
 // ---------- СОСТОЯНИЕ ----------
 let token = null, myId = null;
-let mode = 'own';              // 'own' | 'visit' | 'raid'
+let mode = 'own';
 let buildMode = false;
 let demolishMode = false;
-let selectedType = 'wall';
+let selectedBlockColor = 'wood';
 let selectedCharge = 2;
 let raidId = null;
 let targetUser = null;
 let attacking = false;
 let econ = { accrued_now: 0, seconds_to_next: 0, ether_balance: 0 };
-
-let myFlagColor = 'red';       // выбор игрока (для палитры)
-let displayFlagColor = 'red';  // цвет, который нарисован СЕЙЧАС (может быть чужим)
+let myFlagColor = 'red';
+let displayFlagColor = 'red';
 let currentFlagHp = 0, currentFlagMax = 0;
 
 // ---------- АВТОРИЗАЦИЯ ----------
@@ -270,7 +377,7 @@ async function signIn() {
     },
     body: '{}',
   });
-  if (!res.ok) throw new Error('Авторизация: ' + res.status + ' ' + (await res.text()));
+  if (!res.ok) throw new Error('Auth: ' + res.status + ' ' + (await res.text()));
   const data = await res.json();
   token = data.access_token;
   myId = data.user.id;
@@ -314,7 +421,7 @@ async function auth() {
     try { await api('/api/v1/build/catalog'); return; }
     catch (e) { if (!AUTH_ERRORS.includes(e.code)) throw e; clearSession(); }
   }
-  fail('Вход в игру...');
+  fail(t('login'));
   await signIn();
 }
 
@@ -338,8 +445,8 @@ controls.maxPolarAngle = Math.PI / 2.2;
 controls.minDistance = 10;
 controls.maxDistance = 90;
 
-scene.add(new THREE.AmbientLight(0xffffff, 0.7));
-const sun = new THREE.DirectionalLight(0xffffff, 1.1);
+scene.add(new THREE.AmbientLight(0xffffff, 0.75));
+const sun = new THREE.DirectionalLight(0xffffff, 1.0);
 sun.position.set(30, 50, 20);
 scene.add(sun);
 
@@ -368,16 +475,72 @@ banner.position.set(0.8, 3.3, 0);
 flagGroup.add(pole, banner);
 scene.add(flagGroup);
 
+// ---------- ТЕКСТУРА ДЕРЕВА ----------
+// Рисуем процедурно на canvas: ни одного внешнего файла, работает офлайн,
+// и один и тот же паттерн даёт узнаваемое «дерево» на всех блоках.
+function makeWoodTexture() {
+  const size = 128;
+  const canvas = document.createElement('canvas');
+  canvas.width = canvas.height = size;
+  const ctx = canvas.getContext('2d');
+
+  // База — светлая, потому что материал тонирует её цветом блока.
+  ctx.fillStyle = '#c9a06a';
+  ctx.fillRect(0, 0, size, size);
+
+  // Горизонтальные волокна
+  for (let i = 0; i < 26; i++) {
+    const y = Math.random() * size;
+    ctx.strokeStyle = `rgba(140, 100, 60, ${0.15 + Math.random() * 0.25})`;
+    ctx.lineWidth = 1 + Math.random() * 2.5;
+    ctx.beginPath();
+    ctx.moveTo(0, y);
+    for (let x = 0; x <= size; x += 8) {
+      ctx.lineTo(x, y + Math.sin(x / 14 + i) * 2.5);
+    }
+    ctx.stroke();
+  }
+
+  // Пара «сучков»
+  for (let i = 0; i < 2; i++) {
+    const cx = Math.random() * size, cy = Math.random() * size;
+    for (let r = 2; r < 9; r += 2) {
+      ctx.strokeStyle = `rgba(110, 75, 40, ${0.3 - r * 0.02})`;
+      ctx.lineWidth = 1.2;
+      ctx.beginPath();
+      ctx.ellipse(cx, cy, r * 1.6, r, 0, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+  }
+
+  // Тёмная рамка — «стык» между блоками, помогает читать сетку
+  ctx.strokeStyle = 'rgba(70, 45, 25, 0.55)';
+  ctx.lineWidth = 3;
+  ctx.strokeRect(1.5, 1.5, size - 3, size - 3);
+
+  const tex = new THREE.CanvasTexture(canvas);
+  tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+  tex.colorSpace = THREE.SRGBColorSpace;
+  return tex;
+}
+
+const WOOD_TEXTURE = makeWoodTexture();
+
 // ---------- КУБЫ ----------
 const cubeMeshes = new Map();
-const CUBE_COLORS = { floor: 0x6b7280, wall: 0xa8a29e, tower: 0x78716c };
+
+function makeCubeMaterial(color) {
+  return new THREE.MeshLambertMaterial({
+    map: WOOD_TEXTURE,
+    color: new THREE.Color(BLOCK_COLORS_HEX[color] || 0xffffff),
+  });
+}
 
 function addCube(c) {
   if (cubeMeshes.has(c.id)) return;
-  const mat = new THREE.MeshLambertMaterial({
-    color: CUBE_COLORS[c.cube_type] || 0x999999,
-    emissive: c.is_safe_zone ? 0x1e3a8a : 0x000000,
-  });
+  const mat = makeCubeMaterial(c.color || 'wood');
+  // Куб в safe zone подсвечиваем лёгкой эмиссией: видно, что его бить дороже
+  if (c.is_safe_zone) mat.emissive = new THREE.Color(0x1e3a8a);
   const mesh = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), mat);
   mesh.position.set(c.x, c.y + 0.5, c.z);
   mesh.userData.cube = { ...c };
@@ -389,7 +552,7 @@ function addCube(c) {
 function paintCube(mesh) {
   const c = mesh.userData.cube;
   const ratio = c.max_hp > 0 ? Math.max(0, Math.min(1, c.hp / c.max_hp)) : 0;
-  const base = new THREE.Color(CUBE_COLORS[c.cube_type] || 0x999999);
+  const base = new THREE.Color(BLOCK_COLORS_HEX[c.color] || 0xffffff);
   const hurt = new THREE.Color(0x7f1d1d);
   mesh.material.color.copy(base).lerp(hurt, 1 - ratio);
 }
@@ -420,8 +583,6 @@ function countSafeCubes() {
 
 function refreshCounters() { $('cubes').textContent = cubeMeshes.size; }
 
-// Цвет полотнища = выбранный игроком, но при потере HP он подмешивает
-// тёмно-красный: на рейде сразу видно, что Флаг «горит».
 function setFlagVisual(hp, maxHp, color) {
   currentFlagHp = hp;
   currentFlagMax = maxHp;
@@ -460,6 +621,7 @@ function setMode(next) {
 function setBuildMode(on) {
   buildMode = on;
   if (on) setDemolish(false);
+  if (!on) { closePalette(); closeBlockPalette(); }
   updateBottom();
 }
 
@@ -471,7 +633,7 @@ function setDemolish(on) {
 function showScreen(id) { $(id).classList.remove('hidden'); }
 function hideScreens() {
   ['world-screen','loot-screen','onboard-screen'].forEach(id => $(id).classList.add('hidden'));
-  closePalette();
+  closePalette(); closeBlockPalette();
 }
 
 // ---------- СВОЙ ОСТРОВ ----------
@@ -480,7 +642,6 @@ async function loadOwnIsland() {
   resetCubes();
   data.cubes.forEach(addCube);
   refreshCounters();
-  // Свой флаг рисуем своим цветом, а не тем, что вернул снапшот
   setFlagVisual(data.flag.hp, data.flag.max_hp, myFlagColor);
 }
 
@@ -498,7 +659,7 @@ async function returnHome() {
   setBuildMode(false);
   setMode('own');
   $('target-name').textContent = '—';
-  fail('Возвращаемся...');
+  fail(t('returning'));
   try {
     await loadOwnIsland();
     await loadMe();
@@ -523,7 +684,7 @@ async function loadEconomy() {
     econ = await api('/api/v1/economy/rates');
     $('ether').textContent = econ.ether_balance;
     renderEconomy();
-  } catch (e) { /* экономика не критична для отрисовки */ }
+  } catch (e) { /* не критично */ }
 }
 
 async function claimEther() {
@@ -531,7 +692,7 @@ async function claimEther() {
   try {
     const res = await api('/api/v1/economy/claim', { method: 'POST' });
     $('ether').textContent = res.ether_balance;
-    toast('+' + res.claimed + ' Эфира');
+    toast('+' + res.claimed + ' ' + t('ether'));
     await loadEconomy();
   } catch (e) {
     if (e.code === 'CLAIM_TOO_EARLY') { await loadEconomy(); return; }
@@ -546,7 +707,7 @@ setInterval(() => {
 }, 1000);
 setInterval(loadEconomy, 30000);
 
-// ---------- ПАЛИТРА ЦВЕТА ----------
+// ---------- ПАЛИТРА ЦВЕТА ФЛАГА ----------
 function buildPalette() {
   const grid = $('palette-grid');
   grid.innerHTML = '';
@@ -559,7 +720,7 @@ function buildPalette() {
   }
 }
 
-function openPalette() { buildPalette(); $('palette').classList.remove('hidden'); }
+function openPalette() { closeBlockPalette(); buildPalette(); $('palette').classList.remove('hidden'); }
 function closePalette() { $('palette').classList.add('hidden'); }
 function togglePalette() {
   $('palette').classList.contains('hidden') ? openPalette() : closePalette();
@@ -574,18 +735,38 @@ async function pickColor(key) {
     myFlagColor = res.flag_color;
     if (mode === 'own') setFlagVisual(currentFlagHp, currentFlagMax, myFlagColor);
     closePalette();
-    toast('Цвет флага изменён');
+    toast(t('flagColorChanged'));
   } catch (e) {
     toast(e.message, true);
   }
 }
 
+// ---------- ПАЛИТРА ЦВЕТА БЛОКА ----------
+function buildBlockPalette() {
+  const grid = $('block-palette-grid');
+  grid.innerHTML = '';
+  for (const [key, hex] of Object.entries(BLOCK_COLORS_CSS)) {
+    const dot = document.createElement('button');
+    dot.className = 'color-dot' + (key === selectedBlockColor ? ' selected' : '');
+    dot.style.background = hex;
+    dot.addEventListener('click', () => {
+      selectedBlockColor = key;
+      closeBlockPalette();
+      toast(t('blockColor') + ': ' + key);
+    });
+    grid.appendChild(dot);
+  }
+}
+
+function openBlockPalette() { closePalette(); buildBlockPalette(); $('block-palette').classList.remove('hidden'); }
+function closeBlockPalette() { $('block-palette').classList.add('hidden'); }
+
 // ---------- МИР ----------
 function blockLabel(isl) {
   switch (isl.raid_block_reason) {
-    case 'TARGET_SHIELDED': return '🛡 щит ' + fmtTime(isl.shield_seconds_left);
-    case 'COOLDOWN_ACTIVE': return '⏳ кулдаун ' + fmtTime(isl.cooldown_seconds_left);
-    case 'TARGET_IS_SELF': return 'это твой остров';
+    case 'TARGET_SHIELDED': return '🛡 ' + t('shield') + ' ' + fmtTime(isl.shield_seconds_left);
+    case 'COOLDOWN_ACTIVE': return '⏳ ' + t('cooldown') + ' ' + fmtTime(isl.cooldown_seconds_left);
+    case 'TARGET_IS_SELF': return t('yourIsland');
     default: return isl.raid_block_reason || '';
   }
 }
@@ -616,13 +797,13 @@ function makeIslandRow(isl) {
 }
 
 async function openWorld() {
-  closePalette();
+  closePalette(); closeBlockPalette();
   showScreen('world-screen');
   const list = $('world-list');
   list.innerHTML = '';
   const note = document.createElement('div');
   note.className = 'screen-note';
-  note.textContent = 'Загрузка...';
+  note.textContent = t('loading');
   list.appendChild(note);
 
   try {
@@ -631,7 +812,7 @@ async function openWorld() {
     if (!data.islands.length) {
       const empty = document.createElement('div');
       empty.className = 'screen-note';
-      empty.textContent = 'Пока никого нет в твоём регионе';
+      empty.textContent = t('noone');
       list.appendChild(empty);
       return;
     }
@@ -640,7 +821,7 @@ async function openWorld() {
     list.innerHTML = '';
     const err = document.createElement('div');
     err.className = 'screen-note';
-    err.textContent = 'Ошибка: ' + e.message;
+    err.textContent = t('error') + ': ' + e.message;
     list.appendChild(err);
   }
 }
@@ -648,7 +829,7 @@ async function openWorld() {
 // ---------- ВИЗИТ ----------
 async function visitIsland(userId, username) {
   hideScreens();
-  fail('Загрузка острова ' + username + '...');
+  fail(t('islandLoading') + ' ' + username + '...');
   try {
     const detail = await api(`/api/v1/islands/${userId}`);
     targetUser = { user_id: userId, username };
@@ -670,7 +851,7 @@ async function visitIsland(userId, username) {
 // ---------- РЕЙД ----------
 async function startRaid() {
   if (!targetUser) return;
-  fail('Начинаем рейд...');
+  fail(t('raidStart'));
   try {
     const res = await api(`/api/v1/raids/${targetUser.user_id}/start`, { method: 'POST' });
     raidId = res.raid_id;
@@ -686,7 +867,7 @@ async function startRaid() {
     setMode('raid');
     updateFlagButton();
     ok();
-    toast('Рейд начался! Тапни по кубу');
+    toast(t('raidStartOk'));
   } catch (e) {
     ok();
     toast(e.message, true);
@@ -700,14 +881,14 @@ function updateFlagButton() {
     btn.textContent = `🔒 ${safe}`;
     btn.classList.add('locked');
   } else {
-    btn.textContent = '⚔️ Флаг';
+    btn.innerHTML = '⚔️ <span data-i18n="flag">' + t('flag') + '</span>';
     btn.classList.remove('locked');
   }
 }
 
 function raidGone(e) {
   if (e.code === 'RAID_NOT_FOUND' || e.code === 'RAID_ALREADY_FINISHED') {
-    toast('Рейд завершён');
+    toast(t('raidFinished'));
     raidId = null;
     setTimeout(returnHome, 1200);
     return true;
@@ -744,7 +925,7 @@ async function attackCube(cube) {
 async function attackFlag() {
   if (!raidId || attacking) return;
   const safe = countSafeCubes();
-  if (safe > 0) { toast(`Флаг защищён: в зоне ещё ${safe} кубов`, true); return; }
+  if (safe > 0) { toast(t('flagProtected', { n: safe }), true); return; }
   attacking = true;
   try {
     const res = await api(`/api/v1/raids/${raidId}/attack-flag`, {
@@ -762,7 +943,7 @@ async function attackFlag() {
       $('loot-balance').textContent = res.loot.attacker_balance;
       showScreen('loot-screen');
     } else {
-      toast('−' + res.damage + ' Флагу');
+      toast('−' + res.damage + ' ' + t('dmgyou'));
     }
   } catch (e) {
     if (!raidGone(e)) toast(e.message, true);
@@ -774,7 +955,7 @@ async function attackFlag() {
 async function leaveRaid() {
   if (raidId) {
     try { await api(`/api/v1/raids/${raidId}/finish`, { method: 'POST' }); }
-    catch (e) { /* рейд мог истечь сам — не мешаем выйти */ }
+    catch (e) { /* рейд мог истечь сам */ }
   }
   await returnHome();
 }
@@ -783,7 +964,8 @@ async function leaveRaid() {
 const raycaster = new THREE.Raycaster();
 const pointer = new THREE.Vector2();
 const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
-const hit = new THREE.Vector3();
+const hitPoint = new THREE.Vector3();
+const normalMatrix = new THREE.Matrix3();
 
 let pointerStart = null;
 const TAP_MAX_MOVE = 8;
@@ -804,26 +986,51 @@ renderer.domElement.addEventListener('pointerup', async (ev) => {
   pointerStart = null;
 
   if (moved > TAP_MAX_MOVE || elapsed > TAP_MAX_TIME) return;
-  if (loading) return;   // блокируем тапы только на время загрузки, не на тостах
+  if (loading) return;
 
   pointer.x = (ev.clientX / innerWidth) * 2 - 1;
   pointer.y = -(ev.clientY / innerHeight) * 2 + 1;
   raycaster.setFromCamera(pointer, camera);
 
-  if (mode === 'own' && buildMode) return demolishMode ? handleDemolishTap() : handleOwnTap();
+  if (mode === 'own' && buildMode) return demolishMode ? handleDemolishTap() : handleBuildTap();
   if (mode === 'raid') return handleRaidTap();
 });
 
-async function handleOwnTap() {
-  if (!raycaster.ray.intersectPlane(plane, hit)) return;
-  const x = Math.round(hit.x), z = Math.round(hit.z);
+// Новая логика постановки: тап по кубу ставит НА него (по нормали грани),
+// тап по земле — на y = 0. Это даёт стекинг без слайдеров высоты.
+async function handleBuildTap() {
+  const cubeTargets = [...cubeMeshes.values()];
+  const cubeHits = raycaster.intersectObjects(cubeTargets, false);
+
+  let x, y, z;
+
+  if (cubeHits.length) {
+    const h = cubeHits[0];
+    const c = h.object.userData.cube;
+    normalMatrix.getNormalMatrix(h.object.matrixWorld);
+    const n = h.face.normal.clone().applyMatrix3(normalMatrix).normalize();
+
+    // Сдвигаемся от центра куба к его грани по нормали. Округление гасит
+    // накопленную ошибку float: иначе сосед оказывался бы на 0.999 от центра.
+    x = Math.round(c.x + n.x);
+    y = Math.round(c.y + n.y);
+    z = Math.round(c.z + n.z);
+  } else {
+    // Промах по кубам — считаем точку на земле, y = 0
+    if (!raycaster.ray.intersectPlane(plane, hitPoint)) return;
+    x = Math.round(hitPoint.x);
+    y = 0;
+    z = Math.round(hitPoint.z);
+  }
+
   if (Math.abs(x) > 32 || Math.abs(z) > 32) return;
-  if (x === 0 && z === 0) { toast('Клетка Флага зарезервирована'); return; }
+  if (y < 0 || y > 32) return;
+  if (x === 0 && y === 0 && z === 0) { toast(t('flagReserved')); return; }
 
   try {
     const res = await api('/api/v1/build/cube', {
       method: 'POST',
-      body: JSON.stringify({ x, y: 0, z, cube_type: selectedType }),
+      body: JSON.stringify({ x, y, z, cube_type: 'wood', color: selectedBlockColor }),
     });
     addCube(res.cube);
     $('ether').textContent = res.ether_balance;
@@ -846,7 +1053,7 @@ async function handleDemolishTap() {
     refreshCounters();
     $('ether').textContent = res.ether_balance;
     econ.ether_balance = res.ether_balance;
-    toast('+' + res.ether_refunded + ' Эфира возвращено');
+    toast('+' + res.ether_refunded + ' ' + t('refund'));
   } catch (e) {
     toast(e.message, true);
   }
@@ -863,15 +1070,6 @@ async function handleRaidTap() {
 }
 
 // ---------- КНОПКИ ----------
-document.querySelectorAll('#bottom-build button[data-type]').forEach(btn => {
-  btn.addEventListener('click', () => {
-    document.querySelectorAll('#bottom-build button[data-type]').forEach(b => b.classList.remove('on'));
-    btn.classList.add('on');
-    selectedType = btn.dataset.type;
-    setDemolish(false);
-  });
-});
-
 document.querySelectorAll('#bottom-raid .charge').forEach(btn => {
   btn.addEventListener('click', () => {
     document.querySelectorAll('#bottom-raid .charge').forEach(b => b.classList.remove('on'));
@@ -885,8 +1083,12 @@ $('reload').addEventListener('click', () => loadOwnIsland().catch(e => toast(e.m
 $('btn-build').addEventListener('click', () => setBuildMode(true));
 $('btn-build-done').addEventListener('click', () => { setDemolish(false); setBuildMode(false); });
 $('btn-demolish').addEventListener('click', () => setDemolish(!demolishMode));
+$('btn-block-color').addEventListener('click', () => {
+  $('block-palette').classList.contains('hidden') ? openBlockPalette() : closeBlockPalette();
+});
 $('btn-palette').addEventListener('click', togglePalette);
 $('btn-world').addEventListener('click', openWorld);
+$('btn-lang').addEventListener('click', () => setLang(lang === 'ru' ? 'en' : 'ru'));
 $('world-close').addEventListener('click', hideScreens);
 $('btn-back').addEventListener('click', returnHome);
 $('btn-raid').addEventListener('click', startRaid);
@@ -916,10 +1118,9 @@ animate();
 // ---------- СТАРТ ----------
 (async () => {
   try {
+    applyI18n();
     await auth();
-    fail('Загрузка...');
-    // Сначала /me: оттуда узнаём цвет флага, и только потом рисуем остров.
-    // Иначе первый кадр будет с дефолтным красным, а потом цвет «прыгнет».
+    fail(t('loading'));
     await loadMe();
     await loadOwnIsland();
     await loadEconomy();
@@ -928,7 +1129,7 @@ animate();
 
     if (!localStorage.getItem('adrift_onboarded')) showScreen('onboard-screen');
   } catch (e) {
-    fail('Ошибка: ' + e.message);
+    fail(t('error') + ': ' + e.message);
   }
 })();
 </script>
