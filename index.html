@@ -42,6 +42,7 @@
   button.demolish-on { background:linear-gradient(180deg,#dc2626,#7f1d1d); border-color:#ef4444; }
   button.primary { background:linear-gradient(180deg,#3b82f6,#1d4ed8); border-color:#60a5fa; font-weight:600; }
   button.icon { padding:11px 13px; }
+  button.rot-on { background:linear-gradient(180deg,#3b82f6,#2563eb); border-color:#60a5fa; }
 
   #toast {
     position:fixed; top:64px; left:50%; transform:translateX(-50%) translateY(-8px);
@@ -132,7 +133,6 @@
   <div class="pill">🧱 <b id="cubes">—</b></div>
   <div class="pill">🚩 <b id="flag">—</b></div>
   <div class="pill hidden" id="target-pill">👁 <b id="target-name">—</b></div>
-  <button class="pill icon" id="btn-lang" title="Language">🌐</button>
 </div>
 
 <div id="price-tag" class="hidden">10⚡</div>
@@ -140,6 +140,7 @@
 <div class="bar" id="bottom">
   <button id="btn-build" class="primary icon" title="Build">🔨</button>
   <button id="btn-size" class="hidden">📐 <span id="size-label">1×1</span></button>
+  <button id="btn-rotate" class="hidden icon" title="Rotate">↔️</button>
   <button id="btn-block-color" class="hidden icon">🟫</button>
   <button id="btn-palette" class="hidden icon">🎨</button>
   <button id="btn-demolish" class="hidden icon">🗑</button>
@@ -225,6 +226,7 @@ const API_URL = 'https://adrift-backend-ys3i.onrender.com';
 
 const WOOD_BASE_COST = 10;
 
+// Размеры. Вертикаль набирается стекингом — отдельные «столбы» не нужны.
 const BLOCK_SIZES = [
   { key: '1x1x1', sx: 1, sy: 1, sz: 1, label: '1×1' },
   { key: '2x1x1', sx: 2, sy: 1, sz: 1, label: '2×1' },
@@ -240,7 +242,7 @@ const I18N = {
     returnHome: 'Вернуться',
     onboardTitle: 'Добро пожаловать в ADRIFT',
     onboard1: '<b>1.</b> Ты уже в режиме стройки. Наведи камеру — увидишь полупрозрачный блок там, куда встанет куб.',
-    onboard2: '<b>2.</b> Зелёный — можно ставить, красный — нельзя. Тапни, чтобы поставить. Кнопка <b>📐</b> меняет размер, <b>🟫</b> — цвет блока.',
+    onboard2: '<b>2.</b> Зелёный — можно ставить, красный — нельзя. <b>📐</b> — размер, <b>↔️</b> — поворот, <b>🟫</b> — цвет.',
     onboard3: '<b>3.</b> <b>⚡</b> вверху — забери накопленный Эфир, он капает 10 в час. <b>🎨</b> — цвет твоего флага.',
     onboard4: '<b>4.</b> <b>🌍</b> — сходи к соседу в гости или в рейд: укради его Эфир.',
     onboardOk: 'Понятно, играем',
@@ -259,8 +261,6 @@ const I18N = {
     occupied: 'Здесь уже стоит блок',
     noEther: 'Не хватает Эфира',
     outOfBounds: 'За границей острова',
-    hint: 'Наведи камеру на клетку · тапни, чтобы поставить',
-    hintDemolish: 'Тапни по своему блоку, чтобы снести',
   },
   en: {
     flagColor: 'Flag color', blockColor: 'Block color', sizeTitle: 'Block size',
@@ -269,7 +269,7 @@ const I18N = {
     returnHome: 'Return',
     onboardTitle: 'Welcome to ADRIFT',
     onboard1: '<b>1.</b> You are already in build mode. Aim the camera — a translucent block shows where the cube will go.',
-    onboard2: '<b>2.</b> Green — can place, red — cannot. Tap to place. <b>📐</b> changes size, <b>🟫</b> — block color.',
+    onboard2: '<b>2.</b> Green — can place, red — cannot. <b>📐</b> — size, <b>↔️</b> — rotate, <b>🟫</b> — color.',
     onboard3: '<b>3.</b> <b>⚡</b> at the top — claim accrued Ether, 10 per hour. <b>🎨</b> — your flag color.',
     onboard4: '<b>4.</b> <b>🌍</b> — visit a neighbor or raid: steal their Ether.',
     onboardOk: 'Got it, let\'s play',
@@ -288,18 +288,13 @@ const I18N = {
     occupied: 'Already occupied',
     noEther: 'Not enough Ether',
     outOfBounds: 'Out of bounds',
-    hint: 'Aim the camera at a cell · tap to place',
-    hintDemolish: 'Tap your own block to remove it',
   },
 };
 
-let lang = detectLang();
-
-function detectLang() {
-  const saved = localStorage.getItem('adrift_lang');
-  if (saved === 'ru' || saved === 'en') return saved;
-  return (navigator.language || 'ru').toLowerCase().startsWith('ru') ? 'ru' : 'en';
-}
+// Язык берётся ТОЛЬКО из системы устройства. Кнопки переключения нет:
+// игрок и так видит интерфейс на своём языке, а лишняя кнопка в шапке
+// отнимала место и внимание.
+const lang = (navigator.language || 'ru').toLowerCase().startsWith('ru') ? 'ru' : 'en';
 
 function t(key, vars) {
   let s = (I18N[lang] && I18N[lang][key]) || I18N.ru[key] || key;
@@ -311,15 +306,6 @@ function applyI18n() {
   document.querySelectorAll('[data-i18n]').forEach(el => { el.textContent = t(el.dataset.i18n); });
   document.querySelectorAll('[data-i18n-html]').forEach(el => { el.innerHTML = t(el.dataset.i18nHtml); });
   document.documentElement.lang = lang;
-}
-
-function setLang(next) {
-  lang = next;
-  localStorage.setItem('adrift_lang', next);
-  applyI18n();
-  renderEconomy();
-  updateSizeLabel();
-  updatePanel();
 }
 
 const FLAG_COLORS_HEX = { red:0xef4444, orange:0xf97316, yellow:0xeab308, green:0x22c55e, teal:0x14b8a6, blue:0x3b82f6, purple:0xa855f7, pink:0xec4899, white:0xf1f5f9, black:0x334155 };
@@ -363,6 +349,9 @@ let token = null, myId = null;
 let mode = 'own';
 let buildMode = true;
 let demolishMode = false;
+// Поворот: меняет местами длинную сторону блока. Для квадратных в плане
+// блоков (1×1, 2×2, 3×3) смысла не имеет, поэтому кнопка для них скрыта.
+let rotated = false;
 let selectedBlockColor = 'wood';
 let selectedSize = BLOCK_SIZES[0];
 let selectedCharge = 2;
@@ -548,10 +537,26 @@ function setFlagVisual(hp, maxHp, color) {
   $('flag').textContent = Math.max(0, hp) + ' / ' + maxHp;
 }
 
+// ---------- ПОВОРОТ ----------
+// Поворот для коробки = обмен местами size_x и size_z. 180° даёт тот же
+// силуэт, что 0°, поэтому в UI не 4 состояния, а переключатель «длинная
+// сторона вдоль X / вдоль Z». Кнопка видна только для блоков 2×1: у 1×1,
+// 2×2 и 3×3 в плане квадрат, поворачивать нечего.
+function effFootprint() {
+  const s = selectedSize;
+  return rotated ? { sx: s.sz, sz: s.sx } : { sx: s.sx, sz: s.sz };
+}
+
+function canRotate() { return selectedSize.sx !== selectedSize.sz; }
+
+function updateRotateButton() {
+  const btn = $('btn-rotate');
+  btn.classList.toggle('hidden', !canRotate() || !(buildMode && mode === 'own'));
+  btn.textContent = rotated ? '↕️' : '↔️';
+  btn.classList.toggle('rot-on', rotated);
+}
+
 // ---------- ПРИЗРАК БЛОКА ----------
-// Полупрозрачный куб в прицеле. На тач-устройствах прицел — центр экрана
-// (его наводишь поворотом камеры), на мышке — позиция курсора. Тап всегда
-// подтверждает то, что показывает призрак: превью и результат совпадают.
 const ghostMat = new THREE.MeshBasicMaterial({
   color: 0x22c55e, transparent: true, opacity: 0.4, depthWrite: false,
 });
@@ -560,8 +565,10 @@ ghost.visible = false;
 scene.add(ghost);
 
 function updateGhostGeometry() {
+  const { sx, sz } = effFootprint();
+  const sy = selectedSize.sy;
   ghost.geometry.dispose();
-  ghost.geometry = new THREE.BoxGeometry(selectedSize.sx, selectedSize.sy, selectedSize.sz);
+  ghost.geometry = new THREE.BoxGeometry(sx, sy, sz);
 }
 
 const raycaster = new THREE.Raycaster();
@@ -580,9 +587,10 @@ window.addEventListener('pointermove', (ev) => {
 });
 
 function computePlacement(ndcX, ndcY) {
-  const sx = selectedSize.sx, sy = selectedSize.sy, sz = selectedSize.sz;
-  raycaster.setFromCamera({ x: ndcX, y: ndcY }, camera);
+  const { sx, sz } = effFootprint();
+  const sy = selectedSize.sy;
 
+  raycaster.setFromCamera({ x: ndcX, y: ndcY }, camera);
   const cubeHits = raycaster.intersectObjects([...cubeMeshes.values()], false);
   let x, y, z;
 
@@ -614,6 +622,7 @@ function computePlacement(ndcX, ndcY) {
     x = Math.round(hitPoint.x - sx/2); y = 0; z = Math.round(hitPoint.z - sz/2);
   }
 
+  // Цена зависит от объёма, а не от ориентации: поворот бесплатен.
   const price = WOOD_BASE_COST * sx * sy * sz;
 
   if (x < -32 || x + sx - 1 > 32 || z < -32 || z + sz - 1 > 32 || y < 0 || y + sy - 1 > 32) {
@@ -685,9 +694,8 @@ function updatePanel() {
   $('btn-palette').classList.toggle('hidden', !on);
   $('btn-demolish').classList.toggle('hidden', !on);
   $('target-pill').classList.toggle('hidden', mode === 'own');
+  updateRotateButton();
 
-  // Полоса кнопок зависит от режима: в гостях и в рейде нужны СВОИ кнопки,
-  // а не стройка. Без этого в рейд нельзя было ни ударить, ни выйти.
   $('bottom').classList.toggle('hidden', mode !== 'own');
   $('bottom-visit').classList.toggle('hidden', mode !== 'visit');
   $('bottom-raid').classList.toggle('hidden', mode !== 'raid');
@@ -735,10 +743,8 @@ async function loadMe() {
 
 async function returnHome() {
   targetUser = null; raidId = null; hideScreens();
-  setDemolish(false);
-  setMode('own');
-  buildMode = true;
-  updatePanel();
+  setDemolish(false); setMode('own');
+  buildMode = true; updatePanel();
   $('target-name').textContent = '—';
   fail(t('returning'));
   try { await loadOwnIsland(); await loadMe(); await loadEconomy(); } finally { ok(); }
@@ -815,7 +821,12 @@ function buildSizePalette() {
     const price = document.createElement('span'); price.className = 'price'; price.textContent = sizePrice(s) + '⚡';
     btn.append(glyph, price);
     btn.addEventListener('click', () => {
-      selectedSize = s; updateSizeLabel(); updateGhostGeometry(); closeAllPalettes();
+      selectedSize = s;
+      // Смена размера сбрасывает поворот: иначе блок «прилипал» бы
+      // в неожиданной ориентации после переключения.
+      rotated = false;
+      updateSizeLabel(); updateGhostGeometry(); updateRotateButton();
+      closeAllPalettes();
     });
     grid.appendChild(btn);
   }
@@ -991,8 +1002,6 @@ renderer.domElement.addEventListener('pointerup', async (ev) => {
   const ndcX = (ev.clientX / innerWidth) * 2 - 1;
   const ndcY = -(ev.clientY / innerHeight) * 2 + 1;
 
-  // Стройка: подтверждаем то, что показывает призрак (центр экрана на таче).
-  // Снос и рейд: целимся прямо туда, куда тапнули — так точнее выбирать блок.
   if (mode === 'own' && demolishMode) return handleDemolishTap(ndcX, ndcY);
   if (mode === 'own' && buildMode) return handleBuildTap();
   if (mode === 'raid') return handleRaidTap(ndcX, ndcY);
@@ -1058,10 +1067,15 @@ $('reload').addEventListener('click', () => loadOwnIsland().catch(e => toast(e.m
 $('btn-build').addEventListener('click', () => setBuildMode(!buildMode));
 $('btn-demolish').addEventListener('click', () => setDemolish(!demolishMode));
 $('btn-size').addEventListener('click', () => togglePalette('size-palette'));
+$('btn-rotate').addEventListener('click', () => {
+  if (!canRotate()) return;
+  rotated = !rotated;
+  updateGhostGeometry();
+  updateRotateButton();
+});
 $('btn-block-color').addEventListener('click', () => togglePalette('block-palette'));
 $('btn-palette').addEventListener('click', () => togglePalette('palette'));
 $('btn-world').addEventListener('click', openWorld);
-$('btn-lang').addEventListener('click', () => setLang(lang === 'ru' ? 'en' : 'ru'));
 $('world-close').addEventListener('click', hideScreens);
 $('btn-back').addEventListener('click', returnHome);
 $('btn-raid').addEventListener('click', startRaid);
@@ -1095,6 +1109,7 @@ animate();
     applyI18n();
     updateSizeLabel();
     updateGhostGeometry();
+    updateRotateButton();
     await auth();
     fail(t('loading'));
     await loadMe();
