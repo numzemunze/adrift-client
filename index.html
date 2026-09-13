@@ -170,7 +170,6 @@
   .size-btn .price { font-size:11px; opacity:.75; }
   .size-btn.selected { background:linear-gradient(180deg,#3b82f6,#2563eb); border-color:#60a5fa; }
 
-  /* ---------- Магазин ---------- */
   .shop-section { margin-bottom:18px; }
   .shop-label {
     font-size:12px; color:rgba(255,255,255,.55);
@@ -352,8 +351,6 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 const SUPABASE_URL = 'https://suaitzmqulcziefyryvf.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_pT2H1bpnu_fcBbevfvfOoQ_AhzZLQjH';
 const API_URL = 'https://adrift-backend-ys3i.onrender.com';
-
-const WOOD_BASE_COST = 10;
 
 const FLAG_CLEAR_RADIUS = 1;
 
@@ -704,7 +701,7 @@ const banner = new THREE.Mesh(new THREE.BoxGeometry(1.6,1,0.1), new THREE.MeshLa
 banner.position.set(0.8, 3.3, 0);
 flagGroup.add(pole, banner); scene.add(flagGroup);
 
-// ---------- ТЕКСТУРА ДЕРЕВА ----------
+// ---------- ТЕКСТУРЫ ----------
 function makeWoodTexture() {
   const size = 128;
   const canvas = document.createElement('canvas');
@@ -734,17 +731,75 @@ function makeWoodTexture() {
 }
 const WOOD_TEXTURE = makeWoodTexture();
 
+function makeIronTexture() {
+  const size = 128;
+  const canvas = document.createElement('canvas');
+  canvas.width = canvas.height = size;
+  const ctx = canvas.getContext('2d');
+  ctx.fillStyle = '#ffffff'; ctx.fillRect(0,0,size,size);
+  // Тонкие горизонтальные штрихи — «прокат»
+  for (let i = 0; i < 26; i++) {
+    const y = Math.random() * size;
+    ctx.strokeStyle = `rgba(0,0,0,${0.03 + Math.random()*0.05})`;
+    ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(size, y); ctx.stroke();
+  }
+  // Блики — металл
+  for (let i = 0; i < 10; i++) {
+    const x = Math.random()*size, y = Math.random()*size;
+    const g = ctx.createRadialGradient(x, y, 1, x, y, 18);
+    g.addColorStop(0, 'rgba(255,255,255,0.22)');
+    g.addColorStop(1, 'rgba(255,255,255,0)');
+    ctx.fillStyle = g;
+    ctx.fillRect(x-18, y-18, 36, 36);
+  }
+  // Пара тёмных вмятин
+  for (let i = 0; i < 4; i++) {
+    const x = Math.random()*size, y = Math.random()*size;
+    const g = ctx.createRadialGradient(x, y, 1, x, y, 10);
+    g.addColorStop(0, 'rgba(0,0,0,0.15)');
+    g.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = g;
+    ctx.fillRect(x-10, y-10, 20, 20);
+  }
+  const tex = new THREE.CanvasTexture(canvas);
+  tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+  tex.colorSpace = THREE.SRGBColorSpace;
+  return tex;
+}
+const IRON_TEXTURE = makeIronTexture();
+
+// ---------- ФОРМА / МАТЕРИАЛ: вывод из cube_type ----------
+// Сервер может не прислать shape/material (старые записи, неполные миграции).
+// Надёжный источник — cube_type: он всегда содержит и материал, и форму.
+function effectiveShape(c) {
+  const ct = (c && c.cube_type) || '';
+  if (ct.endsWith('_half'))     return 'half';
+  if (ct.endsWith('_triangle')) return 'triangle';
+  if (ct.endsWith('_circle'))   return 'circle';
+  return (c && c.shape) || 'block';
+}
+function effectiveMaterial(c) {
+  const ct = (c && c.cube_type) || '';
+  if (ct.startsWith('iron_')) return 'iron';
+  return (c && c.material) || 'wood';
+}
+
 // ---------- ГЕОМЕТРИЯ ПО ФОРМЕ ----------
+// Возвращает геометрию с ЦЕНТРОМ В НАЧАЛЕ КООРДИНАТ и высотой sy.
+// Для half центр смещён на четверть высоты — поэтому cubeCenter() ниже
+// опускает меш к нижней грани клетки.
 function shapeGeometry(shape, sx, sy, sz) {
   if (shape === 'triangle') {
-    const r = Math.min(sx, sz) * 0.62;
-    const g = new THREE.CylinderGeometry(r, r, sy, 3, 1);
+    const g = new THREE.CylinderGeometry(0.5, 0.5, 1, 3, 1);
     g.rotateY(Math.PI / 6);
+    g.scale(sx, sy, sz);
     return g;
   }
   if (shape === 'circle') {
-    const r = Math.min(sx, sz) * 0.5;
-    return new THREE.CylinderGeometry(r, r, sy, 16, 1);
+    const g = new THREE.CylinderGeometry(0.5, 0.5, 1, 20, 1);
+    g.scale(sx, sy, sz);
+    return g;
   }
   if (shape === 'half') {
     return new THREE.BoxGeometry(sx, sy * 0.5, sz);
@@ -752,24 +807,31 @@ function shapeGeometry(shape, sx, sy, sz) {
   return new THREE.BoxGeometry(sx, sy, sz);
 }
 
+// ---------- МАТЕРИАЛ БЛОКА ----------
+function effectiveColorHex(material, color) {
+  if (material === 'iron' && (!color || color === 'wood')) return 0x9aa4ad;
+  return BLOCK_COLORS_HEX[color] || BLOCK_COLORS_HEX.wood;
+}
+function makeCubeMaterial(material, color) {
+  const map = (material === 'iron') ? IRON_TEXTURE : WOOD_TEXTURE;
+  return new THREE.MeshLambertMaterial({
+    map,
+    color: new THREE.Color(effectiveColorHex(material, color)),
+  });
+}
+
 // ---------- КУБЫ ----------
 const cubeMeshes = new Map();
 let blockedGround = new Set();
 
-function makeCubeMaterial(color) {
-  return new THREE.MeshLambertMaterial({
-    map: WOOD_TEXTURE,
-    color: new THREE.Color(BLOCK_COLORS_HEX[color] || BLOCK_COLORS_HEX.wood),
-  });
-}
 // Центр блока. Полублок прижат к нижней грани клетки — центр смещён вниз.
 function cubeCenter(c) {
   const sx = c.size_x||1, sy = c.size_y||1, sz = c.size_z||1;
-  const isHalf = (c.shape === 'half');
+  const isHalf = ((c.shape || effectiveShape(c)) === 'half');
   return {
-    x: c.x + sx/2,
-    y: c.y + (isHalf ? sy * 0.25 : sy/2),
-    z: c.z + sz/2,
+    x: c.x + sx / 2,
+    y: c.y + (isHalf ? sy * 0.25 : sy / 2),
+    z: c.z + sz / 2,
   };
 }
 function rebuildBlockedGround() {
@@ -787,13 +849,14 @@ function rebuildBlockedGround() {
 function addCube(c) {
   if (cubeMeshes.has(c.id)) return;
   const color = c.color || 'wood';
-  const shape = c.shape || 'block';
+  const shape = effectiveShape(c);
+  const material = effectiveMaterial(c);
   const sx = c.size_x||1, sy = c.size_y||1, sz = c.size_z||1;
   const geo = shapeGeometry(shape, sx, sy, sz);
-  const mesh = new THREE.Mesh(geo, makeCubeMaterial(color));
-  const cc = cubeCenter({ ...c, shape, size_x:sx, size_y:sy, size_z:sz });
+  const mesh = new THREE.Mesh(geo, makeCubeMaterial(material, color));
+  const cc = cubeCenter({ ...c, shape, material, size_x:sx, size_y:sy, size_z:sz });
   mesh.position.set(cc.x, cc.y, cc.z);
-  mesh.userData.cube = { ...c, color, shape, size_x:sx, size_y:sy, size_z:sz };
+  mesh.userData.cube = { ...c, color, shape, material, size_x:sx, size_y:sy, size_z:sz };
   scene.add(mesh); cubeMeshes.set(c.id, mesh);
   paintCube(mesh);
   rebuildBlockedGround();
@@ -802,7 +865,7 @@ function addCube(c) {
 function paintCube(mesh) {
   const c = mesh.userData.cube;
   const ratio = c.max_hp > 0 ? Math.max(0, Math.min(1, c.hp/c.max_hp)) : 0;
-  const base = new THREE.Color(BLOCK_COLORS_HEX[c.color] || BLOCK_COLORS_HEX.wood);
+  const base = new THREE.Color(effectiveColorHex(c.material, c.color));
   const hurt = new THREE.Color(0x7f1d1d);
   mesh.material.color.copy(base).lerp(hurt, 1 - ratio);
 }
@@ -1569,8 +1632,13 @@ function updateGhost() {
   const p = computePlacement(aimPoint.x, aimPoint.y);
   if (!p) { ghost.visible = false; priceEl.classList.add('hidden'); return; }
 
-  const cy = (selectedShape === 'half') ? p.y + p.sy * 0.25 : p.y + p.sy / 2;
-  ghost.position.set(p.x + p.sx / 2, cy, p.z + p.sz / 2);
+  // Центр совпадает с центром реального блока: half-призрак опускается вниз.
+  const cc = cubeCenter({
+    x: p.x, y: p.y, z: p.z,
+    shape: selectedShape, material: selectedMaterial,
+    size_x: p.sx, size_y: p.sy, size_z: p.sz,
+  });
+  ghost.position.set(cc.x, cc.y, cc.z);
   ghostMat.color.set(p.valid ? 0x22c55e : 0xef4444);
   ghost.visible = true;
 
@@ -1856,9 +1924,7 @@ async function loadCatalog() {
     for (const c of (data.cubes || [])) {
       catalog[c.type] = { cost: c.cost, max_hp: c.max_hp };
     }
-  } catch (e) {
-    // Тихо падаем на FALLBACK_PRICES: игра не должна блокироваться из-за каталога
-  }
+  } catch (e) {}
 }
 
 function svgIsometric(shape, palette) {
@@ -2125,12 +2191,13 @@ renderer.domElement.addEventListener('pointerup', async (ev) => {
   }
 
   if (mode === 'own' && demolishMode) return handleDemolishTap(ndcX, ndcY);
-  if (mode === 'own' && buildMode) return handleBuildTap();
+  if (mode === 'own' && buildMode) return handleBuildTap(ndcX, ndcY);
   if (mode === 'raid') return handleRaidTap(ndcX, ndcY);
 });
 
-async function handleBuildTap() {
-  const p = computePlacement(aimPoint.x, aimPoint.y);
+async function handleBuildTap(ndcX, ndcY) {
+  // На таче используем координаты тапа, а не aimPoint (который на таче стоит в центре).
+  const p = computePlacement(ndcX, ndcY);
   if (!p) return;
   if (!p.valid) { toast(p.reason, 'error'); return; }
   try {
@@ -2269,4 +2336,4 @@ animate();
 })();
 </script>
 </body>
-</html>
+ </html>
