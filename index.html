@@ -60,6 +60,19 @@
     transition: background .15s ease;
   }
 
+  /* Кнопка магазина с мини-превью текущего выбора */
+  #btn-shop { position:relative; padding:10px 14px; }
+  #btn-shop .shop-ico { font-size:16px; line-height:1; display:inline-block; vertical-align:middle; }
+  #shop-mini {
+    position:absolute; right:-2px; bottom:-2px;
+    width:16px; height:16px; border-radius:4px;
+    border:1.5px solid rgba(255,255,255,.7);
+    box-shadow:0 1px 4px rgba(0,0,0,.5);
+    background:#c9a06a;
+    transition: background .15s ease;
+  }
+  #shop-mini svg { display:block; width:100%; height:100%; }
+
   #toast {
     position:fixed; top:64px; left:50%; transform:translateX(-50%) translateY(-8px);
     background:rgba(30,41,59,.96); backdrop-filter:blur(10px);
@@ -234,7 +247,7 @@
   <button id="btn-block-color" class="hidden icon" title="Block color"><span class="swatch" id="swatch-block"></span></button>
   <button id="btn-palette" class="hidden icon" title="Flag color">🎨</button>
   <button id="btn-demolish" class="hidden icon" title="Demolish">🗑</button>
-  <button id="btn-shop" class="hidden icon" title="Shop">🛒</button>
+  <button id="btn-shop" class="hidden" title="Shop"><span class="shop-ico">🛒</span><span id="shop-mini"></span></button>
   <button id="btn-world" class="icon" title="World">🌍</button>
   <button id="reload" class="icon" title="Reload">↻</button>
 </div>
@@ -375,7 +388,7 @@ const SHOP_MATERIALS = [
 
 const MATERIAL_PALETTE = {
   wood: { light: '#e0b183', mid: '#c08e5e', dark: '#a87d54' },
-  iron: { light: '#c3ccd4', mid: '#9aa4ad', dark: '#77818a' },
+  iron: { light: '#c9d2da', mid: '#8e99a3', dark: '#5c666e' },
 };
 
 const FALLBACK_PRICES = {
@@ -731,37 +744,81 @@ function makeWoodTexture() {
 }
 const WOOD_TEXTURE = makeWoodTexture();
 
+// Железо: заклёпки по углам и серединам сторон, диагональный прокат,
+// вертикальный градиент-отблеск. Белая база — цвет задаёт материал.
 function makeIronTexture() {
   const size = 128;
   const canvas = document.createElement('canvas');
   canvas.width = canvas.height = size;
   const ctx = canvas.getContext('2d');
-  ctx.fillStyle = '#ffffff'; ctx.fillRect(0,0,size,size);
-  // Тонкие горизонтальные штрихи — «прокат»
-  for (let i = 0; i < 26; i++) {
-    const y = Math.random() * size;
-    ctx.strokeStyle = `rgba(0,0,0,${0.03 + Math.random()*0.05})`;
+
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, 0, size, size);
+
+  // Вертикальный градиент — «отблеск металла».
+  const grad = ctx.createLinearGradient(0, 0, 0, size);
+  grad.addColorStop(0.0, 'rgba(255,255,255,0.30)');
+  grad.addColorStop(0.5, 'rgba(0,0,0,0.03)');
+  grad.addColorStop(1.0, 'rgba(0,0,0,0.20)');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, size, size);
+
+  // Диагональный «прокат» — тонкие линии под 45°.
+  ctx.strokeStyle = 'rgba(0,0,0,0.055)';
+  ctx.lineWidth = 1;
+  for (let i = -size; i < size * 2; i += 13) {
+    ctx.beginPath();
+    ctx.moveTo(i, 0);
+    ctx.lineTo(i + size, size);
+    ctx.stroke();
+  }
+
+  // Заклёпки: 4 по углам + 4 по серединам сторон.
+  const rivet = (x, y, r) => {
+    // Тень снизу-справа
+    ctx.fillStyle = 'rgba(0,0,0,0.4)';
+    ctx.beginPath();
+    ctx.arc(x + 0.7, y + 0.7, r, 0, Math.PI * 2);
+    ctx.fill();
+    // Тело с бликом сверху-слева
+    const g = ctx.createRadialGradient(x - r * 0.35, y - r * 0.35, 0.5, x, y, r);
+    g.addColorStop(0, 'rgba(255,255,255,0.95)');
+    g.addColorStop(0.6, 'rgba(200,200,200,0.85)');
+    g.addColorStop(1, 'rgba(150,150,150,0.85)');
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    ctx.arc(x, y, r, 0, Math.PI * 2);
+    ctx.fill();
+    // Тёмная обводка
+    ctx.strokeStyle = 'rgba(0,0,0,0.28)';
     ctx.lineWidth = 1;
-    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(size, y); ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(x, y, r, 0, Math.PI * 2);
+    ctx.stroke();
+  };
+  const R = 6, R2 = 4.5, pad = 13;
+  rivet(pad, pad, R);
+  rivet(size - pad, pad, R);
+  rivet(pad, size - pad, R);
+  rivet(size - pad, size - pad, R);
+  rivet(size / 2, pad, R2);
+  rivet(size / 2, size - pad, R2);
+  rivet(pad, size / 2, R2);
+  rivet(size - pad, size / 2, R2);
+
+  // Царапины — короткие светлые штрихи.
+  ctx.strokeStyle = 'rgba(255,255,255,0.35)';
+  ctx.lineWidth = 0.8;
+  for (let i = 0; i < 6; i++) {
+    const x = 24 + Math.random() * (size - 48);
+    const y = 24 + Math.random() * (size - 48);
+    const len = 5 + Math.random() * 10;
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+    ctx.lineTo(x + len, y + (Math.random() - 0.5) * 3);
+    ctx.stroke();
   }
-  // Блики — металл
-  for (let i = 0; i < 10; i++) {
-    const x = Math.random()*size, y = Math.random()*size;
-    const g = ctx.createRadialGradient(x, y, 1, x, y, 18);
-    g.addColorStop(0, 'rgba(255,255,255,0.22)');
-    g.addColorStop(1, 'rgba(255,255,255,0)');
-    ctx.fillStyle = g;
-    ctx.fillRect(x-18, y-18, 36, 36);
-  }
-  // Пара тёмных вмятин
-  for (let i = 0; i < 4; i++) {
-    const x = Math.random()*size, y = Math.random()*size;
-    const g = ctx.createRadialGradient(x, y, 1, x, y, 10);
-    g.addColorStop(0, 'rgba(0,0,0,0.15)');
-    g.addColorStop(1, 'rgba(0,0,0,0)');
-    ctx.fillStyle = g;
-    ctx.fillRect(x-10, y-10, 20, 20);
-  }
+
   const tex = new THREE.CanvasTexture(canvas);
   tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
   tex.colorSpace = THREE.SRGBColorSpace;
@@ -770,8 +827,6 @@ function makeIronTexture() {
 const IRON_TEXTURE = makeIronTexture();
 
 // ---------- ФОРМА / МАТЕРИАЛ: вывод из cube_type ----------
-// Сервер может не прислать shape/material (старые записи, неполные миграции).
-// Надёжный источник — cube_type: он всегда содержит и материал, и форму.
 function effectiveShape(c) {
   const ct = (c && c.cube_type) || '';
   if (ct.endsWith('_half'))     return 'half';
@@ -786,9 +841,6 @@ function effectiveMaterial(c) {
 }
 
 // ---------- ГЕОМЕТРИЯ ПО ФОРМЕ ----------
-// Возвращает геометрию с ЦЕНТРОМ В НАЧАЛЕ КООРДИНАТ и высотой sy.
-// Для half центр смещён на четверть высоты — поэтому cubeCenter() ниже
-// опускает меш к нижней грани клетки.
 function shapeGeometry(shape, sx, sy, sz) {
   if (shape === 'triangle') {
     const g = new THREE.CylinderGeometry(0.5, 0.5, 1, 3, 1);
@@ -809,6 +861,8 @@ function shapeGeometry(shape, sx, sy, sz) {
 
 // ---------- МАТЕРИАЛ БЛОКА ----------
 function effectiveColorHex(material, color) {
+  // Для железа дефолтный «древесный» цвет заменяем на металлический серый,
+  // чтобы блок читался как железный. Если игрок выбрал цвет явно — уважаем.
   if (material === 'iron' && (!color || color === 'wood')) return 0x9aa4ad;
   return BLOCK_COLORS_HEX[color] || BLOCK_COLORS_HEX.wood;
 }
@@ -824,7 +878,6 @@ function makeCubeMaterial(material, color) {
 const cubeMeshes = new Map();
 let blockedGround = new Set();
 
-// Центр блока. Полублок прижат к нижней грани клетки — центр смещён вниз.
 function cubeCenter(c) {
   const sx = c.size_x||1, sy = c.size_y||1, sz = c.size_z||1;
   const isHalf = ((c.shape || effectiveShape(c)) === 'half');
@@ -1540,13 +1593,23 @@ const plane = new THREE.Plane(new THREE.Vector3(0,1,0), 0);
 const hitPoint = new THREE.Vector3();
 const normalMatrix = new THREE.Matrix3();
 const projVec = new THREE.Vector3();
-const isTouch = window.matchMedia('(pointer: coarse)').matches;
+
+// Единая точка прицела. ОБНОВЛЯЕТСЯ и для тача, и для мыши — на pointerdown
+// и pointermove. Ghost и постановка используют ЭТУ ЖЕ точку, поэтому
+// расхождения «где призрак / где поставилось» быть не может.
 const aimPoint = { x: 0, y: 0 };
+function updateAimFromClient(clientX, clientY) {
+  aimPoint.x = (clientX / innerWidth) * 2 - 1;
+  aimPoint.y = -(clientY / innerHeight) * 2 + 1;
+}
 window.addEventListener('pointermove', (ev) => {
-  if (isTouch) return;
-  aimPoint.x = (ev.clientX / innerWidth) * 2 - 1;
-  aimPoint.y = -(ev.clientY / innerHeight) * 2 + 1;
+  // Для всех типов указателя — на телефоне это тоже приходит во время drag'а.
+  updateAimFromClient(ev.clientX, ev.clientY);
 });
+window.addEventListener('pointerdown', (ev) => {
+  // На таче тап — основное событие, pointermove может не успеть. Ставим сразу.
+  updateAimFromClient(ev.clientX, ev.clientY);
+}, true);
 
 function computePlacement(ndcX, ndcY) {
   const { sx, sy, sz } = effFootprint();
@@ -1632,7 +1695,6 @@ function updateGhost() {
   const p = computePlacement(aimPoint.x, aimPoint.y);
   if (!p) { ghost.visible = false; priceEl.classList.add('hidden'); return; }
 
-  // Центр совпадает с центром реального блока: half-призрак опускается вниз.
   const cc = cubeCenter({
     x: p.x, y: p.y, z: p.z,
     shape: selectedShape, material: selectedMaterial,
@@ -1734,6 +1796,7 @@ function updatePanel() {
   $('reload').classList.toggle('hidden', on);
   $('target-pill').classList.toggle('hidden', mode === 'own');
   updateRotateButton();
+  updateShopMini();
 
   applyTab('bottom', mode === 'own');
   applyTab('bottom-visit', mode === 'visit');
@@ -1927,6 +1990,15 @@ async function loadCatalog() {
   } catch (e) {}
 }
 
+// Мини-превью текущего выбора на кнопке 🛒 — материал + форма одним взглядом.
+function updateShopMini() {
+  const el = $('shop-mini');
+  if (!el) return;
+  const pal = MATERIAL_PALETTE[selectedMaterial];
+  el.style.background = pal ? pal.mid : '#c9a06a';
+  el.innerHTML = svgIsometric(selectedShape, pal || MATERIAL_PALETTE.wood);
+}
+
 function svgIsometric(shape, palette) {
   const { light, mid, dark } = palette;
   if (shape === 'half') {
@@ -2000,6 +2072,7 @@ function buildShop() {
   }
 
   renderShopSummary();
+  updateShopMini();
 }
 
 function renderShopSummary() {
@@ -2167,6 +2240,9 @@ const TAP_MAX_MOVE = 8, TAP_MAX_TIME = 400;
 renderer.domElement.addEventListener('pointerdown', (ev) => {
   if (ev.button !== 0) return;
   pointerStart = { x:ev.clientX, y:ev.clientY, t:performance.now(), id:ev.pointerId };
+  // Сразу двигаем призрак под палец — на телефоне pointermove может не успеть.
+  updateAimFromClient(ev.clientX, ev.clientY);
+  updateGhost();
 });
 renderer.domElement.addEventListener('pointercancel', () => { pointerStart = null; });
 renderer.domElement.addEventListener('pointerup', async (ev) => {
@@ -2191,13 +2267,14 @@ renderer.domElement.addEventListener('pointerup', async (ev) => {
   }
 
   if (mode === 'own' && demolishMode) return handleDemolishTap(ndcX, ndcY);
-  if (mode === 'own' && buildMode) return handleBuildTap(ndcX, ndcY);
+  if (mode === 'own' && buildMode) return handleBuildTap();
   if (mode === 'raid') return handleRaidTap(ndcX, ndcY);
 });
 
-async function handleBuildTap(ndcX, ndcY) {
-  // На таче используем координаты тапа, а не aimPoint (который на таче стоит в центре).
-  const p = computePlacement(ndcX, ndcY);
+// ВАЖНО: координаты берём из aimPoint — той же точки, что использует ghost.
+// Куда смотрит призрак — туда и ставится блок. Никаких расхождений.
+async function handleBuildTap() {
+  const p = computePlacement(aimPoint.x, aimPoint.y);
   if (!p) return;
   if (!p.valid) { toast(p.reason, 'error'); return; }
   try {
