@@ -609,7 +609,6 @@ let mode = 'own';
 let buildMode = true;
 let demolishMode = false;
 // rotationStep: 0..3, вращение вокруг Y на 90° за шаг.
-// 0 = как выбрано, 1 = 90°, 2 = 180°, 3 = 270°.
 let rotationStep = 0;
 let vertical = false;
 let selectedBlockColor = 'wood';
@@ -836,13 +835,37 @@ function effectiveMaterial(c) {
 // ---------- ГЕОМЕТРИЯ ПО ФОРМЕ ----------
 // ВАЖНО: localDims() ниже возвращает "до-поворотные" размеры. Меш вращается
 // через rotation.y, и его мировой AABB становится (sx_world, sy, sz_world).
-// Для box/circle/half вращение не влияет на форму (квадрат остаётся квадратом),
-// а для клина (triangle) — это единственный способ показать 4 стороны.
 function shapeGeometry(shape, sx, sy, sz) {
   if (shape === 'triangle') {
-    const g = new THREE.CylinderGeometry(0.5, 0.5, 1, 3, 1);
-    g.rotateY(Math.PI / 6);
-    g.scale(sx, sy, sz);
+    // Прямоугольный треугольник, вписанный в AABB [0..sx] × [0..sy] × [0..sz].
+    // Раньше здесь был CylinderGeometry(0.5, 0.5, 1, 3): у него AABB был
+    // 0.866×0.75, центрирован не в клетке — после scale(sx, sy, sz) клин
+    // торчал из клетки и был смещён вбок.
+    const g = new THREE.BufferGeometry();
+    const positions = new Float32Array([
+      // низ (y = 0)
+      0,  0,  0,
+      sx, 0,  0,
+      0,  0,  sz,
+      // верх (y = sy)
+      0,  sy, 0,
+      sx, sy, 0,
+      0,  sy, sz,
+    ]);
+    g.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+    g.setIndex([
+      // низ (нормаль -Y)
+      0, 2, 1,
+      // верх (нормаль +Y)
+      3, 4, 5,
+      // бок AB, плоскость z=0, нормаль -Z
+      0, 1, 4, 0, 4, 3,
+      // бок BC, гипотенуза, нормаль в сторону +X +Z
+      1, 2, 5, 1, 5, 4,
+      // бок CA, плоскость x=0, нормаль -X
+      2, 0, 3, 2, 3, 5,
+    ]);
+    g.computeVertexNormals();
     return g;
   }
   if (shape === 'circle') {
@@ -857,8 +880,7 @@ function shapeGeometry(shape, sx, sy, sz) {
 }
 
 // "Локальные" размеры для построения геометрии. Для нечётных шагов поворота
-// они совпадают с мировым AABB, но в порядке ДО вращения. Поэтому клин при
-// повороте на 90° не «сжимается», а честно поворачивается вместе с формой.
+// они совпадают с мировым AABB, но в порядке ДО вращения.
 function localDims(size_x, size_y, size_z, rotation) {
   if (rotation % 2 === 1) return { sx: size_z, sy: size_y, sz: size_x };
   return { sx: size_x, sy: size_y, sz: size_z };
@@ -906,6 +928,8 @@ function rebuildBlockedGround() {
 function buildCubeMesh(shape, sxWorld, syWorld, szWorld, material, color, rotation) {
   const { sx, sy, sz } = localDims(sxWorld, syWorld, szWorld, rotation);
   const geo = shapeGeometry(shape, sx, sy, sz);
+  // Клин — асимметричная фигура. Вращение вокруг Y разворачивает его в 4 стороны.
+  // Кубы/плиты/цилиндры симметричны, их вращать не нужно.
   const mesh = new THREE.Mesh(geo, makeCubeMaterial(material, color));
   if (shape === 'triangle' && rotation) {
     mesh.rotation.y = rotation * Math.PI / 2;
@@ -1589,14 +1613,15 @@ function canVertical() {
 }
 function updateGhostGeometry() {
   const { sx: sxW, sy: syW, sz: szW } = effFootprint();
-  // Для призрака используем те же размеры, что реальный блок, и то же вращение.
   const effectiveRotation = vertical ? 0 : rotationStep;
   const { sx, sy, sz } = localDims(sxW, syW, szW, effectiveRotation);
   ghost.geometry.dispose();
   ghost.geometry = shapeGeometry(selectedShape, sx, sy, sz);
-  ghost.rotation.y = (selectedShape === 'triangle' && effectiveRotation)
-    ? effectiveRotation * Math.PI / 2
-    : 0;
+  if (selectedShape === 'triangle' && effectiveRotation) {
+    ghost.rotation.y = effectiveRotation * Math.PI / 2;
+  } else {
+    ghost.rotation.y = 0;
+  }
 }
 function updateRotateButton() {
   const btnH = $('btn-rotate');
@@ -1715,7 +1740,6 @@ function updateGhost() {
   const p = computePlacement(aimPoint.x, aimPoint.y);
   if (!p) { ghost.visible = false; priceEl.classList.add('hidden'); return; }
 
-  // Центр = центр мирового AABB. При half-призраке опускаем на четверть вниз.
   const isHalf = (selectedShape === 'half');
   const cx = p.x + p.sx / 2;
   const cy = p.y + (isHalf ? p.sy * 0.25 : p.sy / 2);
@@ -1944,11 +1968,41 @@ function buildBlockPalette() {
     dot.className = 'color-dot' + (key === selectedBlockColor ? ' selected' : '');
     dot.style.background = hex;
     dot.addEventListener('click', () => {
-      selectedBlockColor = key; updateBlockSwatch(); closeAllPalettes();
+      selectedBlockColor = key;
+      updateBlockSwatch();
+      saveBuildPrefs();
+      closeAllPalettes();
     });
     grid.appendChild(dot);
   }
 }
+
+// ---------- СОХРАНЕНИЕ ВЫБОРА СТРОЙКИ (localStorage) ----------
+function saveBuildPrefs() {
+  try {
+    localStorage.setItem('adrift_build_prefs', JSON.stringify({
+      shape: selectedShape,
+      material: selectedMaterial,
+      color: selectedBlockColor,
+      sizeKey: selectedSize.key,
+    }));
+  } catch (e) {}
+}
+function loadBuildPrefs() {
+  try {
+    const raw = localStorage.getItem('adrift_build_prefs');
+    if (!raw) return;
+    const p = JSON.parse(raw);
+    if (p.shape && SHOP_SHAPES.some(s => s.key === p.shape)) selectedShape = p.shape;
+    if (p.material && SHOP_MATERIALS.some(m => m.key === p.material)) selectedMaterial = p.material;
+    if (p.color && BLOCK_COLORS_CSS[p.color]) selectedBlockColor = p.color;
+    if (p.sizeKey) {
+      const sz = BLOCK_SIZES.find(x => x.key === p.sizeKey);
+      if (sz) selectedSize = sz;
+    }
+  } catch (e) {}
+}
+
 function sizePrice(s) {
   return cubeTypeInfo(selectedMaterial, selectedShape).cost * s.sx * s.sy * s.sz;
 }
@@ -1965,6 +2019,7 @@ function buildSizePalette() {
       rotationStep = 0;
       vertical = false;
       updateSizeLabel(); updateGhostGeometry(); updateRotateButton();
+      saveBuildPrefs();
       closeAllPalettes();
     });
     grid.appendChild(btn);
@@ -2066,6 +2121,7 @@ function buildShop() {
     `;
     btn.addEventListener('click', () => {
       selectedShape = s.key;
+      saveBuildPrefs();
       buildShop();
       updateGhostGeometry();
     });
@@ -2084,6 +2140,7 @@ function buildShop() {
     `;
     btn.addEventListener('click', () => {
       selectedMaterial = m.key;
+      saveBuildPrefs();
       buildShop();
       updateGhostGeometry();
     });
@@ -2345,7 +2402,6 @@ $('btn-size').addEventListener('click', () => togglePalette('size-palette'));
 $('btn-rotate').addEventListener('click', () => {
   if (!canRotate()) return;
   rotationStep = (rotationStep + 1) % 4;
-  // Поворот и «поставить на бок» конфликтуют — вертикальный сбрасываем.
   vertical = false;
   updateGhostGeometry();
   updateRotateButton();
@@ -2412,6 +2468,7 @@ animate();
 (async () => {
   try {
     applyI18n();
+    loadBuildPrefs();
     updateSizeLabel();
     updateGhostGeometry();
     updateRotateButton();
@@ -2432,4 +2489,4 @@ animate();
 })();
 </script>
 </body>
-</html>
+ </html>
