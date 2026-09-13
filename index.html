@@ -18,10 +18,7 @@
   }
 
   .bar.reveal { animation: barSlide .28s cubic-bezier(.2,.7,.3,1); }
-  @keyframes barSlide {
-    from { opacity:0; transform: translateY(18px); }
-    to   { opacity:1; transform: translateY(0); }
-  }
+  @keyframes barSlide { from { opacity:0; transform: translateY(18px); } to { opacity:1; transform: translateY(0); } }
 
   .pill { background:rgba(255,255,255,.08); backdrop-filter:blur(8px); padding:6px 12px; border-radius:20px; font-size:14px; font-variant-numeric:tabular-nums; color:#fff; border:1px solid rgba(255,255,255,.1); font-family:inherit; }
   .pill b { color:#7dd3fc; }
@@ -109,16 +106,52 @@
   .loot-row b { color:#7dd3fc; font-size:18px; }
   .loot-card button { width:100%; margin-top:16px; }
 
+  /* ---------- Магазин ---------- */
+  .shop-section { margin-bottom:18px; }
+  .shop-label {
+    font-size:12px; color:rgba(255,255,255,.55);
+    text-transform:uppercase; letter-spacing:.9px; margin-bottom:10px;
+  }
+  .shop-grid { display:grid; grid-template-columns:repeat(2, 1fr); gap:10px; }
+  .shop-card {
+    display:flex; flex-direction:column; align-items:center; gap:6px;
+    background:rgba(255,255,255,.05);
+    border:2px solid rgba(255,255,255,.12);
+    border-radius:14px;
+    padding:12px 10px 10px;
+    cursor:pointer; font-family:inherit; color:#fff;
+    transition: transform .12s ease, border-color .15s, background .15s;
+  }
+  .shop-card:active { transform: scale(.96); }
+  .shop-card.selected { border-color:#3b82f6; background:rgba(59,130,246,.15); }
+  .card-preview {
+    width:72px; height:72px;
+    display:flex; align-items:center; justify-content:center;
+    animation: cardFloat 3.6s ease-in-out infinite;
+  }
+  .card-preview svg { width:100%; height:100%; filter: drop-shadow(0 4px 8px rgba(0,0,0,.45)); }
+  @keyframes cardFloat {
+    0%,100% { transform: translateY(0) rotate(-2deg); }
+    50%     { transform: translateY(-5px) rotate(2deg); }
+  }
+  .card-name { font-size:14px; font-weight:600; }
+  .card-info { font-size:11px; color:rgba(255,255,255,.6); text-align:center; line-height:1.3; min-height:28px; }
+  .card-price { font-size:12px; color:#fde68a; font-weight:600; }
+
+  .shop-summary {
+    text-align:center; font-size:15px; padding:12px;
+    background:rgba(255,255,255,.05); border-radius:12px;
+    margin-bottom:12px; color:rgba(255,255,255,.85);
+  }
+  .shop-summary b { color:#fde68a; }
+
   #onboard-screen { align-items:center; justify-content:center; }
   .onboard-card {
     background:#111a33; border:1px solid rgba(255,255,255,.15);
     border-radius:18px; padding:24px 22px; max-width:360px; width:100%;
     transition: transform .28s cubic-bezier(.3,.8,.4,1), opacity .28s ease;
   }
-  #onboard-screen.closing .onboard-card {
-    transform: scale(.94) translateY(6px);
-    opacity: 0;
-  }
+  #onboard-screen.closing .onboard-card { transform: scale(.94) translateY(6px); opacity: 0; }
   #onboard-screen.closing { background: transparent; }
   .onboard-emoji { font-size:44px; text-align:center; margin-bottom:6px; }
   .onboard-title { font-size:19px; font-weight:700; text-align:center; margin-bottom:18px; }
@@ -128,17 +161,12 @@
 
   #tip-screen {
     background:linear-gradient(0deg, rgba(11,16,32,.95) 0%, rgba(11,16,32,.55) 45%, rgba(11,16,32,0) 100%);
-    justify-content:flex-end;
-    align-items:center;
-    padding-bottom:36px;
+    justify-content:flex-end; align-items:center; padding-bottom:36px;
   }
   .tip-card {
-    background:rgba(17,26,51,.97);
-    border:1px solid rgba(255,255,255,.18);
-    border-radius:18px;
-    padding:18px 20px 16px;
-    width:100%; max-width:440px;
-    box-shadow:0 14px 44px rgba(0,0,0,.6);
+    background:rgba(17,26,51,.97); border:1px solid rgba(255,255,255,.18);
+    border-radius:18px; padding:18px 20px 16px;
+    width:100%; max-width:440px; box-shadow:0 14px 44px rgba(0,0,0,.6);
   }
   .tip-head { display:flex; align-items:center; gap:10px; margin-bottom:10px; }
   .tip-dot { width:10px; height:10px; border-radius:50%; background:#7dd3fc; box-shadow:0 0 10px #7dd3fc; animation: tipPulse 1.6s ease-in-out infinite; }
@@ -189,15 +217,20 @@
 <div id="price-tag" class="hidden">10⚡</div>
 
 <div class="bar" id="bottom">
-  <button id="btn-build" class="primary icon" title="Build">🔨</button>
-  <button id="btn-size" class="hidden">📐 <span id="size-label">1×1</span></button>
-  <button id="btn-rotate" class="hidden icon" title="Rotate H">↔️</button>
-  <button id="btn-vertical" class="hidden icon" title="Rotate V">↕️</button>
-  <button id="btn-block-color" class="hidden icon" title="Block color"><span class="swatch" id="swatch-block"></span></button>
-  <button id="btn-palette" class="hidden icon" title="Flag color">🎨</button>
-  <button id="btn-demolish" class="hidden icon" title="Demolish">🗑</button>
+  <button id="btn-build" class="primary big"><span class="ico">🔨</span><span data-i18n="build">Строить</span></button>
+  <button id="btn-palette" class="icon" title="Flag color"><span class="swatch" id="swatch-flag"></span></button>
   <button id="btn-world" class="icon" title="World">🌍</button>
   <button id="reload" class="icon" title="Reload">↻</button>
+</div>
+
+<div class="bar hidden" id="bottom-build">
+  <button id="btn-size">📐 <span id="size-label">1×1</span></button>
+  <button id="btn-rotate" class="hidden icon" title="Rotate H">↔️</button>
+  <button id="btn-vertical" class="hidden icon" title="Rotate V">↕️</button>
+  <button id="btn-block-color" class="icon" title="Block color"><span class="swatch" id="swatch-block"></span></button>
+  <button id="btn-shop" class="icon" title="Shop">🛒</button>
+  <button id="btn-demolish" class="icon" title="Demolish">🗑</button>
+  <button id="btn-world-build" class="icon" title="World">🌍</button>
 </div>
 
 <div class="bar hidden" id="bottom-visit">
@@ -231,6 +264,29 @@
   <div class="size-grid" id="size-grid"></div>
 </div>
 
+<div class="screen hidden" id="shop-screen">
+  <div class="screen-head">
+    <div class="screen-title" data-i18n="shopTitle">🛒 Магазин</div>
+    <button id="shop-close">✕</button>
+  </div>
+
+  <div class="shop-section">
+    <div class="shop-label" data-i18n="shopShape">Форма</div>
+    <div class="shop-grid" id="shop-shapes"></div>
+  </div>
+
+  <div class="shop-section">
+    <div class="shop-label" data-i18n="shopMaterial">Материал</div>
+    <div class="shop-grid" id="shop-materials"></div>
+  </div>
+
+  <div class="shop-summary" id="shop-summary"></div>
+  <button class="go big" id="shop-confirm" style="width:100%;justify-content:center;">
+    <span class="ico">🔨</span>
+    <span data-i18n="shopBuild">Строить</span>
+  </button>
+</div>
+
 <div class="screen hidden" id="world-screen">
   <div class="screen-head">
     <div class="screen-title" data-i18n="worldTitle">🌍 Мир</div>
@@ -253,7 +309,7 @@
   <div class="tip-card">
     <div class="tip-head">
       <div class="tip-dot"></div>
-      <div class="tip-title" id="tip-title" data-i18n="tipTitle">Буй говорит</div>
+      <div class="tip-title" data-i18n="tipTitle">Буй говорит</div>
     </div>
     <div class="tip-text" id="tip-text"></div>
     <button id="tip-ok" class="go" data-i18n="tipOk">Ок</button>
@@ -290,12 +346,25 @@ const SUPABASE_URL = 'https://suaitzmqulcziefyryvf.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_pT2H1bpnu_fcBbevfvfOoQ_AhzZLQjH';
 const API_URL = 'https://adrift-backend-ys3i.onrender.com';
 
-const WOOD_BASE_COST = 10;
+// ---------------------------------------------------------------------------
+// Баланс. Эти числа ДОЛЖНЫ совпадать с таблицей cube_types в БД. Если сервер
+// поменяет цену, клиент перестанет её правильно показывать. При первой же
+// возможности вынесем в /build/catalog и будем читать оттуда.
+// ---------------------------------------------------------------------------
+const BASE_PRICE = 10;
+const BASE_HP = 100;
 
-// Запрещено строить в квадрате 3×3 вокруг Флага. Радиус = 1 означает клетки
-// от -1 до 1 по каждой оси. Так клиент не даёт поставить стену вплотную
-// и не вводит игрока в заблуждение: сервер отклонит то же самое.
-const FLAG_CLEAR_RADIUS = 1;
+const SHAPES = [
+  { key: 'block',    name: 'Куб',     priceMul: 1.0, hpMul: 1.0, info: 'Базовая форма' },
+  { key: 'half',     name: 'Плита',   priceMul: 0.5, hpMul: 0.3, info: 'Вдвое дешевле, хрупкая' },
+  { key: 'triangle', name: 'Клин',    priceMul: 0.5, hpMul: 0.4, info: 'Дешёвый, держит форму' },
+  { key: 'circle',   name: 'Цилиндр', priceMul: 1.2, hpMul: 0.7, info: 'Дороже, но крепче' },
+];
+
+const MATERIALS = [
+  { key: 'wood', name: 'Дерево', costMul: 1, hpMul: 1, color: '#c9a06a', info: 'Дёшево и сердито' },
+  { key: 'iron', name: 'Железо', costMul: 4, hpMul: 3, color: '#9aa4ad', info: 'Втрое крепче, вчетверо дороже' },
+];
 
 const BLOCK_SIZES = [
   { key: '1x1x1', sx: 1, sy: 1, sz: 1, label: '1×1' },
@@ -304,19 +373,22 @@ const BLOCK_SIZES = [
   { key: '3x1x3', sx: 3, sy: 1, sz: 3, label: '3×3' },
 ];
 
+const FLAG_CLEAR_RADIUS = 1;
+
 const I18N = {
   ru: {
-    flagColor: 'Цвет флага', blockColor: 'Цвет блока', sizeTitle: 'Размер блока',
+    build: 'Строить', flagColor: 'Цвет флага', blockColor: 'Цвет блока', sizeTitle: 'Размер блока',
     worldTitle: '🌍 Мир', back: 'Назад', raid: 'Рейд', flag: 'Флаг', leave: 'Выйти',
+    shopTitle: '🛒 Магазин', shopShape: 'Форма', shopMaterial: 'Материал', shopBuild: 'Строить',
     lootTitle: 'Флаг разрушен!', lootStolen: 'Украдено:', lootBalance: 'Баланс:',
     returnHome: 'Вернуться',
     tipTitle: 'Буй говорит', tipOk: 'Ок',
     minionPanic: 'Буй в панике. Сейчас ему не до разговоров.',
     raidAlertToast: 'На твой остров открыт рейд. Проверь Флаг.',
     onboardTitle: 'Добро пожаловать в ADRIFT',
-    onboard1: '<b>1.</b> Ты уже в режиме стройки. Наведи камеру, увидишь полупрозрачный блок там, куда встанет куб.',
-    onboard2: '<b>2.</b> Зелёный значит можно ставить, красный значит нельзя. <b>📐</b> размер, <b>↔️</b> и <b>↕️</b> поворот блока.',
-    onboard3: '<b>3.</b> <b>⚡</b> вверху, забери накопленный Эфир. <b>🎨</b> меняет цвет флага.',
+    onboard1: '<b>1.</b> Открой <b>🔨 Строить</b>, выбери форму и материал, потом тапай по клеткам.',
+    onboard2: '<b>2.</b> Зелёный призрак значит можно ставить, красный значит нельзя.',
+    onboard3: '<b>3.</b> <b>⚡</b> вверху, забери накопленный Эфир. Кружок рядом меняет цвет флага.',
     onboard4: '<b>4.</b> Тапни по Буйку, он даст совет. <b>🌍</b> откроет список соседей.',
     onboardOk: 'Понятно, играем',
     loading: 'Загрузка...', login: 'Вход...', returning: 'Возвращаемся...',
@@ -338,20 +410,19 @@ const I18N = {
     noEther: 'Не хватает Эфира',
     outOfBounds: 'За границей острова',
     tips: [
-      { text: 'Наведи камеру на клетку и тапни по экрану. Там появится куб.', cond: 'always' },
+      { text: 'Сначала выбери форму и материал в магазине, потом строй.', cond: 'always' },
       { text: 'Кнопка 📐 меняет размер блока. Большие блоки стоят дороже.', cond: 'always' },
       { text: 'Кнопка ↔️ крутит блок по горизонтали, ↕️ ставит его на бок как столб.', cond: 'always' },
       { text: 'Тапни по верхней грани куба, и новый встанет сверху. Так строят башни.', cond: 'always' },
       { text: 'Кнопка 🗑 сносит куб. Половина Эфира вернётся в кошелёк.', cond: 'hasCubes' },
       { text: 'Эфир капает сам, примерно десять в час. Следи за кнопкой ⚡.', cond: 'always' },
-      { text: '🎨 меняет цвет флага. Его увидят все, кто зайдёт к тебе.', cond: 'always' },
-      { text: 'Флаг откроется, когда снесена половина блоков на земле. Ставь их в несколько слоёв.', cond: 'hasCubes' },
+      { text: 'Кружок рядом с ⚡ меняет цвет твоего флага. Его увидят все, кто зайдёт.', cond: 'always' },
+      { text: 'Флаг откроется, когда снесена половина блоков на земле.', cond: 'hasCubes' },
       { text: 'Кнопка 🌍 открывает список соседей. Можно зайти в гости или начать рейд.', cond: 'always' },
       { text: 'В рейде тапай по чужим кубам. Сила удара подбирается сама.', cond: 'always' },
-      { text: 'Флаг открывается только когда снесена половина блоков НА ЗЕМЛЕ. Башни в воздухе не считаются.', cond: 'hasCubes' },
       { text: 'Главное — блоки на земле. Башни в воздухе в прогресс рейда не идут.', cond: 'always' },
-      { text: 'Квадратик рядом с 📐 меняет цвет блока. Красный видно издалека.', cond: 'always' },
-      { text: 'Заглядывай в ⚡ раз в час. Накопленное можно забрать одним тапом.', cond: 'always' },
+      { text: 'Плита и клин стоят вдвое дешевле, но ломаются за пару ударов.', cond: 'always' },
+      { text: 'Железо дороже дерева вчетверо, зато втрое крепче.', cond: 'always' },
       { text: 'Ставь блоки плотнее к Флагу, но вплотную нельзя.', cond: 'hasCubes' },
     ],
     foreignTips: [
@@ -371,17 +442,18 @@ const I18N = {
     ],
   },
   en: {
-    flagColor: 'Flag color', blockColor: 'Block color', sizeTitle: 'Block size',
+    build: 'Build', flagColor: 'Flag color', blockColor: 'Block color', sizeTitle: 'Block size',
     worldTitle: '🌍 World', back: 'Back', raid: 'Raid', flag: 'Flag', leave: 'Leave',
+    shopTitle: '🛒 Shop', shopShape: 'Shape', shopMaterial: 'Material', shopBuild: 'Build',
     lootTitle: 'Flag destroyed!', lootStolen: 'Stolen:', lootBalance: 'Balance:',
     returnHome: 'Return',
     tipTitle: 'Buoy says', tipOk: 'OK',
     minionPanic: 'Buoy is panicking. No time for a chat.',
     raidAlertToast: 'A raid is open against your island. Check your Flag.',
     onboardTitle: 'Welcome to ADRIFT',
-    onboard1: '<b>1.</b> You are already in build mode. Aim the camera, a translucent block shows where the cube will go.',
-    onboard2: '<b>2.</b> Green means you can place, red means you cannot. <b>📐</b> size, <b>↔️</b> and <b>↕️</b> rotate the block.',
-    onboard3: '<b>3.</b> <b>⚡</b> at the top, claim accrued Ether. <b>🎨</b> changes the flag color.',
+    onboard1: '<b>1.</b> Tap <b>🔨 Build</b>, pick a shape and material, then tap the cells.',
+    onboard2: '<b>2.</b> Green ghost means you can place, red means you cannot.',
+    onboard3: '<b>3.</b> <b>⚡</b> at the top, claim accrued Ether. The small swatch next to it changes flag color.',
     onboard4: '<b>4.</b> Tap the Buoy for a tip. <b>🌍</b> opens the list of neighbors.',
     onboardOk: 'Got it, let\'s play',
     loading: 'Loading...', login: 'Signing in...', returning: 'Returning...',
@@ -403,20 +475,19 @@ const I18N = {
     noEther: 'Not enough Ether',
     outOfBounds: 'Out of bounds',
     tips: [
-      { text: 'Aim the camera at a cell and tap the screen. A cube appears there.', cond: 'always' },
+      { text: 'Pick shape and material in the shop first, then build.', cond: 'always' },
       { text: 'The 📐 button changes block size. Bigger blocks cost more.', cond: 'always' },
-      { text: '↔️ rotates the block around the vertical axis, ↕️ tips it on its side like a pillar.', cond: 'always' },
-      { text: 'Tap the top face of a cube and the new one stacks on it. That is how towers are built.', cond: 'always' },
+      { text: '↔️ rotates the block around the vertical axis, ↕️ tips it on its side.', cond: 'always' },
+      { text: 'Tap the top face of a cube and the new one stacks on it.', cond: 'always' },
       { text: 'The 🗑 button removes a cube. Half the Ether comes back to you.', cond: 'hasCubes' },
       { text: 'Ether accrues by itself, about ten per hour. Watch the ⚡ button.', cond: 'always' },
-      { text: '🎨 changes your flag color. Everyone visiting you will see it.', cond: 'always' },
-      { text: 'The Flag opens when half the ground blocks are destroyed. Stack them in layers.', cond: 'hasCubes' },
+      { text: 'The swatch next to ⚡ changes your flag color. Everyone will see it.', cond: 'always' },
+      { text: 'The Flag opens when half the ground blocks are destroyed.', cond: 'hasCubes' },
       { text: 'The 🌍 button opens the list of neighbors. You can visit or start a raid.', cond: 'always' },
       { text: 'During a raid tap enemy cubes. Attack power is picked automatically.', cond: 'always' },
-      { text: 'The Flag opens only after half the blocks ON THE GROUND are destroyed. Towers in the air do not count.', cond: 'hasCubes' },
-      { text: 'Ground blocks are what matters. Towers in the air do not count for raid progress.', cond: 'always' },
-      { text: 'The square next to 📐 changes the block color. Red is visible from far away.', cond: 'always' },
-      { text: 'Check ⚡ once an hour. Accrued Ether is claimed with one tap.', cond: 'always' },
+      { text: 'Ground blocks are what matters. Towers in the air do not count.', cond: 'always' },
+      { text: 'Half-blocks and wedges cost half, but break in a couple of hits.', cond: 'always' },
+      { text: 'Iron costs four times more than wood, but is three times tougher.', cond: 'always' },
       { text: 'Place blocks closer to the Flag, but not flush.', cond: 'hasCubes' },
     ],
     foreignTips: [
@@ -430,9 +501,9 @@ const I18N = {
       'There might be traps here. Watch your step.',
     ],
     alertTips: [
-      { text: 'A raid is open against your island. Add ground blocks to raise the destruction threshold.', cond: 'alert' },
-      { text: 'Someone is raiding your island. Watch the ground blocks, they count for progress.', cond: 'alert' },
-      { text: 'The raid is already running. The Flag can only be broken after half the ground blocks are gone.', cond: 'alert' },
+      { text: 'A raid is open against your island. Add ground blocks to raise the threshold.', cond: 'alert' },
+      { text: 'Someone is raiding your island. Watch the ground blocks, they count.', cond: 'alert' },
+      { text: 'The raid is already running. The Flag breaks only after half the ground blocks are gone.', cond: 'alert' },
     ],
   },
 };
@@ -457,7 +528,52 @@ const FLAG_COLORS_CSS = { red:'#ef4444', orange:'#f97316', yellow:'#eab308', gre
 const BLOCK_COLORS_HEX = { wood:0xc9a06a, red:0xd94a4a, blue:0x4a7fd9, green:0x4ad96b, yellow:0xd9c94a, purple:0x9b4ad9, dark:0x6b6b6b, light:0xd9d9d9 };
 const BLOCK_COLORS_CSS = { wood:'#c9a06a', red:'#d94a4a', blue:'#4a7fd9', green:'#4ad96b', yellow:'#d9c94a', purple:'#9b4ad9', dark:'#6b6b6b', light:'#d9d9d9' };
 
-const CHARGE_COST = { 1: 10, 2: 25, 3: 60 };
+// ---------------------------------------------------------------------------
+// SVG-превью для карточек магазина. Простая изометрия, читается в маленьком
+// размере. Цвета передаём аргументами, чтобы одну и ту же форму переиспользовать
+// для дерева и железа.
+// ---------------------------------------------------------------------------
+function svgBlock(light, mid, dark) {
+  return `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+    <path d="M50 8 L92 30 L50 52 L8 30 Z" fill="${light}"/>
+    <path d="M8 30 L50 52 L50 94 L8 72 Z" fill="${dark}"/>
+    <path d="M92 30 L50 52 L50 94 L92 72 Z" fill="${mid}"/>
+  </svg>`;
+}
+function svgHalf(light, mid, dark) {
+  return `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+    <path d="M50 30 L92 52 L50 74 L8 52 Z" fill="${light}"/>
+    <path d="M8 52 L50 74 L50 94 L8 72 Z" fill="${dark}"/>
+    <path d="M92 52 L50 74 L50 94 L92 72 Z" fill="${mid}"/>
+  </svg>`;
+}
+function svgTriangle(light, mid, dark) {
+  return `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+    <path d="M50 10 L88 82 L12 82 Z" fill="${light}"/>
+    <path d="M50 10 L88 82 L88 92 L50 20 Z" fill="${mid}"/>
+    <path d="M12 82 L50 10 L50 20 L12 92 Z" fill="${dark}"/>
+  </svg>`;
+}
+function svgCircle(light, mid, dark) {
+  return `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+    <path d="M 14 26 L 14 74 C 14 81.7 30.1 88 50 88 C 69.9 88 86 81.7 86 74 L 86 26 Z" fill="${mid}"/>
+    <ellipse cx="50" cy="74" rx="36" ry="14" fill="${dark}"/>
+    <ellipse cx="50" cy="26" rx="36" ry="14" fill="${light}"/>
+  </svg>`;
+}
+
+const SHAPE_SVG = {
+  block: svgBlock,
+  half: svgHalf,
+  triangle: svgTriangle,
+  circle: svgCircle,
+};
+
+// Палитры для материалов. Светлое / среднее / тёмное — три грани изометрии.
+const MATERIAL_PALETTE = {
+  wood: { light: '#e0b183', mid: '#c08e5e', dark: '#a87d54' },
+  iron: { light: '#c3ccd4', mid: '#9aa4ad', dark: '#77818a' },
+};
 
 const $ = (id) => document.getElementById(id);
 const statusEl = $('status'), errEl = $('err'), toastEl = $('toast'), priceEl = $('price-tag');
@@ -494,14 +610,15 @@ const fmtTime = (s) => {
 // ---------- СОСТОЯНИЕ ----------
 let token = null, myId = null;
 let mode = 'own';
-let buildMode = true;
+let buildMode = false;
 let demolishMode = false;
-// Повороты ВЗАИМОИСКЛЮЧАЮЩИЕ. rotated — длинная сторона по Z,
-// vertical — блок стоит как столб. Одновременно активна максимум одна.
 let rotated = false;
 let vertical = false;
 let selectedBlockColor = 'wood';
 let selectedSize = BLOCK_SIZES[0];
+let selectedShape = 'block';
+let selectedMaterial = 'wood';
+let shopReturnMode = 'idle';
 let raidId = null;
 let raidFlagState = null;
 let flagWasOpen = false;
@@ -512,6 +629,13 @@ let myFlagColor = 'red';
 let displayFlagColor = 'red';
 let currentFlagHp = 0, currentFlagMax = 0;
 let myRaidAlert = false;
+
+// ---------- ЭКОНОМИКА: ЦЕНА БЛОКА ----------
+function priceFor(shapeKey, materialKey, size) {
+  const sh = SHAPES.find(s => s.key === shapeKey) || SHAPES[0];
+  const mt = MATERIALS.find(m => m.key === materialKey) || MATERIALS[0];
+  return Math.round(BASE_PRICE * sh.priceMul * mt.costMul * size.sx * size.sy * size.sz);
+}
 
 // ---------- АВТОРИЗАЦИЯ ----------
 async function signIn() {
@@ -585,8 +709,6 @@ ground.position.y = -0.5; scene.add(ground);
 const grid = new THREE.GridHelper(64, 64, 0x3b82f6, 0x1e293b);
 grid.position.y = 0.01; scene.add(grid);
 
-// Подсветка запретной зоны вокруг Флага. Полупрозрачное кольцо, видно
-// только в режиме стройки. Рисуется чуть выше земли, чтобы не мерцало.
 const noBuildRing = new THREE.Mesh(
   new THREE.RingGeometry(FLAG_CLEAR_RADIUS * Math.SQRT2, FLAG_CLEAR_RADIUS * Math.SQRT2 + 0.08, 48),
   new THREE.MeshBasicMaterial({ color: 0xef4444, transparent: true, opacity: 0.45, side: THREE.DoubleSide, depthWrite: false })
@@ -633,6 +755,37 @@ function makeWoodTexture() {
 }
 const WOOD_TEXTURE = makeWoodTexture();
 
+// ---------- ГЕОМЕТРИЯ ПО ФОРМЕ ----------
+// Каждая форма — свой примитив three.js. Размеры берём в клетках.
+function shapeGeometry(shape, sx, sy, sz) {
+  if (shape === 'triangle') {
+    const r = Math.min(sx, sz) * 0.62;
+    const g = new THREE.CylinderGeometry(r, r, sy, 3, 1);
+    g.rotateY(Math.PI / 6);
+    return g;
+  }
+  if (shape === 'circle') {
+    const r = Math.min(sx, sz) * 0.5;
+    return new THREE.CylinderGeometry(r, r, sy, 16, 1);
+  }
+  if (shape === 'half') {
+    return new THREE.BoxGeometry(sx, sy * 0.5, sz);
+  }
+  return new THREE.BoxGeometry(sx, sy, sz);
+}
+
+// Центр блока в мире. Полублок прижат к нижней грани клетки, поэтому его
+// центр смещён вниз на четверть высоты.
+function cubeWorldCenter(c) {
+  const sx = c.size_x||1, sy = c.size_y||1, sz = c.size_z||1;
+  const isHalf = (c.shape === 'half');
+  return {
+    x: c.x + sx / 2,
+    y: c.y + (isHalf ? sy * 0.25 : sy / 2),
+    z: c.z + sz / 2,
+  };
+}
+
 // ---------- КУБЫ ----------
 const cubeMeshes = new Map();
 let blockedGround = new Set();
@@ -642,12 +795,6 @@ function makeCubeMaterial(color) {
     map: WOOD_TEXTURE,
     color: new THREE.Color(BLOCK_COLORS_HEX[color] || BLOCK_COLORS_HEX.wood),
   });
-}
-// Центр блока по его левому-нижнему углу и размерам. Ждёт ПОЛНЫЕ имена
-// size_x / size_y / size_z, потому что так приходит блок с сервера.
-function cubeCenter(c) {
-  const sx = c.size_x||1, sy = c.size_y||1, sz = c.size_z||1;
-  return { x: c.x + sx/2, y: c.y + sy/2, z: c.z + sz/2 };
 }
 function rebuildBlockedGround() {
   blockedGround = new Set();
@@ -664,11 +811,13 @@ function rebuildBlockedGround() {
 function addCube(c) {
   if (cubeMeshes.has(c.id)) return;
   const color = c.color || 'wood';
+  const shape = c.shape || 'block';
   const sx = c.size_x||1, sy = c.size_y||1, sz = c.size_z||1;
-  const mesh = new THREE.Mesh(new THREE.BoxGeometry(sx, sy, sz), makeCubeMaterial(color));
-  const cc = cubeCenter({ ...c, size_x:sx, size_y:sy, size_z:sz });
+  const geo = shapeGeometry(shape, sx, sy, sz);
+  const mesh = new THREE.Mesh(geo, makeCubeMaterial(color));
+  const cc = cubeWorldCenter({ ...c, shape, size_x:sx, size_y:sy, size_z:sz });
   mesh.position.set(cc.x, cc.y, cc.z);
-  mesh.userData.cube = { ...c, color, size_x:sx, size_y:sy, size_z:sz };
+  mesh.userData.cube = { ...c, color, shape, size_x:sx, size_y:sy, size_z:sz };
   scene.add(mesh); cubeMeshes.set(c.id, mesh);
   paintCube(mesh);
   rebuildBlockedGround();
@@ -700,6 +849,11 @@ function setFlagVisual(hp, maxHp, color) {
   banner.material.color.copy(base).lerp(new THREE.Color(0x7f1d1d), 1 - ratio);
   $('flag').textContent = Math.max(0, hp) + ' / ' + maxHp;
   setMinionFlagColor(displayFlagColor);
+  updateFlagSwatch();
+}
+function updateFlagSwatch() {
+  const el = $('swatch-flag');
+  if (el) el.style.background = FLAG_COLORS_CSS[myFlagColor] || '#ef4444';
 }
 
 // ===========================================================================
@@ -756,11 +910,7 @@ let bubbleSprite = null;
 const droplets = [];
 
 (function buildMinion() {
-  const SKIN = 0xe8dcc8;
-  const CLOTH = 0x9c9184;
-  const DARK = 0x6b6152;
-  const EYE = 0x241f19;
-
+  const SKIN = 0xe8dcc8, CLOTH = 0x9c9184, DARK = 0x6b6152, EYE = 0x241f19;
   const matSkin = new THREE.MeshLambertMaterial({ color: SKIN });
   const matCloth = new THREE.MeshLambertMaterial({ color: CLOTH });
   const matDark = new THREE.MeshLambertMaterial({ color: DARK });
@@ -770,16 +920,14 @@ const droplets = [];
   const bodyGroup = new THREE.Group();
 
   const torso = new THREE.Mesh(new THREE.BoxGeometry(0.52, 0.6, 0.38), matCloth);
-  torso.position.y = 0.8;
-  bodyGroup.add(torso);
+  torso.position.y = 0.8; bodyGroup.add(torso);
 
   const head = new THREE.Mesh(new THREE.BoxGeometry(0.58, 0.54, 0.52), matSkin);
   head.position.y = 1.38;
   const eyeGeo = new THREE.BoxGeometry(0.1, 0.14, 0.02);
   const eyeL = new THREE.Mesh(eyeGeo, matEye); eyeL.position.set(-0.13, 0.03, 0.27);
   const eyeR = new THREE.Mesh(eyeGeo, matEye); eyeR.position.set( 0.13, 0.03, 0.27);
-  head.add(eyeL, eyeR);
-  bodyGroup.add(head);
+  head.add(eyeL, eyeR); bodyGroup.add(head);
 
   const armGeo = new THREE.BoxGeometry(0.17, 0.46, 0.17);
   const handGeo = new THREE.BoxGeometry(0.19, 0.14, 0.19);
@@ -787,15 +935,13 @@ const droplets = [];
   const armLPivot = new THREE.Group(); armLPivot.position.set(-0.35, 1.02, 0);
   const armL = new THREE.Mesh(armGeo, matDark); armL.position.y = -0.23;
   const handL = new THREE.Mesh(handGeo, matSkin); handL.position.y = -0.5;
-  armLPivot.add(armL, handL);
-  bodyGroup.add(armLPivot);
+  armLPivot.add(armL, handL); bodyGroup.add(armLPivot);
 
   const armRPivot = new THREE.Group(); armRPivot.position.set(0.35, 1.02, 0);
   armRPivot.rotation.x = Math.PI;
   const armR = new THREE.Mesh(armGeo, matDark); armR.position.y = -0.23;
   const handR = new THREE.Mesh(handGeo, matSkin); handR.position.y = -0.5;
-  armRPivot.add(armR, handR);
-  bodyGroup.add(armRPivot);
+  armRPivot.add(armR, handR); bodyGroup.add(armRPivot);
 
   const mPole = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, 1.0, 6), matDark);
   mPole.position.set(0.35, 1.72, 0);
@@ -829,33 +975,18 @@ const droplets = [];
     const d = makeSprite('💦', 0.55);
     d.userData.phase = i / 3;
     d.position.set(0, 1.2, 0);
-    minionGroup.add(d);
-    droplets.push(d);
+    minionGroup.add(d); droplets.push(d);
   }
 
   scene.add(minionGroup);
 })();
 
 const minion = {
-  x: 3, z: 3,
-  path: [],
-  phase: 0,
-  idleUntil: 0,
-  facing: 0,
-  lastTip: -1,
-  lastTipText: null,
-  mood: 'calm',
-  frozen: false,
-  thinking: false,
-  thinkUntil: 0,
-  panicBoost: 0,
-  nextTalk: 0,
-  talkUntil: 0,
-  bubbleChar: '💬',
-  nextIdleAct: 0,
-  idleAct: null,
-  idleActUntil: 0,
-  pendingTip: null,
+  x: 3, z: 3, path: [], phase: 0, idleUntil: 0, facing: 0,
+  lastTip: -1, lastTipText: null, mood: 'calm',
+  frozen: false, thinking: false, thinkUntil: 0,
+  panicBoost: 0, nextTalk: 0, talkUntil: 0, bubbleChar: '💬',
+  nextIdleAct: 0, idleAct: null, idleActUntil: 0, pendingTip: null,
 };
 
 function setMinionFlagColor(color) {
@@ -930,8 +1061,7 @@ function placeMinionInitial() {
       if (cellFree(x, z)) {
         minion.x = x; minion.z = z;
         minionGroup.position.set(x + 0.5, 0, z + 0.5);
-        resetMinionPath();
-        return;
+        resetMinionPath(); return;
       }
     }
   }
@@ -941,16 +1071,13 @@ function placeMinionInitial() {
 function approach(current, target, dt, k) {
   return current + (target - current) * Math.min(1, dt * k);
 }
-
 function pickIdleAct(now) {
   minion.idleAct = IDLE_ACTS[Math.floor(Math.random() * IDLE_ACTS.length)];
   minion.idleActUntil = now + 1.8;
 }
 
-function updateBubbles(now, dt) {
-  let char = null;
-  let size = 1.1;
-
+function updateBubbles(now) {
+  let char = null, size = 1.1;
   if (minion.thinking) { char = '🤔'; size = 1.15; }
   else if (minion.frozen) { char = '👋'; size = 1.15; }
   else if (minion.mood === 'panic') { char = '💦'; size = 0.95; }
@@ -959,9 +1086,7 @@ function updateBubbles(now, dt) {
 
   if (char) {
     setSpriteChar(bubbleSprite, char, size);
-    const pulse = char === '⚠️'
-      ? 1 + Math.sin(now * 5) * 0.1
-      : 1 + Math.sin(now * 2.4) * 0.04;
+    const pulse = char === '⚠️' ? 1 + Math.sin(now * 5) * 0.1 : 1 + Math.sin(now * 2.4) * 0.04;
     bubbleSprite.scale.set(size * pulse, size * pulse, 1);
     bubbleSprite.position.y = 2.55 + Math.sin(now * 2.1) * 0.07;
     bubbleSprite.material.opacity = 1;
@@ -988,1046 +1113,28 @@ function idleMinion(now, dt) {
   let armLx = breath * 0.06, armRx = Math.PI;
   let headZ = Math.sin(now * 0.7) * 0.05;
   let headY = Math.sin(now * 0.45) * 0.16;
-  let rootY = breath * 0.015;
-  let bodyY = 0;
+  let rootY = breath * 0.015, bodyY = 0;
 
   if (panic) {
-    armLx = Math.PI * 0.85 + Math.sin(now * 8) * 0.35;
-    armRx = Math.PI;
-    headZ = Math.sin(now * 9) * 0.1;
-    headY = Math.sin(now * 7) * 0.12;
+    armLx = Math.PI * 0.85 + Math.sin(now * 8) * 0.35; armRx = Math.PI;
+    headZ = Math.sin(now * 9) * 0.1; headY = Math.sin(now * 7) * 0.12;
     bodyY = Math.abs(Math.sin(now * 6)) * 0.03;
   } else if (alert) {
-    armLx = 0.5 + Math.sin(now * 3) * 0.12;
-    armRx = Math.PI;
-    headZ = Math.sin(now * 2.2) * 0.05;
-    headY = Math.sin(now * 1.1) * 0.28;
+    armLx = 0.5 + Math.sin(now * 3) * 0.12; armRx = Math.PI;
+    headZ = Math.sin(now * 2.2) * 0.05; headY = Math.sin(now * 1.1) * 0.28;
     bodyY = breath * 0.012;
   } else if (minion.idleAct && now < minion.idleActUntil) {
     const t = now - (minion.idleActUntil - 1.8);
     switch (minion.idleAct) {
-      case 'stretch':
-        armLx = -2.4; armRx = Math.PI - 0.4;
-        headZ = -0.1;
-        rootY = Math.sin(t * 2.5) * 0.03;
-        break;
-      case 'tapFoot':
-        armLx = 0.3; legLx = -0.1;
-        rootY = Math.abs(Math.sin(t * 9)) * 0.02;
-        break;
-      case 'scratchHead':
-        armLx = -2.55; headZ = 0.1;
-        headY = Math.sin(t * 1.2) * 0.1;
-        break;
-      case 'lookAround':
-        headY = Math.sin(t * 2.5) * 0.5;
-        break;
+      case 'stretch': armLx = -2.4; armRx = Math.PI - 0.4; headZ = -0.1; rootY = Math.sin(t * 2.5) * 0.03; break;
+      case 'tapFoot': armLx = 0.3; legLx = -0.1; rootY = Math.abs(Math.sin(t * 9)) * 0.02; break;
+      case 'scratchHead': armLx = -2.55; headZ = 0.1; headY = Math.sin(t * 1.2) * 0.1; break;
+      case 'lookAround': headY = Math.sin(t * 2.5) * 0.5; break;
       case 'dance':
         armLx = -2.2 + Math.sin(t * 6) * 0.3;
         armRx = Math.PI - 0.5 + Math.cos(t * 6) * 0.3;
         headZ = Math.sin(t * 6) * 0.15;
-        rootY = Math.abs(Math.sin(t * 6)) * 0.06;
-        break;
-      case 'kick':
-        legLx = -0.8;
-        armLx = -0.4; armRx = Math.PI + 0.3;
-        break;
-      case 'whistle':
-        armLx = -1.9; headZ = 0.06;
-        headY = Math.sin(t * 3) * 0.05;
-        break;
-      case 'think':
-        armLx = -1.7; headZ = 0.08; headY = 0.1;
-        break;
-    }
-  }
-
-  minionParts.legLPivot.rotation.x = approach(minionParts.legLPivot.rotation.x, legLx, dt, 8);
-  minionParts.legRPivot.rotation.x = approach(minionParts.legRPivot.rotation.x, legRx, dt, 8);
-  minionParts.armLPivot.rotation.x = approach(minionParts.armLPivot.rotation.x, armLx, dt, 9);
-  minionParts.armRPivot.rotation.x = approach(minionParts.armRPivot.rotation.x, armRx, dt, 9);
-  minionParts.head.rotation.z = approach(minionParts.head.rotation.z, headZ, dt, 8);
-  minionParts.head.rotation.y = approach(minionParts.head.rotation.y, headY, dt, 6);
-  minionParts.bodyGroup.rotation.x = approach(minionParts.bodyGroup.rotation.x, 0, dt, 6);
-  minionParts.bodyGroup.position.y = bodyY;
-  minionGroup.position.y = approach(minionGroup.position.y, rootY, dt, 10);
-}
-
-function updateMinion(dt) {
-  const now = performance.now() / 1000;
-
-  if (!minion.frozen && !cellFree(minion.x, minion.z)) placeMinionInitial();
-
-  if (minion.idleAct && now >= minion.idleActUntil) minion.idleAct = null;
-
-  if (minion.thinking) {
-    minionParts.armLPivot.rotation.x = approach(minionParts.armLPivot.rotation.x, -1.9, dt, 7);
-    minionParts.armRPivot.rotation.x = Math.PI;
-    minionParts.head.rotation.x = approach(minionParts.head.rotation.x, -0.22, dt, 6);
-    minionParts.head.rotation.z = approach(minionParts.head.rotation.z, 0.06, dt, 6);
-    minionParts.legLPivot.rotation.x = approach(minionParts.legLPivot.rotation.x, 0, dt, 8);
-    minionParts.legRPivot.rotation.x = approach(minionParts.legRPivot.rotation.x, 0, dt, 8);
-    minionParts.bodyGroup.rotation.x = approach(minionParts.bodyGroup.rotation.x, 0, dt, 6);
-    minionGroup.position.y = approach(minionGroup.position.y, 0, dt, 10);
-    return;
-  }
-
-  if (minion.frozen) {
-    minionParts.armLPivot.rotation.x = Math.PI * 0.7 + Math.sin(now * 5) * 0.3;
-    minionParts.armRPivot.rotation.x = Math.PI;
-    minionParts.legLPivot.rotation.x = approach(minionParts.legLPivot.rotation.x, 0, dt, 8);
-    minionParts.legRPivot.rotation.x = approach(minionParts.legRPivot.rotation.x, 0, dt, 8);
-    minionParts.bodyGroup.rotation.x = approach(minionParts.bodyGroup.rotation.x, 0, dt, 6);
-    minionParts.head.rotation.x = approach(minionParts.head.rotation.x, 0, dt, 6);
-    minionParts.head.rotation.z = Math.sin(now * 1.4) * 0.09;
-    minionParts.head.rotation.y = approach(minionParts.head.rotation.y, 0, dt, 6);
-    minionParts.bodyGroup.position.y = Math.sin(now * 2.2) * 0.02;
-    minionGroup.position.y = approach(minionGroup.position.y, 0, dt, 10);
-    return;
-  }
-
-  const panic = minion.mood === 'panic';
-  const alert = minion.mood === 'alert';
-  minion.panicBoost = Math.max(0, minion.panicBoost - dt * 0.6);
-
-  if (minion.path.length === 0) {
-    if (now < minion.idleUntil) {
-      idleMinion(now, dt);
-      if (now > minion.nextIdleAct) {
-        minion.nextIdleAct = now + 5 + Math.random() * 8;
-        if (Math.random() < 0.7) pickIdleAct(now);
-      }
-      return;
-    }
-    pickMinionTarget();
-    if (minion.path.length === 0) { minion.idleUntil = now + 1.0; return; }
-    const basePause = panic ? 0.1 + Math.random() * 0.3
-                    : (alert ? 0.5 + Math.random() * 1.2
-                             : 0.9 + Math.random() * 2.6);
-    minion.idleUntil = now + basePause;
-  }
-
-  const [nx, nz] = minion.path[0];
-  const tx = nx + 0.5, tz = nz + 0.5;
-  const px = minionGroup.position.x, pz = minionGroup.position.z;
-  const dx = tx - px, dz = tz - pz;
-  const dist = Math.hypot(dx, dz);
-  const speed = panic ? (3.0 + minion.panicBoost * 0.8) : (alert ? 2.0 : 1.5);
-  const step = speed * dt;
-
-  if (dist <= step) {
-    minionGroup.position.x = tx; minionGroup.position.z = tz;
-    minion.x = nx; minion.z = nz;
-    minion.path.shift();
-  } else {
-    minionGroup.position.x += (dx / dist) * step;
-    minionGroup.position.z += (dz / dist) * step;
-  }
-
-  const targetAngle = Math.atan2(dx, dz);
-  let diff = targetAngle - minion.facing;
-  while (diff > Math.PI) diff -= Math.PI * 2;
-  while (diff < -Math.PI) diff += Math.PI * 2;
-  minion.facing += diff * Math.min(1, dt * (panic ? 12 : 7));
-  minionGroup.rotation.y = minion.facing;
-
-  const freq = panic ? 13 + minion.panicBoost * 2 : (alert ? 8 : 6.5);
-  minion.phase += dt * freq;
-  const s = Math.sin(minion.phase);
-
-  minionParts.head.rotation.x = approach(minionParts.head.rotation.x, 0, dt, 5);
-
-  if (panic) {
-    minionParts.legLPivot.rotation.x = s * 0.95;
-    minionParts.legRPivot.rotation.x = -s * 0.95;
-    minionParts.armLPivot.rotation.x = Math.PI * 0.85 + Math.sin(minion.phase * 1.6) * 0.45;
-    minionParts.armRPivot.rotation.x = Math.PI + Math.sin(minion.phase * 1.9 + 1) * 0.2;
-    minionParts.head.rotation.z = Math.sin(minion.phase * 0.7) * 0.13;
-    minionParts.head.rotation.y = approach(minionParts.head.rotation.y, 0, dt, 8);
-    minionParts.bodyGroup.rotation.x = 0.18;
-    minionParts.bodyGroup.position.y = 0;
-    minionGroup.position.y = Math.abs(s) * 0.13;
-  } else if (alert) {
-    minionParts.legLPivot.rotation.x = s * 0.75;
-    minionParts.legRPivot.rotation.x = -s * 0.75;
-    minionParts.armLPivot.rotation.x = 0.45 - s * 0.35;
-    minionParts.armRPivot.rotation.x = Math.PI;
-    minionParts.head.rotation.z = s * 0.05;
-    minionParts.head.rotation.y = Math.sin(performance.now() / 420) * 0.24;
-    minionParts.bodyGroup.rotation.x = 0.1;
-    minionParts.bodyGroup.position.y = 0;
-    minionGroup.position.y = Math.abs(s) * 0.06;
-  } else {
-    minionParts.legLPivot.rotation.x = s * 0.62;
-    minionParts.legRPivot.rotation.x = -s * 0.62;
-    minionParts.armLPivot.rotation.x = -s * 0.5;
-    minionParts.armRPivot.rotation.x = Math.PI;
-    minionParts.head.rotation.z = s * 0.04;
-    minionParts.head.rotation.y = approach(minionParts.head.rotation.y, 0, dt, 5);
-    minionParts.bodyGroup.rotation.x = 0.06;
-    minionParts.bodyGroup.position.y = 0;
-    minionGroup.position.y = Math.abs(s) * 0.05;
-  }
-
-  if (!panic && !alert && now > minion.nextTalk && now > minion.talkUntil) {
-    minion.talkUntil = now + 2.0;
-    minion.nextTalk = now + 6 + Math.random() * 8;
-    minion.bubbleChar = MINION_BUBBLES[Math.floor(Math.random() * MINION_BUBBLES.length)];
-  }
-}
-
-// ---------- КАМЕРА: АНИМАЦИЯ ФОКУСА ----------
-const camAnim = {
-  active: false, t: 0, dur: 1,
-  fromPos: new THREE.Vector3(), toPos: new THREE.Vector3(),
-  fromTgt: new THREE.Vector3(), toTgt: new THREE.Vector3(),
-  onDone: null,
-};
-const savedCam = { pos: new THREE.Vector3(), tgt: new THREE.Vector3() };
-
-function animateCamera(toPos, toTgt, dur, onDone) {
-  camAnim.active = true; camAnim.t = 0; camAnim.dur = Math.max(0.01, dur);
-  camAnim.fromPos.copy(camera.position);
-  camAnim.fromTgt.copy(controls.target);
-  camAnim.toPos.copy(toPos);
-  camAnim.toTgt.copy(toTgt);
-  camAnim.onDone = onDone || null;
-  controls.enabled = false;
-}
-function updateCameraAnim(dt) {
-  if (!camAnim.active) return false;
-  camAnim.t += dt;
-  const k = Math.min(1, camAnim.t / camAnim.dur);
-  const e = k < 0.5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2;
-  camera.position.lerpVectors(camAnim.fromPos, camAnim.toPos, e);
-  controls.target.lerpVectors(camAnim.fromTgt, camAnim.toTgt, e);
-  if (k >= 1) {
-    camAnim.active = false;
-    const cb = camAnim.onDone; camAnim.onDone = null;
-    if (cb) cb();
-  }
-  return true;
-}
-
-// ---------- СОВЕТ БУЯ ----------
-// В гостях у чужого острова Буй рассказывает про ХОЗЯИНА, а не даёт советы
-// по твоей базе: игрок смотрит на чужой остров. На своём работает пул tips.
-function pickTip() {
-  const bundle = I18N[lang];
-
-  if (mode === 'visit') {
-    const pool = bundle.foreignTips || [];
-    if (!pool.length) return t('flagProtected');
-    let idx = Math.floor(Math.random() * pool.length);
-    if (pool[idx] === minion.lastTipText) idx = (idx + 1) % pool.length;
-    minion.lastTipText = pool[idx];
-    return pool[idx];
-  }
-
-  const alertTips = bundle.alertTips || [];
-  const tips = bundle.tips;
-  if (minion.mood === 'alert' && alertTips.length && Math.random() < 0.6) {
-    const choice = alertTips[Math.floor(Math.random() * alertTips.length)];
-    minion.lastTipText = choice.text;
-    return choice.text;
-  }
-
-  const hasCubes = cubeMeshes.size > 0;
-  const filtered = tips.filter(tip => {
-    if (tip.cond === 'hasCubes') return hasCubes;
-    if (tip.cond === 'noCubes') return !hasCubes;
-    return true;
-  });
-  let idx = Math.floor(Math.random() * filtered.length);
-  if (filtered[idx].text === minion.lastTipText) idx = (idx + 1) % filtered.length;
-  minion.lastTipText = filtered[idx].text;
-  return filtered[idx].text;
-}
-
-function animateTipText(text) {
-  const el = $('tip-text');
-  el.innerHTML = '';
-  let i = 0;
-  for (const word of text.split(' ')) {
-    const w = document.createElement('span');
-    w.className = 'tip-word';
-    for (const ch of word) {
-      const s = document.createElement('span');
-      s.className = 'tip-char';
-      s.textContent = ch;
-      s.style.animationDelay = (i * 26) + 'ms';
-      w.appendChild(s); i++;
-    }
-    el.appendChild(w);
-    el.appendChild(document.createTextNode(' '));
-    i++;
-  }
-  return i * 26 + 340;
-}
-
-function openTip() {
-  const text = pickTip();
-  minion.pendingTip = text;
-  minion.frozen = true;
-  minion.thinking = true;
-  minion.thinkUntil = performance.now() / 1000 + THINK_TIME;
-  minion.path = [];
-  minion.idleAct = null;
-
-  const mp = minionGroup.position;
-  const toCam = new THREE.Vector3().subVectors(camera.position, mp).setY(0);
-  if (toCam.lengthSq() < 0.001) toCam.set(1, 0, 1);
-  toCam.normalize();
-  minion.facing = Math.atan2(toCam.x, toCam.z);
-  minionGroup.rotation.y = minion.facing;
-
-  savedCam.pos.copy(camera.position);
-  savedCam.tgt.copy(controls.target);
-
-  const camPos = new THREE.Vector3(mp.x + toCam.x * 4.2, mp.y + 2.3, mp.z + toCam.z * 4.2);
-  const camTgt = new THREE.Vector3(mp.x, mp.y + 0.85, mp.z);
-  animateCamera(camPos, camTgt, 0.55);
-
-  $('tip-text').innerHTML = '';
-  $('tip-ok').disabled = true;
-  showScreen('tip-screen');
-}
-
-function finishThinking() {
-  if (!minion.thinking) return;
-  minion.thinking = false;
-  $('tip-text').innerHTML = '';
-  const text = minion.pendingTip || pickTip();
-  minion.pendingTip = null;
-  const ms = animateTipText(text);
-  setTimeout(() => { $('tip-ok').disabled = false; }, ms);
-}
-
-function closeTip() {
-  hideScreens();
-  minion.frozen = false;
-  minion.thinking = false;
-  animateCamera(savedCam.pos, savedCam.tgt, 0.45, () => { controls.enabled = true; });
-}
-
-// ---------- ПРИЗРАК БЛОКА ----------
-const ghostMat = new THREE.MeshBasicMaterial({
-  color: 0x22c55e, transparent: true, opacity: 0.4, depthWrite: false,
-});
-const ghost = new THREE.Mesh(new THREE.BoxGeometry(1,1,1), ghostMat);
-ghost.visible = false; scene.add(ghost);
-
-// Повороты ВЗАИМОИСКЛЮЧАЮЩИЕ. rotated — длинная сторона по Z,
-// vertical — блок встал на бок как столб. Одновременно активна одна.
-function effFootprint() {
-  const s = selectedSize;
-  if (vertical) return { sx: s.sy, sy: s.sx, sz: s.sz };
-  if (rotated)  return { sx: s.sz, sy: s.sy, sz: s.sx };
-  return { sx: s.sx, sy: s.sy, sz: s.sz };
-}
-function canRotate() {
-  return selectedSize.sx !== selectedSize.sz && selectedSize.sy === 1;
-}
-function canVertical() {
-  return selectedSize.sy === 1 && selectedSize.sx * selectedSize.sz > 1;
-}
-function updateGhostGeometry() {
-  const { sx, sy, sz } = effFootprint();
-  ghost.geometry.dispose();
-  ghost.geometry = new THREE.BoxGeometry(sx, sy, sz);
-}
-function updateRotateButton() {
-  const btnH = $('btn-rotate');
-  const btnV = $('btn-vertical');
-  const on = buildMode && mode === 'own';
-  btnH.textContent = '↔️';
-  btnV.textContent = '↕️';
-  btnH.classList.toggle('hidden', !canRotate() || !on);
-  btnV.classList.toggle('hidden', !canVertical() || !on);
-  btnH.classList.toggle('rot-on', rotated);
-  btnV.classList.toggle('rot-on', vertical);
-}
-function updateBlockSwatch() {
-  $('swatch-block').style.background = BLOCK_COLORS_CSS[selectedBlockColor] || '#c9a06a';
-}
-
-const raycaster = new THREE.Raycaster();
-const plane = new THREE.Plane(new THREE.Vector3(0,1,0), 0);
-const hitPoint = new THREE.Vector3();
-const normalMatrix = new THREE.Matrix3();
-const projVec = new THREE.Vector3();
-const isTouch = window.matchMedia('(pointer: coarse)').matches;
-const aimPoint = { x: 0, y: 0 };
-window.addEventListener('pointermove', (ev) => {
-  if (isTouch) return;
-  aimPoint.x = (ev.clientX / innerWidth) * 2 - 1;
-  aimPoint.y = -(ev.clientY / innerHeight) * 2 + 1;
-});
-
-function computePlacement(ndcX, ndcY) {
-  const { sx, sy, sz } = effFootprint();
-  raycaster.setFromCamera({ x: ndcX, y: ndcY }, camera);
-  const cubeHits = raycaster.intersectObjects([...cubeMeshes.values()], false);
-  let x, y, z;
-  if (cubeHits.length) {
-    const h = cubeHits[0];
-    const base = h.object.userData.cube;
-    const bsx = base.size_x||1, bsy = base.size_y||1, bsz = base.size_z||1;
-    const bc = cubeCenter({ ...base, size_x:bsx, size_y:bsy, size_z:bsz });
-    normalMatrix.getNormalMatrix(h.object.matrixWorld);
-    const n = h.face.normal.clone().applyMatrix3(normalMatrix).normalize();
-    const ax = Math.round(n.x), ay = Math.round(n.y), az = Math.round(n.z);
-    if (ay !== 0) {
-      y = ay > 0 ? base.y + bsy : base.y - sy;
-      x = Math.round(bc.x - sx/2); z = Math.round(bc.z - sz/2);
-    } else if (ax !== 0) {
-      x = ax > 0 ? base.x + bsx : base.x - sx;
-      y = base.y + Math.round((bsy - sy)/2);
-      z = Math.round(bc.z - sz/2);
-    } else {
-      z = az > 0 ? base.z + bsz : base.z - sz;
-      y = base.y + Math.round((bsy - sy)/2);
-      x = Math.round(bc.x - sx/2);
-    }
-  } else {
-    if (!raycaster.ray.intersectPlane(plane, hitPoint)) return null;
-    x = Math.round(hitPoint.x - sx/2); y = 0; z = Math.round(hitPoint.z - sz/2);
-  }
-  const price = WOOD_BASE_COST * sx * sy * sz;
-
-  // Границы сетки
-  if (x < -32 || x + sx - 1 > 32 || z < -32 || z + sz - 1 > 32 || y < 0 || y + sy - 1 > 32) {
-    return { x, y, z, sx, sy, sz, valid:false, reason: t('outOfBounds'), price };
-  }
-
-  // Запрет строить в квадрате 3×3 вокруг Флага. Проверяем пересечение
-  // прямоугольников по X и Z. Y игнорируем: под и над Флагом тоже нельзя.
-  const R = FLAG_CLEAR_RADIUS;
-  if (
-    x <= R && x + sx - 1 >= -R &&
-    z <= R && z + sz - 1 >= -R
-  ) {
-    return { x, y, z, sx, sy, sz, valid:false, reason: t('flagReserved'), price };
-  }
-
-  for (const m of cubeMeshes.values()) {
-    const c = m.userData.cube;
-    const csx = c.size_x||1, csy = c.size_y||1, csz = c.size_z||1;
-    if (x < c.x+csx && x+sx > c.x && y < c.y+csy && y+sy > c.y && z < c.z+csz && z+sz > c.z) {
-      return { x, y, z, sx, sy, sz, valid:false, reason: t('occupied'), price };
-    }
-  }
-  if (y > 0) {
-    for (let dx = 0; dx < sx; dx++) {
-      for (let dz = 0; dz < sz; dz++) {
-        const cx = x + dx, cz = z + dz;
-        let supported = false;
-        for (const m of cubeMeshes.values()) {
-          const c = m.userData.cube;
-          const csx = c.size_x||1, csy = c.size_y||1, csz = c.size_z||1;
-          if (c.y <= y-1 && c.y + csy - 1 >= y-1 &&
-              c.x <= cx && c.x + csx - 1 >= cx &&
-              c.z <= cz && c.z + csz - 1 >= cz) { supported = true; break; }
-        }
-        if (!supported) return { x, y, z, sx, sy, sz, valid:false, reason: t('noSupport'), price };
-      }
-    }
-  }
-  if (econ.ether_balance < price) {
-    return { x, y, z, sx, sy, sz, valid:false, reason: t('noEther'), price };
-  }
-  return { x, y, z, sx, sy, sz, valid:true, reason:'', price };
-}
-
-function updateGhost() {
-  if (!buildMode || mode !== 'own' || demolishMode) {
-    ghost.visible = false; priceEl.classList.add('hidden');
-    noBuildRing.visible = false;
-    return;
-  }
-  noBuildRing.visible = true;
-
-  const p = computePlacement(aimPoint.x, aimPoint.y);
-  if (!p) { ghost.visible = false; priceEl.classList.add('hidden'); return; }
-
-  // Центр призрака считаем ПРЯМО ИЗ p, а не через cubeCenter(): та функция
-  // ждёт поля size_x/y/z, а у p они называются sx/sy/sz. Из-за этого раньше
-  // призрак всегда рисовался как 1×1×1 и у вертикальных блоков уезжал вниз.
-  ghost.position.set(p.x + p.sx / 2, p.y + p.sy / 2, p.z + p.sz / 2);
-  ghostMat.color.set(p.valid ? 0x22c55e : 0xef4444);
-  ghost.visible = true;
-
-  priceEl.textContent = p.price + '⚡';
-  priceEl.classList.toggle('bad', !p.valid);
-  projVec.set(p.x + p.sx / 2, p.y + p.sy + 0.35, p.z + p.sz / 2).project(camera);
-  if (projVec.z > 1) { priceEl.classList.add('hidden'); return; }
-  const px = (projVec.x * 0.5 + 0.5) * innerWidth;
-  const py = (-projVec.y * 0.5 + 0.5) * innerHeight;
-  priceEl.style.transform = `translate(${px}px, ${py}px) translate(-50%, -100%)`;
-  priceEl.classList.remove('hidden');
-}
-
-// ---------- КНОПКА ФЛАГА ----------
-function flagLockedMessage(st) {
-  if (!st) return t('flagProtected');
-  if (st.percent < st.min_percent) {
-    return t('flagNeedPercent', {
-      need: st.cubes_left_to_min,
-      percent: st.percent,
-      min: st.min_percent,
-    });
-  }
-  return t('flagNeedPath', { width: st.corridor_width });
-}
-
-function applyFlagState(st) {
-  raidFlagState = st;
-  if (!st) { updateFlagButton(); return; }
-
-  if (st.can_attack && !flagWasOpen) {
-    flagWasOpen = true;
-    toast(t('flagOpened'), 'tip');
-  }
-  if (!st.can_attack && flagWasOpen) flagWasOpen = false;
-
-  updateFlagButton();
-}
-
-function updateFlagButton() {
-  const btn = $('btn-flag');
-  const label = $('btn-flag-label');
-  const ico = $('btn-flag-ico');
-
-  if (mode !== 'raid' || !raidFlagState) {
-    if (label) label.textContent = t('flag');
-    if (ico) ico.textContent = '🚩';
-    btn.classList.add('locked');
-    return;
-  }
-
-  if (raidFlagState.can_attack) {
-    if (label) label.textContent = t('flag');
-    if (ico) ico.textContent = '🚩';
-    btn.classList.remove('locked');
-    return;
-  }
-
-  btn.classList.add('locked');
-  if (raidFlagState.percent < raidFlagState.min_percent) {
-    if (ico) ico.textContent = '🔒';
-    if (label) label.textContent = raidFlagState.percent + '%';
-  } else {
-    if (ico) ico.textContent = '🚧';
-    if (label) label.textContent = t('flag');
-  }
-}
-
-// ---------- ПАНЕЛЬ ----------
-function applyTab(id, visible) {
-  const el = $(id);
-  if (visible) {
-    if (el.classList.contains('hidden')) {
-      el.classList.remove('hidden');
-      el.classList.remove('reveal');
-      void el.offsetWidth;
-      el.classList.add('reveal');
-    }
-  } else {
-    el.classList.add('hidden');
-  }
-}
-
-function updatePanel() {
-  const on = buildMode && mode === 'own';
-  $('btn-build').classList.toggle('on', on);
-  $('btn-size').classList.toggle('hidden', !on);
-  $('btn-block-color').classList.toggle('hidden', !on);
-  $('btn-palette').classList.toggle('hidden', !on);
-  $('btn-demolish').classList.toggle('hidden', !on);
-  $('reload').classList.toggle('hidden', on);
-  $('target-pill').classList.toggle('hidden', mode === 'own');
-  updateRotateButton();
-
-  applyTab('bottom', mode === 'own');
-  applyTab('bottom-visit', mode === 'visit');
-  applyTab('bottom-raid', mode === 'raid');
-}
-function setMode(next) {
-  mode = next;
-  if (next !== 'own') buildMode = false;
-  minion.frozen = false; minion.thinking = false;
-  minion.panicBoost = 0;
-  minion.idleAct = null;
-  resetMinionPath();
-  refreshMinionMood();
-  closeAllPalettes();
-  updatePanel();
-}
-function setBuildMode(on) {
-  buildMode = on;
-  if (!on) setDemolish(false);
-  closeAllPalettes();
-  updatePanel();
-}
-function setDemolish(on) {
-  demolishMode = on;
-  $('btn-demolish').classList.toggle('demolish-on', on);
-  updatePanel();
-}
-function showScreen(id) { $(id).classList.remove('hidden'); }
-function hideScreens() {
-  ['world-screen','loot-screen','onboard-screen','tip-screen'].forEach(id => $(id).classList.add('hidden'));
-  closeAllPalettes();
-}
-function closeOnboard() {
-  const el = $('onboard-screen');
-  el.classList.add('closing');
-  setTimeout(() => {
-    el.classList.remove('closing');
-    el.classList.add('hidden');
-  }, 300);
-}
-
-// ---------- ОСТРОВ ----------
-async function loadOwnIsland() {
-  const data = await api(`/api/v1/islands/${myId}`);
-  resetCubes(); data.cubes.forEach(addCube); refreshCounters();
-  setFlagVisual(data.flag.hp, data.flag.max_hp, myFlagColor);
-  placeMinionInitial();
-}
-async function loadMe() {
-  const me = await api('/api/v1/me');
-  $('ether').textContent = me.ether_balance;
-  econ.ether_balance = me.ether_balance;
-  myFlagColor = me.flag_color || 'red'; displayFlagColor = myFlagColor;
-  setMinionFlagColor(myFlagColor);
-}
-async function returnHome() {
-  targetUser = null; raidId = null; raidFlagState = null; flagWasOpen = false; hideScreens();
-  setDemolish(false); setMode('own');
-  buildMode = true; updatePanel();
-  $('target-name').textContent = '—';
-  fail(t('returning'));
-  try { await loadOwnIsland(); await loadMe(); await loadEconomy(); pollRaidAlert(); } finally { ok(); }
-}
-
-// ---------- ОПОВЕЩЕНИЕ О РЕЙДЕ ----------
-async function pollRaidAlert() {
-  try {
-    const data = await api('/api/v1/raids/history?limit=8');
-    const wasAlert = myRaidAlert;
-    myRaidAlert = (data.raids || []).some(r => r.role === 'defender' && r.status === 'active');
-    refreshMinionMood();
-    if (myRaidAlert && !wasAlert && mode === 'own') toast(t('raidAlertToast'), 'warn');
-  } catch (e) {}
-}
-setInterval(() => { if (token) pollRaidAlert(); }, 25000);
-
-// ---------- ЭКОНОМИКА ----------
-function renderEconomy() {
-  const btn = $('claim-btn'), hint = $('claim-hint');
-  if (econ.accrued_now >= 1) { btn.classList.add('ready'); hint.textContent = '+' + econ.accrued_now; }
-  else { btn.classList.remove('ready'); hint.textContent = fmtTime(econ.seconds_to_next); }
-}
-async function loadEconomy() {
-  try {
-    econ = await api('/api/v1/economy/rates');
-    $('ether').textContent = econ.ether_balance;
-    renderEconomy();
-  } catch (e) {}
-}
-async function claimEther() {
-  if (econ.accrued_now < 1) return;
-  try {
-    const res = await api('/api/v1/economy/claim', { method: 'POST' });
-    $('ether').textContent = res.ether_balance;
-    toast('+' + res.claimed + ' ' + t('ether'), 'tip');
-    await loadEconomy();
-  } catch (e) {
-    if (e.code === 'CLAIM_TOO_EARLY') { await loadEconomy(); return; }
-    toast(e.message, 'error');
-  }
-}
-setInterval(() => {
-  if (econ.accrued_now >= 1) return;
-  if (econ.seconds_to_next > 0) { econ.seconds_to_next -= 1; renderEconomy(); }
-  else loadEconomy();
-}, 1000);
-setInterval(loadEconomy, 30000);
-
-// ---------- ПАЛИТРЫ ----------
-function closeAllPalettes() { ['palette','block-palette','size-palette'].forEach(id => $(id).classList.add('hidden')); }
-function buildFlagPalette() {
-  const grid = $('palette-grid'); grid.innerHTML = '';
-  for (const [key, hex] of Object.entries(FLAG_COLORS_CSS)) {
-    const dot = document.createElement('button');
-    dot.className = 'color-dot' + (key === myFlagColor ? ' selected' : '');
-    dot.style.background = hex;
-    dot.addEventListener('click', () => pickFlagColor(key));
-    grid.appendChild(dot);
-  }
-}
-function buildBlockPalette() {
-  const grid = $('block-palette-grid'); grid.innerHTML = '';
-  for (const [key, hex] of Object.entries(BLOCK_COLORS_CSS)) {
-    const dot = document.createElement('button');
-    dot.className = 'color-dot' + (key === selectedBlockColor ? ' selected' : '');
-    dot.style.background = hex;
-    dot.addEventListener('click', () => {
-      selectedBlockColor = key; updateBlockSwatch(); closeAllPalettes();
-    });
-    grid.appendChild(dot);
-  }
-}
-function sizePrice(s) { return WOOD_BASE_COST * s.sx * s.sy * s.sz; }
-function buildSizePalette() {
-  const grid = $('size-grid'); grid.innerHTML = '';
-  for (const s of BLOCK_SIZES) {
-    const btn = document.createElement('button');
-    btn.className = 'size-btn' + (s.key === selectedSize.key ? ' selected' : '');
-    const glyph = document.createElement('span'); glyph.className = 'glyph'; glyph.textContent = s.label;
-    const price = document.createElement('span'); price.className = 'price'; price.textContent = sizePrice(s) + '⚡';
-    btn.append(glyph, price);
-    btn.addEventListener('click', () => {
-      selectedSize = s;
-      rotated = false;
-      vertical = false;
-      updateSizeLabel(); updateGhostGeometry(); updateRotateButton();
-      closeAllPalettes();
-    });
-    grid.appendChild(btn);
-  }
-}
-function updateSizeLabel() { $('size-label').textContent = selectedSize.label; }
-function togglePalette(id) {
-  const wasHidden = $(id).classList.contains('hidden');
-  closeAllPalettes();
-  if (!wasHidden) return;
-  if (id === 'palette') buildFlagPalette();
-  if (id === 'block-palette') buildBlockPalette();
-  if (id === 'size-palette') buildSizePalette();
-  $(id).classList.remove('hidden');
-}
-async function pickFlagColor(key) {
-  try {
-    const res = await api('/api/v1/me/flag-color', { method:'POST', body: JSON.stringify({ color:key }) });
-    myFlagColor = res.flag_color;
-    if (mode !== 'raid') setFlagVisual(currentFlagHp, currentFlagMax, myFlagColor);
-    closeAllPalettes();
-    toast(t('flagColorChanged'), 'tip');
-  } catch (e) { toast(e.message, 'error'); }
-}
-
-// ---------- МИР ----------
-function blockLabel(isl) {
-  switch (isl.raid_block_reason) {
-    case 'TARGET_SHIELDED': return '🛡 ' + fmtTime(isl.shield_seconds_left);
-    case 'COOLDOWN_ACTIVE': return '⏳ ' + fmtTime(isl.cooldown_seconds_left);
-    case 'TARGET_IS_SELF': return t('yourIsland');
-    default: return isl.raid_block_reason || '';
-  }
-}
-function makeIslandRow(isl) {
-  const row = document.createElement('button');
-  row.className = 'island-row' + (isl.can_raid ? '' : ' locked');
-  const name = document.createElement('div'); name.className = 'island-name'; name.textContent = isl.username;
-  const meta = document.createElement('div'); meta.className = 'island-meta';
-  meta.textContent = `🧱 ${isl.cube_count} · ⚡ ${isl.potential_loot} · 🚩 ${isl.flag_hp}`;
-  row.append(name, meta);
-  if (!isl.can_raid) {
-    const badge = document.createElement('div'); badge.className = 'island-badge'; badge.textContent = blockLabel(isl);
-    row.appendChild(badge);
-  }
-  row.addEventListener('click', () => visitIsland(isl.user_id, isl.username));
-  return row;
-}
-async function openWorld() {
-  closeAllPalettes(); showScreen('world-screen');
-  const list = $('world-list'); list.innerHTML = '';
-  const note = document.createElement('div'); note.className = 'screen-note'; note.textContent = t('loading');
-  list.appendChild(note);
-  try {
-    const data = await api('/api/v1/islands?limit=50');
-    list.innerHTML = '';
-    if (!data.islands.length) {
-      const empty = document.createElement('div'); empty.className = 'screen-note'; empty.textContent = t('noone');
-      list.appendChild(empty); return;
-    }
-    for (const isl of data.islands) list.appendChild(makeIslandRow(isl));
-  } catch (e) {
-    list.innerHTML = '';
-    const err = document.createElement('div'); err.className = 'screen-note'; err.textContent = t('error') + ': ' + e.message;
-    list.appendChild(err);
-  }
-}
-async function visitIsland(userId, username) {
-  hideScreens(); fail(t('islandLoading') + ' ' + username + '...');
-  try {
-    const detail = await api(`/api/v1/islands/${userId}`);
-    targetUser = { user_id:userId, username };
-    resetCubes(); detail.cubes.forEach(addCube); refreshCounters();
-    setFlagVisual(detail.flag.hp, detail.flag.max_hp, detail.flag.color);
-    placeMinionInitial();
-    $('target-name').textContent = username;
-    setMode('visit'); ok();
-  } catch (e) { ok(); toast(e.message, 'error'); }
-}
-
-// ---------- РЕЙД ----------
-function pickCharge(cube) {
-  const hp = Math.max(0, cube.hp | 0);
-  const bal = econ.ether_balance | 0;
-  let want = 1;
-  if (hp > 25) want = 2;
-  if (hp > 75) want = 3;
-  while (want > 1 && bal < CHARGE_COST[want]) want--;
-  return want;
-}
-
-async function startRaid() {
-  if (!targetUser) return;
-  fail(t('raidStart'));
-  try {
-    const res = await api(`/api/v1/raids/${targetUser.user_id}/start`, { method:'POST' });
-    raidId = res.raid_id;
-    flagWasOpen = false;
-    applyFlagState(res.flag_state);
-    $('ether').textContent = res.ether_balance; econ.ether_balance = res.ether_balance;
-    const detail = await api(`/api/v1/islands/${targetUser.user_id}`);
-    resetCubes(); detail.cubes.forEach(addCube); refreshCounters();
-    setFlagVisual(detail.flag.hp, detail.flag.max_hp, detail.flag.color);
-    placeMinionInitial();
-    setMode('raid'); updateFlagButton(); ok(); toast(t('raidStartOk'), 'tip');
-  } catch (e) { ok(); toast(e.message, 'error'); }
-}
-function raidGone(e) {
-  if (e.code === 'RAID_NOT_FOUND' || e.code === 'RAID_ALREADY_FINISHED') {
-    toast(t('raidFinished'), 'warn'); raidId = null; setTimeout(returnHome, 1200); return true;
-  }
-  return false;
-}
-async function attackCube(cube) {
-  if (!raidId || attacking) return;
-  const charge = pickCharge(cube);
-  attacking = true;
-  try {
-    const res = await api(`/api/v1/raids/${raidId}/attack-cube`, {
-      method:'POST', headers:{ 'Idempotency-Key': uid() },
-      body: JSON.stringify({ cube_id: cube.id, charge }),
-    });
-    $('ether').textContent = res.ether_balance; econ.ether_balance = res.ether_balance;
-    if (res.cube.destroyed) {
-      removeCube(res.cube.id);
-      minion.panicBoost = 3;
-      minion.path = [];
-    } else updateCubeHp(res.cube.id, res.cube.hp);
-    for (const c of res.collapsed) removeCube(c.id);
-    refreshCounters();
-    if (res.flag_state) applyFlagState(res.flag_state);
-  } catch (e) { if (!raidGone(e)) toast(e.message, 'error'); }
-  finally { attacking = false; }
-}
-async function attackFlag() {
-  if (!raidId || attacking) return;
-
-  if (raidFlagState && !raidFlagState.can_attack) {
-    toast(flagLockedMessage(raidFlagState), 'error');
-    return;
-  }
-
-  attacking = true;
-  try {
-    const res = await api(`/api/v1/raids/${raidId}/attack-flag`, {
-      method:'POST', headers:{ 'Idempotency-Key': uid() },
-    });
-    $('ether').textContent = res.ether_balance; econ.ether_balance = res.ether_balance;
-    setFlagVisual(res.flag_hp, res.flag_max_hp);
-    if (res.flag_state) applyFlagState(res.flag_state);
-    if (res.flag_destroyed && res.loot) {
-      raidId = null;
-      $('loot-stolen').textContent = res.loot.stolen_ether;
-      $('loot-balance').textContent = res.loot.attacker_balance;
-      showScreen('loot-screen');
-    } else toast('−' + res.damage + ' ' + t('dmgyou'), 'tip');
-  } catch (e) {
-    if (!raidGone(e)) {
-      if (e.code === 'FLAG_PROTECTED' && e.details) applyFlagState(e.details);
-      toast(e.code === 'FLAG_PROTECTED' ? flagLockedMessage(e.details) : e.message, 'error');
-    }
-  }
-  finally { attacking = false; }
-}
-async function leaveRaid() {
-  if (raidId) { try { await api(`/api/v1/raids/${raidId}/finish`, { method:'POST' }); } catch (e) {} }
-  await returnHome();
-}
-
-// ---------- ТАПЫ ----------
-let pointerStart = null;
-const TAP_MAX_MOVE = 8, TAP_MAX_TIME = 400;
-renderer.domElement.addEventListener('pointerdown', (ev) => {
-  if (ev.button !== 0) return;
-  pointerStart = { x:ev.clientX, y:ev.clientY, t:performance.now(), id:ev.pointerId };
-});
-renderer.domElement.addEventListener('pointercancel', () => { pointerStart = null; });
-renderer.domElement.addEventListener('pointerup', async (ev) => {
-  if (!pointerStart || ev.pointerId !== pointerStart.id) return;
-  const moved = Math.hypot(ev.clientX - pointerStart.x, ev.clientY - pointerStart.y);
-  const elapsed = performance.now() - pointerStart.t;
-  pointerStart = null;
-  if (moved > TAP_MAX_MOVE || elapsed > TAP_MAX_TIME) return;
-  if (loading) return;
-  if (camAnim.active) return;
-  if (!$('tip-screen').classList.contains('hidden')) return;
-
-  const ndcX = (ev.clientX / innerWidth) * 2 - 1;
-  const ndcY = -(ev.clientY / innerHeight) * 2 + 1;
-
-  raycaster.setFromCamera({ x:ndcX, y:ndcY }, camera);
-  const minionHits = raycaster.intersectObjects(minionHitMeshes, false);
-  if (minionHits.length) {
-    if (minion.mood === 'panic') { toast(t('minionPanic'), 'warn'); return; }
-    openTip();
-    return;
-  }
-
-  if (mode === 'own' && demolishMode) return handleDemolishTap(ndcX, ndcY);
-  if (mode === 'own' && buildMode) return handleBuildTap();
-  if (mode === 'raid') return handleRaidTap(ndcX, ndcY);
-});
-
-async function handleBuildTap() {
-  const p = computePlacement(aimPoint.x, aimPoint.y);
-  if (!p) return;
-  if (!p.valid) { toast(p.reason, 'error'); return; }
-  try {
-    const res = await api('/api/v1/build/cube', {
-      method:'POST',
-      body: JSON.stringify({
-        x:p.x, y:p.y, z:p.z,
-        size_x:p.sx, size_y:p.sy, size_z:p.sz,
-        cube_type:'wood', color: selectedBlockColor,
-      }),
-    });
-    addCube(res.cube);
-    $('ether').textContent = res.ether_balance;
-    econ.ether_balance = res.ether_balance;
-    $('cubes').textContent = res.island_cube_count;
-  } catch (e) { toast(e.message, 'error'); }
-}
-async function handleDemolishTap(ndcX, ndcY) {
-  raycaster.setFromCamera({ x:ndcX, y:ndcY }, camera);
-  const hits = raycaster.intersectObjects([...cubeMeshes.values()], false);
-  if (!hits.length) return;
-  const cube = hits[0].object.userData.cube;
-  try {
-    const res = await api(`/api/v1/build/cube/${cube.id}`, { method:'DELETE' });
-    for (const c of res.removed) removeCube(c.id);
-    refreshCounters();
-    $('ether').textContent = res.ether_balance;
-    econ.ether_balance = res.ether_balance;
-    toast('+' + res.ether_refunded + ' ' + t('refund'), 'tip');
-  } catch (e) { toast(e.message, 'error'); }
-}
-async function handleRaidTap(ndcX, ndcY) {
-  raycaster.setFromCamera({ x:ndcX, y:ndcY }, camera);
-  const targets = [...cubeMeshes.values(), ...flagGroup.children];
-  const hits = raycaster.intersectObjects(targets, false);
-  if (!hits.length) return;
-  const obj = hits[0].object;
-  if (flagGroup.children.includes(obj)) { await attackFlag(); return; }
-  await attackCube(obj.userData.cube);
-}
-
-// ---------- КНОПКИ ----------
-$('claim-btn').addEventListener('click', claimEther);
-$('reload').addEventListener('click', () => loadOwnIsland().catch(e => toast(e.message, 'error')));
-$('btn-build').addEventListener('click', () => setBuildMode(!buildMode));
-$('btn-demolish').addEventListener('click', () => setDemolish(!demolishMode));
-$('btn-size').addEventListener('click', () => togglePalette('size-palette'));
-$('btn-rotate').addEventListener('click', () => {
-  if (!canRotate()) return;
-  rotated = !rotated;
-  if (rotated) vertical = false;   // повороты взаимоисключающие
-  updateGhostGeometry();
-  updateRotateButton();
-});
-$('btn-vertical').addEventListener('click', () => {
-  if (!canVertical()) return;
-  vertical = !vertical;
-  if (vertical) rotated = false;   // повороты взаимоисключающие
-  updateGhostGeometry();
-  updateRotateButton();
-});
-$('btn-block-color').addEventListener('click', () => togglePalette('block-palette'));
-$('btn-palette').addEventListener('click', () => togglePalette('palette'));
-$('btn-world').addEventListener('click', openWorld);
-$('world-close').addEventListener('click', hideScreens);
-$('btn-back').addEventListener('click', returnHome);
-$('btn-raid').addEventListener('click', startRaid);
-$('btn-flag').addEventListener('click', attackFlag);
-$('btn-leave').addEventListener('click', leaveRaid);
-$('loot-ok').addEventListener('click', returnHome);
-$('tip-ok').addEventListener('click', closeTip);
-$('onboard-ok').addEventListener('click', () => {
-  localStorage.setItem('adrift_onboarded', '1');
-  closeOnboard();
-});
-
-// ---------- ЦИКЛ ----------
-addEventListener('resize', () => {
-  camera.aspect = innerWidth / innerHeight;
-  camera.updateProjectionMatrix();
-  renderer.setSize(innerWidth, innerHeight);
-});
-
-let lastFrame = performance.now();
-
-function animate() {
-  requestAnimationFrame(animate);
-  const now = performance.now();
-  const dt = Math.min((now - lastFrame) / 1000, 0.1);
-  lastFrame = now;
-  const nowSec = now / 1000;
-
-  if (updateCameraAnim(dt)) {
-    camera.lookAt(controls.target);
-  } else {
-    controls.update();
-  }
-  flagGroup.rotation.y += 0.005;
-
-  if (minion.thinking && nowSec >= minion.thinkUntil) finishThinking();
-
-  updateMinion(dt);
-  updateBubbles(nowSec, dt);
-  updateGhost();
-
-  renderer.render(scene, camera);
-}
-animate();
-
-// ---------- СТАРТ ----------
-(async () => {
-  try {
-    applyI18n();
-    updateSizeLabel();
-    updateGhostGeometry();
-    updateRotateButton();
-    updateBlockSwatch();
-    await auth();
-    fail(t('loading'));
-    await loadMe();
-    await loadOwnIsland();
-    await loadEconomy();
-    setMode('own');
-    buildMode = true;
-    updatePanel();
-    ok();
-    pollRaidAlert();
-    if (!localStorage.getItem('adrift_onboarded')) showScreen('onboard-screen');
-  } catch (e) { fail(t('error') + ': ' + e.message); }
-})();
-</script>
-</body>
-</html>
+        rootY = Math.abs(Math.sin(t * 6)) * 0.06; break;
+      case 'kick': legLx = -0.8; armLx = -0.4; armRx = Math.PI + 0.3; break;
+      case 'whistle': armLx = -1.9; headZ = 0.06; headY = Math.sin(t * 3) * 0.05; break;
+      case 'think': armLx = -1.7; head
