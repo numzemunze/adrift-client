@@ -60,7 +60,6 @@
     transition: background .15s ease;
   }
 
-  /* Кнопка магазина с мини-превью текущего выбора */
   #btn-shop { position:relative; padding:10px 14px; }
   #btn-shop .shop-ico { font-size:16px; line-height:1; display:inline-block; vertical-align:middle; }
   #shop-mini {
@@ -70,6 +69,7 @@
     box-shadow:0 1px 4px rgba(0,0,0,.5);
     background:#c9a06a;
     transition: background .15s ease;
+    overflow:hidden;
   }
   #shop-mini svg { display:block; width:100%; height:100%; }
 
@@ -242,7 +242,7 @@
 <div class="bar" id="bottom">
   <button id="btn-build" class="primary icon" title="Build">🔨</button>
   <button id="btn-size" class="hidden">📐 <span id="size-label">1×1</span></button>
-  <button id="btn-rotate" class="hidden icon" title="Rotate H">↔️</button>
+  <button id="btn-rotate" class="hidden icon" title="Rotate">↔️</button>
   <button id="btn-vertical" class="hidden icon" title="Rotate V">↕️</button>
   <button id="btn-block-color" class="hidden icon" title="Block color"><span class="swatch" id="swatch-block"></span></button>
   <button id="btn-palette" class="hidden icon" title="Flag color">🎨</button>
@@ -377,7 +377,7 @@ const BLOCK_SIZES = [
 const SHOP_SHAPES = [
   { key: 'block',    name: 'Куб',     nameEn: 'Block',    info: 'Базовая форма',        infoEn: 'Base shape' },
   { key: 'half',     name: 'Плита',   nameEn: 'Half',     info: 'Дешевле, хрупкая',     infoEn: 'Cheaper, fragile' },
-  { key: 'triangle', name: 'Клин',    nameEn: 'Wedge',    info: 'Дёшево, крепко',       infoEn: 'Cheap, sturdy' },
+  { key: 'triangle', name: 'Клин',    nameEn: 'Wedge',    info: '4 стороны, дёшево',    infoEn: '4-way, cheap' },
   { key: 'circle',   name: 'Цилиндр', nameEn: 'Cylinder', info: 'Дороже, крепче',       infoEn: 'Pricier, tougher' },
 ];
 
@@ -413,9 +413,9 @@ const I18N = {
     raidAlertToast: 'На твой остров открыт рейд. Проверь Флаг.',
     onboardTitle: 'Добро пожаловать в ADRIFT',
     onboard1: '<b>1.</b> Ты уже в режиме стройки. Наведи камеру, увидишь полупрозрачный блок там, куда встанет куб.',
-    onboard2: '<b>2.</b> Зелёный значит можно ставить, красный значит нельзя. <b>📐</b> размер, <b>↔️</b> и <b>↕️</b> поворот блока.',
+    onboard2: '<b>2.</b> Зелёный значит можно ставить, красный значит нельзя. <b>📐</b> размер, <b>↔️</b> поворот на 90°.',
     onboard3: '<b>3.</b> <b>⚡</b> вверху, забери накопленный Эфир. <b>🎨</b> меняет цвет флага.',
-    onboard4: '<b>4.</b> Тапни по Буйку, он даст совет. <b>🌍</b> откроет список соседей. <b>🛒</b> — магазин форм и материалов.',
+    onboard4: '<b>4.</b> Тапни по Буйку, он даст совет. <b>🌍</b> откроет соседей. <b>🛒</b> — магазин.',
     onboardOk: 'Понятно, играем',
     loading: 'Загрузка...', login: 'Вход...', returning: 'Возвращаемся...',
     islandLoading: 'Загрузка острова',
@@ -442,7 +442,7 @@ const I18N = {
     tips: [
       { text: 'Наведи камеру на клетку и тапни по экрану. Там появится куб.', cond: 'always' },
       { text: 'Кнопка 📐 меняет размер блока. Большие блоки стоят дороже.', cond: 'always' },
-      { text: 'Кнопка ↔️ крутит блок по горизонтали, ↕️ ставит его на бок как столб.', cond: 'always' },
+      { text: 'Кнопка ↔️ поворачивает блок на 90°. У клина — 4 стороны.', cond: 'always' },
       { text: 'Тапни по верхней грани куба, и новый встанет сверху. Так строят башни.', cond: 'always' },
       { text: 'Кнопка 🗑 сносит куб. Половина Эфира вернётся в кошелёк.', cond: 'hasCubes' },
       { text: 'Эфир капает сам, примерно десять в час. Следи за кнопкой ⚡.', cond: 'always' },
@@ -485,9 +485,9 @@ const I18N = {
     raidAlertToast: 'A raid is open against your island. Check your Flag.',
     onboardTitle: 'Welcome to ADRIFT',
     onboard1: '<b>1.</b> You are already in build mode. Aim the camera, a translucent block shows where the cube will go.',
-    onboard2: '<b>2.</b> Green means you can place, red means you cannot. <b>📐</b> size, <b>↔️</b> and <b>↕️</b> rotate the block.',
+    onboard2: '<b>2.</b> Green means you can place, red means you cannot. <b>📐</b> size, <b>↔️</b> rotates 90°.',
     onboard3: '<b>3.</b> <b>⚡</b> at the top, claim accrued Ether. <b>🎨</b> changes the flag color.',
-    onboard4: '<b>4.</b> Tap the Buoy for a tip. <b>🌍</b> opens the list of neighbors. <b>🛒</b> is the shop for shapes and materials.',
+    onboard4: '<b>4.</b> Tap the Buoy for a tip. <b>🌍</b> opens neighbors. <b>🛒</b> is the shop.',
     onboardOk: 'Got it, let\'s play',
     loading: 'Loading...', login: 'Signing in...', returning: 'Returning...',
     islandLoading: 'Loading island',
@@ -514,7 +514,7 @@ const I18N = {
     tips: [
       { text: 'Aim the camera at a cell and tap the screen. A cube appears there.', cond: 'always' },
       { text: 'The 📐 button changes block size. Bigger blocks cost more.', cond: 'always' },
-      { text: '↔️ rotates the block around the vertical axis, ↕️ tips it on its side like a pillar.', cond: 'always' },
+      { text: '↔️ rotates the block 90°. The wedge has 4 sides.', cond: 'always' },
       { text: 'Tap the top face of a cube and the new one stacks on it. That is how towers are built.', cond: 'always' },
       { text: 'The 🗑 button removes a cube. Half the Ether comes back to you.', cond: 'hasCubes' },
       { text: 'Ether accrues by itself, about ten per hour. Watch the ⚡ button.', cond: 'always' },
@@ -608,7 +608,9 @@ let token = null, myId = null;
 let mode = 'own';
 let buildMode = true;
 let demolishMode = false;
-let rotated = false;
+// rotationStep: 0..3, вращение вокруг Y на 90° за шаг.
+// 0 = как выбрано, 1 = 90°, 2 = 180°, 3 = 270°.
+let rotationStep = 0;
 let vertical = false;
 let selectedBlockColor = 'wood';
 let selectedSize = BLOCK_SIZES[0];
@@ -744,8 +746,6 @@ function makeWoodTexture() {
 }
 const WOOD_TEXTURE = makeWoodTexture();
 
-// Железо: заклёпки по углам и серединам сторон, диагональный прокат,
-// вертикальный градиент-отблеск. Белая база — цвет задаёт материал.
 function makeIronTexture() {
   const size = 128;
   const canvas = document.createElement('canvas');
@@ -755,7 +755,6 @@ function makeIronTexture() {
   ctx.fillStyle = '#ffffff';
   ctx.fillRect(0, 0, size, size);
 
-  // Вертикальный градиент — «отблеск металла».
   const grad = ctx.createLinearGradient(0, 0, 0, size);
   grad.addColorStop(0.0, 'rgba(255,255,255,0.30)');
   grad.addColorStop(0.5, 'rgba(0,0,0,0.03)');
@@ -763,7 +762,6 @@ function makeIronTexture() {
   ctx.fillStyle = grad;
   ctx.fillRect(0, 0, size, size);
 
-  // Диагональный «прокат» — тонкие линии под 45°.
   ctx.strokeStyle = 'rgba(0,0,0,0.055)';
   ctx.lineWidth = 1;
   for (let i = -size; i < size * 2; i += 13) {
@@ -773,14 +771,11 @@ function makeIronTexture() {
     ctx.stroke();
   }
 
-  // Заклёпки: 4 по углам + 4 по серединам сторон.
   const rivet = (x, y, r) => {
-    // Тень снизу-справа
     ctx.fillStyle = 'rgba(0,0,0,0.4)';
     ctx.beginPath();
     ctx.arc(x + 0.7, y + 0.7, r, 0, Math.PI * 2);
     ctx.fill();
-    // Тело с бликом сверху-слева
     const g = ctx.createRadialGradient(x - r * 0.35, y - r * 0.35, 0.5, x, y, r);
     g.addColorStop(0, 'rgba(255,255,255,0.95)');
     g.addColorStop(0.6, 'rgba(200,200,200,0.85)');
@@ -789,7 +784,6 @@ function makeIronTexture() {
     ctx.beginPath();
     ctx.arc(x, y, r, 0, Math.PI * 2);
     ctx.fill();
-    // Тёмная обводка
     ctx.strokeStyle = 'rgba(0,0,0,0.28)';
     ctx.lineWidth = 1;
     ctx.beginPath();
@@ -806,7 +800,6 @@ function makeIronTexture() {
   rivet(pad, size / 2, R2);
   rivet(size - pad, size / 2, R2);
 
-  // Царапины — короткие светлые штрихи.
   ctx.strokeStyle = 'rgba(255,255,255,0.35)';
   ctx.lineWidth = 0.8;
   for (let i = 0; i < 6; i++) {
@@ -841,6 +834,10 @@ function effectiveMaterial(c) {
 }
 
 // ---------- ГЕОМЕТРИЯ ПО ФОРМЕ ----------
+// ВАЖНО: localDims() ниже возвращает "до-поворотные" размеры. Меш вращается
+// через rotation.y, и его мировой AABB становится (sx_world, sy, sz_world).
+// Для box/circle/half вращение не влияет на форму (квадрат остаётся квадратом),
+// а для клина (triangle) — это единственный способ показать 4 стороны.
 function shapeGeometry(shape, sx, sy, sz) {
   if (shape === 'triangle') {
     const g = new THREE.CylinderGeometry(0.5, 0.5, 1, 3, 1);
@@ -859,10 +856,16 @@ function shapeGeometry(shape, sx, sy, sz) {
   return new THREE.BoxGeometry(sx, sy, sz);
 }
 
+// "Локальные" размеры для построения геометрии. Для нечётных шагов поворота
+// они совпадают с мировым AABB, но в порядке ДО вращения. Поэтому клин при
+// повороте на 90° не «сжимается», а честно поворачивается вместе с формой.
+function localDims(size_x, size_y, size_z, rotation) {
+  if (rotation % 2 === 1) return { sx: size_z, sy: size_y, sz: size_x };
+  return { sx: size_x, sy: size_y, sz: size_z };
+}
+
 // ---------- МАТЕРИАЛ БЛОКА ----------
 function effectiveColorHex(material, color) {
-  // Для железа дефолтный «древесный» цвет заменяем на металлический серый,
-  // чтобы блок читался как железный. Если игрок выбрал цвет явно — уважаем.
   if (material === 'iron' && (!color || color === 'wood')) return 0x9aa4ad;
   return BLOCK_COLORS_HEX[color] || BLOCK_COLORS_HEX.wood;
 }
@@ -878,6 +881,7 @@ function makeCubeMaterial(material, color) {
 const cubeMeshes = new Map();
 let blockedGround = new Set();
 
+// Мировой AABB блока: x,y,z — минимальный угол, размеры уже с учётом поворота.
 function cubeCenter(c) {
   const sx = c.size_x||1, sy = c.size_y||1, sz = c.size_z||1;
   const isHalf = ((c.shape || effectiveShape(c)) === 'half');
@@ -899,17 +903,30 @@ function rebuildBlockedGround() {
     }
   }
 }
+function buildCubeMesh(shape, sxWorld, syWorld, szWorld, material, color, rotation) {
+  const { sx, sy, sz } = localDims(sxWorld, syWorld, szWorld, rotation);
+  const geo = shapeGeometry(shape, sx, sy, sz);
+  const mesh = new THREE.Mesh(geo, makeCubeMaterial(material, color));
+  if (shape === 'triangle' && rotation) {
+    mesh.rotation.y = rotation * Math.PI / 2;
+  }
+  return mesh;
+}
 function addCube(c) {
   if (cubeMeshes.has(c.id)) return;
   const color = c.color || 'wood';
   const shape = effectiveShape(c);
   const material = effectiveMaterial(c);
   const sx = c.size_x||1, sy = c.size_y||1, sz = c.size_z||1;
-  const geo = shapeGeometry(shape, sx, sy, sz);
-  const mesh = new THREE.Mesh(geo, makeCubeMaterial(material, color));
+  const rotation = ((c.rotation|0) % 4 + 4) % 4;
+
+  const mesh = buildCubeMesh(shape, sx, sy, sz, material, color, rotation);
   const cc = cubeCenter({ ...c, shape, material, size_x:sx, size_y:sy, size_z:sz });
   mesh.position.set(cc.x, cc.y, cc.z);
-  mesh.userData.cube = { ...c, color, shape, material, size_x:sx, size_y:sy, size_z:sz };
+  mesh.userData.cube = {
+    ...c, color, shape, material,
+    size_x:sx, size_y:sy, size_z:sz, rotation,
+  };
   scene.add(mesh); cubeMeshes.set(c.id, mesh);
   paintCube(mesh);
   rebuildBlockedGround();
@@ -1556,22 +1573,30 @@ const ghostMat = new THREE.MeshBasicMaterial({
 const ghost = new THREE.Mesh(new THREE.BoxGeometry(1,1,1), ghostMat);
 ghost.visible = false; scene.add(ghost);
 
+// Мировой AABB с учётом rotationStep и vertical.
 function effFootprint() {
   const s = selectedSize;
   if (vertical) return { sx: s.sy, sy: s.sx, sz: s.sz };
-  if (rotated)  return { sx: s.sz, sy: s.sy, sz: s.sx };
+  if (rotationStep % 2 === 1) return { sx: s.sz, sy: s.sy, sz: s.sx };
   return { sx: s.sx, sy: s.sy, sz: s.sz };
 }
 function canRotate() {
-  return selectedSize.sx !== selectedSize.sz && selectedSize.sy === 1;
+  if (selectedShape === 'triangle') return true;
+  return selectedSize.sx !== selectedSize.sz;
 }
 function canVertical() {
   return selectedSize.sy === 1 && selectedSize.sx * selectedSize.sz > 1;
 }
 function updateGhostGeometry() {
-  const { sx, sy, sz } = effFootprint();
+  const { sx: sxW, sy: syW, sz: szW } = effFootprint();
+  // Для призрака используем те же размеры, что реальный блок, и то же вращение.
+  const effectiveRotation = vertical ? 0 : rotationStep;
+  const { sx, sy, sz } = localDims(sxW, syW, szW, effectiveRotation);
   ghost.geometry.dispose();
   ghost.geometry = shapeGeometry(selectedShape, sx, sy, sz);
+  ghost.rotation.y = (selectedShape === 'triangle' && effectiveRotation)
+    ? effectiveRotation * Math.PI / 2
+    : 0;
 }
 function updateRotateButton() {
   const btnH = $('btn-rotate');
@@ -1581,7 +1606,7 @@ function updateRotateButton() {
   btnV.textContent = '↕️';
   btnH.classList.toggle('hidden', !canRotate() || !on);
   btnV.classList.toggle('hidden', !canVertical() || !on);
-  btnH.classList.toggle('rot-on', rotated);
+  btnH.classList.toggle('rot-on', rotationStep !== 0);
   btnV.classList.toggle('rot-on', vertical);
 }
 function updateBlockSwatch() {
@@ -1594,20 +1619,15 @@ const hitPoint = new THREE.Vector3();
 const normalMatrix = new THREE.Matrix3();
 const projVec = new THREE.Vector3();
 
-// Единая точка прицела. ОБНОВЛЯЕТСЯ и для тача, и для мыши — на pointerdown
-// и pointermove. Ghost и постановка используют ЭТУ ЖЕ точку, поэтому
-// расхождения «где призрак / где поставилось» быть не может.
 const aimPoint = { x: 0, y: 0 };
 function updateAimFromClient(clientX, clientY) {
   aimPoint.x = (clientX / innerWidth) * 2 - 1;
   aimPoint.y = -(clientY / innerHeight) * 2 + 1;
 }
 window.addEventListener('pointermove', (ev) => {
-  // Для всех типов указателя — на телефоне это тоже приходит во время drag'а.
   updateAimFromClient(ev.clientX, ev.clientY);
 });
 window.addEventListener('pointerdown', (ev) => {
-  // На таче тап — основное событие, pointermove может не успеть. Ставим сразу.
   updateAimFromClient(ev.clientX, ev.clientY);
 }, true);
 
@@ -1695,12 +1715,12 @@ function updateGhost() {
   const p = computePlacement(aimPoint.x, aimPoint.y);
   if (!p) { ghost.visible = false; priceEl.classList.add('hidden'); return; }
 
-  const cc = cubeCenter({
-    x: p.x, y: p.y, z: p.z,
-    shape: selectedShape, material: selectedMaterial,
-    size_x: p.sx, size_y: p.sy, size_z: p.sz,
-  });
-  ghost.position.set(cc.x, cc.y, cc.z);
+  // Центр = центр мирового AABB. При half-призраке опускаем на четверть вниз.
+  const isHalf = (selectedShape === 'half');
+  const cx = p.x + p.sx / 2;
+  const cy = p.y + (isHalf ? p.sy * 0.25 : p.sy / 2);
+  const cz = p.z + p.sz / 2;
+  ghost.position.set(cx, cy, cz);
   ghostMat.color.set(p.valid ? 0x22c55e : 0xef4444);
   ghost.visible = true;
 
@@ -1942,7 +1962,7 @@ function buildSizePalette() {
     btn.append(glyph, price);
     btn.addEventListener('click', () => {
       selectedSize = s;
-      rotated = false;
+      rotationStep = 0;
       vertical = false;
       updateSizeLabel(); updateGhostGeometry(); updateRotateButton();
       closeAllPalettes();
@@ -1990,7 +2010,6 @@ async function loadCatalog() {
   } catch (e) {}
 }
 
-// Мини-превью текущего выбора на кнопке 🛒 — материал + форма одним взглядом.
 function updateShopMini() {
   const el = $('shop-mini');
   if (!el) return;
@@ -2240,7 +2259,6 @@ const TAP_MAX_MOVE = 8, TAP_MAX_TIME = 400;
 renderer.domElement.addEventListener('pointerdown', (ev) => {
   if (ev.button !== 0) return;
   pointerStart = { x:ev.clientX, y:ev.clientY, t:performance.now(), id:ev.pointerId };
-  // Сразу двигаем призрак под палец — на телефоне pointermove может не успеть.
   updateAimFromClient(ev.clientX, ev.clientY);
   updateGhost();
 });
@@ -2271,13 +2289,12 @@ renderer.domElement.addEventListener('pointerup', async (ev) => {
   if (mode === 'raid') return handleRaidTap(ndcX, ndcY);
 });
 
-// ВАЖНО: координаты берём из aimPoint — той же точки, что использует ghost.
-// Куда смотрит призрак — туда и ставится блок. Никаких расхождений.
 async function handleBuildTap() {
   const p = computePlacement(aimPoint.x, aimPoint.y);
   if (!p) return;
   if (!p.valid) { toast(p.reason, 'error'); return; }
   try {
+    const effectiveRotation = vertical ? 0 : rotationStep;
     const res = await api('/api/v1/build/cube', {
       method:'POST',
       body: JSON.stringify({
@@ -2286,6 +2303,7 @@ async function handleBuildTap() {
         material: selectedMaterial,
         shape: selectedShape,
         color: selectedBlockColor,
+        rotation: effectiveRotation,
       }),
     });
     addCube(res.cube);
@@ -2326,15 +2344,16 @@ $('btn-demolish').addEventListener('click', () => setDemolish(!demolishMode));
 $('btn-size').addEventListener('click', () => togglePalette('size-palette'));
 $('btn-rotate').addEventListener('click', () => {
   if (!canRotate()) return;
-  rotated = !rotated;
-  if (rotated) vertical = false;
+  rotationStep = (rotationStep + 1) % 4;
+  // Поворот и «поставить на бок» конфликтуют — вертикальный сбрасываем.
+  vertical = false;
   updateGhostGeometry();
   updateRotateButton();
 });
 $('btn-vertical').addEventListener('click', () => {
   if (!canVertical()) return;
   vertical = !vertical;
-  if (vertical) rotated = false;
+  if (vertical) rotationStep = 0;
   updateGhostGeometry();
   updateRotateButton();
 });
@@ -2413,4 +2432,4 @@ animate();
 })();
 </script>
 </body>
- </html>
+</html>
