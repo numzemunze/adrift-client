@@ -170,6 +170,45 @@
   .size-btn .price { font-size:11px; opacity:.75; }
   .size-btn.selected { background:linear-gradient(180deg,#3b82f6,#2563eb); border-color:#60a5fa; }
 
+  /* ---------- Магазин ---------- */
+  .shop-section { margin-bottom:18px; }
+  .shop-label {
+    font-size:12px; color:rgba(255,255,255,.55);
+    text-transform:uppercase; letter-spacing:.9px; margin-bottom:10px;
+  }
+  .shop-grid { display:grid; grid-template-columns:repeat(2, 1fr); gap:10px; }
+  .shop-card {
+    display:flex; flex-direction:column; align-items:center; gap:6px;
+    background:rgba(255,255,255,.05);
+    border:2px solid rgba(255,255,255,.12);
+    border-radius:14px;
+    padding:12px 10px 10px;
+    cursor:pointer; font-family:inherit; color:#fff;
+    transition: transform .12s ease, border-color .15s, background .15s;
+  }
+  .shop-card:active { transform: scale(.96); }
+  .shop-card.selected { border-color:#3b82f6; background:rgba(59,130,246,.15); }
+  .card-preview {
+    width:72px; height:72px;
+    display:flex; align-items:center; justify-content:center;
+    animation: cardFloat 3.6s ease-in-out infinite;
+  }
+  .card-preview svg { width:100%; height:100%; filter: drop-shadow(0 4px 8px rgba(0,0,0,.45)); }
+  @keyframes cardFloat {
+    0%,100% { transform: translateY(0) rotate(-2deg); }
+    50%     { transform: translateY(-5px) rotate(2deg); }
+  }
+  .card-name { font-size:14px; font-weight:600; }
+  .card-info { font-size:11px; color:rgba(255,255,255,.6); text-align:center; line-height:1.3; min-height:28px; }
+  .card-price { font-size:12px; color:#fde68a; font-weight:600; }
+
+  .shop-summary {
+    text-align:center; font-size:15px; padding:12px;
+    background:rgba(255,255,255,.05); border-radius:12px;
+    margin-bottom:12px; color:rgba(255,255,255,.85);
+  }
+  .shop-summary b { color:#fde68a; }
+
   .hidden { display:none !important; }
 </style>
 </head>
@@ -196,6 +235,7 @@
   <button id="btn-block-color" class="hidden icon" title="Block color"><span class="swatch" id="swatch-block"></span></button>
   <button id="btn-palette" class="hidden icon" title="Flag color">🎨</button>
   <button id="btn-demolish" class="hidden icon" title="Demolish">🗑</button>
+  <button id="btn-shop" class="hidden icon" title="Shop">🛒</button>
   <button id="btn-world" class="icon" title="World">🌍</button>
   <button id="reload" class="icon" title="Reload">↻</button>
 </div>
@@ -272,6 +312,29 @@
   </div>
 </div>
 
+<div class="screen hidden" id="shop-screen">
+  <div class="screen-head">
+    <div class="screen-title" data-i18n="shopTitle">🛒 Магазин</div>
+    <button id="shop-close">✕</button>
+  </div>
+
+  <div class="shop-section">
+    <div class="shop-label" data-i18n="shopShape">1. Форма</div>
+    <div class="shop-grid" id="shop-shapes"></div>
+  </div>
+
+  <div class="shop-section">
+    <div class="shop-label" data-i18n="shopMaterial">2. Материал</div>
+    <div class="shop-grid" id="shop-materials"></div>
+  </div>
+
+  <div class="shop-summary" id="shop-summary"></div>
+  <button class="go big" id="shop-confirm" style="width:100%;justify-content:center;">
+    <span class="ico">🔨</span>
+    <span data-i18n="shopBuild">Строить</span>
+  </button>
+</div>
+
 <div id="toast" class="hidden"></div>
 <div id="status">Loading...<br><span id="err"></span></div>
 
@@ -292,9 +355,6 @@ const API_URL = 'https://adrift-backend-ys3i.onrender.com';
 
 const WOOD_BASE_COST = 10;
 
-// Запрещено строить в квадрате 3×3 вокруг Флага. Радиус = 1 означает клетки
-// от -1 до 1 по каждой оси. Так клиент не даёт поставить стену вплотную
-// и не вводит игрока в заблуждение: сервер отклонит то же самое.
 const FLAG_CLEAR_RADIUS = 1;
 
 const BLOCK_SIZES = [
@@ -303,6 +363,34 @@ const BLOCK_SIZES = [
   { key: '2x1x2', sx: 2, sy: 1, sz: 2, label: '2×2' },
   { key: '3x1x3', sx: 3, sy: 1, sz: 3, label: '3×3' },
 ];
+
+const SHOP_SHAPES = [
+  { key: 'block',    name: 'Куб',     nameEn: 'Block',    info: 'Базовая форма',        infoEn: 'Base shape' },
+  { key: 'half',     name: 'Плита',   nameEn: 'Half',     info: 'Дешевле, хрупкая',     infoEn: 'Cheaper, fragile' },
+  { key: 'triangle', name: 'Клин',    nameEn: 'Wedge',    info: 'Дёшево, крепко',       infoEn: 'Cheap, sturdy' },
+  { key: 'circle',   name: 'Цилиндр', nameEn: 'Cylinder', info: 'Дороже, крепче',       infoEn: 'Pricier, tougher' },
+];
+
+const SHOP_MATERIALS = [
+  { key: 'wood', name: 'Дерево', nameEn: 'Wood', info: 'Дёшево и сердито',             infoEn: 'Cheap and simple' },
+  { key: 'iron', name: 'Железо', nameEn: 'Iron', info: 'Втрое крепче, вчетверо дороже', infoEn: '3× tougher, 4× costlier' },
+];
+
+const MATERIAL_PALETTE = {
+  wood: { light: '#e0b183', mid: '#c08e5e', dark: '#a87d54' },
+  iron: { light: '#c3ccd4', mid: '#9aa4ad', dark: '#77818a' },
+};
+
+const FALLBACK_PRICES = {
+  wood_block:    { cost: 10, hp: 100 },
+  wood_half:     { cost: 5,  hp: 30  },
+  wood_triangle: { cost: 5,  hp: 40  },
+  wood_circle:   { cost: 12, hp: 70  },
+  iron_block:    { cost: 40, hp: 300 },
+  iron_half:     { cost: 20, hp: 90  },
+  iron_triangle: { cost: 20, hp: 120 },
+  iron_circle:   { cost: 48, hp: 210 },
+};
 
 const I18N = {
   ru: {
@@ -317,7 +405,7 @@ const I18N = {
     onboard1: '<b>1.</b> Ты уже в режиме стройки. Наведи камеру, увидишь полупрозрачный блок там, куда встанет куб.',
     onboard2: '<b>2.</b> Зелёный значит можно ставить, красный значит нельзя. <b>📐</b> размер, <b>↔️</b> и <b>↕️</b> поворот блока.',
     onboard3: '<b>3.</b> <b>⚡</b> вверху, забери накопленный Эфир. <b>🎨</b> меняет цвет флага.',
-    onboard4: '<b>4.</b> Тапни по Буйку, он даст совет. <b>🌍</b> откроет список соседей.',
+    onboard4: '<b>4.</b> Тапни по Буйку, он даст совет. <b>🌍</b> откроет список соседей. <b>🛒</b> — магазин форм и материалов.',
     onboardOk: 'Понятно, играем',
     loading: 'Загрузка...', login: 'Вход...', returning: 'Возвращаемся...',
     islandLoading: 'Загрузка острова',
@@ -337,6 +425,10 @@ const I18N = {
     occupied: 'Здесь уже стоит блок',
     noEther: 'Не хватает Эфира',
     outOfBounds: 'За границей острова',
+    shopTitle: '🛒 Магазин',
+    shopShape: '1. Форма',
+    shopMaterial: '2. Материал',
+    shopBuild: 'Строить',
     tips: [
       { text: 'Наведи камеру на клетку и тапни по экрану. Там появится куб.', cond: 'always' },
       { text: 'Кнопка 📐 меняет размер блока. Большие блоки стоят дороже.', cond: 'always' },
@@ -353,6 +445,9 @@ const I18N = {
       { text: 'Квадратик рядом с 📐 меняет цвет блока. Красный видно издалека.', cond: 'always' },
       { text: 'Заглядывай в ⚡ раз в час. Накопленное можно забрать одним тапом.', cond: 'always' },
       { text: 'Ставь блоки плотнее к Флагу, но вплотную нельзя.', cond: 'hasCubes' },
+      { text: 'Кнопка 🛒 открывает магазин. Там выбирают форму и материал блока.', cond: 'always' },
+      { text: 'Плита и клин стоят вдвое дешевле, но ломаются за пару ударов.', cond: 'always' },
+      { text: 'Железо вчетверо дороже дерева, зато втрое крепче.', cond: 'always' },
     ],
     foreignTips: [
       'Хозяин этого острова явно не любит гостей. Иди мимо.',
@@ -382,7 +477,7 @@ const I18N = {
     onboard1: '<b>1.</b> You are already in build mode. Aim the camera, a translucent block shows where the cube will go.',
     onboard2: '<b>2.</b> Green means you can place, red means you cannot. <b>📐</b> size, <b>↔️</b> and <b>↕️</b> rotate the block.',
     onboard3: '<b>3.</b> <b>⚡</b> at the top, claim accrued Ether. <b>🎨</b> changes the flag color.',
-    onboard4: '<b>4.</b> Tap the Buoy for a tip. <b>🌍</b> opens the list of neighbors.',
+    onboard4: '<b>4.</b> Tap the Buoy for a tip. <b>🌍</b> opens the list of neighbors. <b>🛒</b> is the shop for shapes and materials.',
     onboardOk: 'Got it, let\'s play',
     loading: 'Loading...', login: 'Signing in...', returning: 'Returning...',
     islandLoading: 'Loading island',
@@ -402,6 +497,10 @@ const I18N = {
     occupied: 'Already occupied',
     noEther: 'Not enough Ether',
     outOfBounds: 'Out of bounds',
+    shopTitle: '🛒 Shop',
+    shopShape: '1. Shape',
+    shopMaterial: '2. Material',
+    shopBuild: 'Build',
     tips: [
       { text: 'Aim the camera at a cell and tap the screen. A cube appears there.', cond: 'always' },
       { text: 'The 📐 button changes block size. Bigger blocks cost more.', cond: 'always' },
@@ -418,6 +517,9 @@ const I18N = {
       { text: 'The square next to 📐 changes the block color. Red is visible from far away.', cond: 'always' },
       { text: 'Check ⚡ once an hour. Accrued Ether is claimed with one tap.', cond: 'always' },
       { text: 'Place blocks closer to the Flag, but not flush.', cond: 'hasCubes' },
+      { text: 'The 🛒 button opens the shop. Pick a shape and a material there.', cond: 'always' },
+      { text: 'Half-blocks and wedges cost half, but break in a couple of hits.', cond: 'always' },
+      { text: 'Iron costs four times more than wood, but is three times tougher.', cond: 'always' },
     ],
     foreignTips: [
       'The owner clearly does not like guests. Move along.',
@@ -496,12 +598,13 @@ let token = null, myId = null;
 let mode = 'own';
 let buildMode = true;
 let demolishMode = false;
-// Повороты ВЗАИМОИСКЛЮЧАЮЩИЕ. rotated — длинная сторона по Z,
-// vertical — блок стоит как столб. Одновременно активна максимум одна.
 let rotated = false;
 let vertical = false;
 let selectedBlockColor = 'wood';
 let selectedSize = BLOCK_SIZES[0];
+let selectedShape = 'block';
+let selectedMaterial = 'wood';
+let catalog = {};
 let raidId = null;
 let raidFlagState = null;
 let flagWasOpen = false;
@@ -585,8 +688,6 @@ ground.position.y = -0.5; scene.add(ground);
 const grid = new THREE.GridHelper(64, 64, 0x3b82f6, 0x1e293b);
 grid.position.y = 0.01; scene.add(grid);
 
-// Подсветка запретной зоны вокруг Флага. Полупрозрачное кольцо, видно
-// только в режиме стройки. Рисуется чуть выше земли, чтобы не мерцало.
 const noBuildRing = new THREE.Mesh(
   new THREE.RingGeometry(FLAG_CLEAR_RADIUS * Math.SQRT2, FLAG_CLEAR_RADIUS * Math.SQRT2 + 0.08, 48),
   new THREE.MeshBasicMaterial({ color: 0xef4444, transparent: true, opacity: 0.45, side: THREE.DoubleSide, depthWrite: false })
@@ -633,6 +734,24 @@ function makeWoodTexture() {
 }
 const WOOD_TEXTURE = makeWoodTexture();
 
+// ---------- ГЕОМЕТРИЯ ПО ФОРМЕ ----------
+function shapeGeometry(shape, sx, sy, sz) {
+  if (shape === 'triangle') {
+    const r = Math.min(sx, sz) * 0.62;
+    const g = new THREE.CylinderGeometry(r, r, sy, 3, 1);
+    g.rotateY(Math.PI / 6);
+    return g;
+  }
+  if (shape === 'circle') {
+    const r = Math.min(sx, sz) * 0.5;
+    return new THREE.CylinderGeometry(r, r, sy, 16, 1);
+  }
+  if (shape === 'half') {
+    return new THREE.BoxGeometry(sx, sy * 0.5, sz);
+  }
+  return new THREE.BoxGeometry(sx, sy, sz);
+}
+
 // ---------- КУБЫ ----------
 const cubeMeshes = new Map();
 let blockedGround = new Set();
@@ -643,11 +762,15 @@ function makeCubeMaterial(color) {
     color: new THREE.Color(BLOCK_COLORS_HEX[color] || BLOCK_COLORS_HEX.wood),
   });
 }
-// Центр блока по его левому-нижнему углу и размерам. Ждёт ПОЛНЫЕ имена
-// size_x / size_y / size_z, потому что так приходит блок с сервера.
+// Центр блока. Полублок прижат к нижней грани клетки — центр смещён вниз.
 function cubeCenter(c) {
   const sx = c.size_x||1, sy = c.size_y||1, sz = c.size_z||1;
-  return { x: c.x + sx/2, y: c.y + sy/2, z: c.z + sz/2 };
+  const isHalf = (c.shape === 'half');
+  return {
+    x: c.x + sx/2,
+    y: c.y + (isHalf ? sy * 0.25 : sy/2),
+    z: c.z + sz/2,
+  };
 }
 function rebuildBlockedGround() {
   blockedGround = new Set();
@@ -664,11 +787,13 @@ function rebuildBlockedGround() {
 function addCube(c) {
   if (cubeMeshes.has(c.id)) return;
   const color = c.color || 'wood';
+  const shape = c.shape || 'block';
   const sx = c.size_x||1, sy = c.size_y||1, sz = c.size_z||1;
-  const mesh = new THREE.Mesh(new THREE.BoxGeometry(sx, sy, sz), makeCubeMaterial(color));
-  const cc = cubeCenter({ ...c, size_x:sx, size_y:sy, size_z:sz });
+  const geo = shapeGeometry(shape, sx, sy, sz);
+  const mesh = new THREE.Mesh(geo, makeCubeMaterial(color));
+  const cc = cubeCenter({ ...c, shape, size_x:sx, size_y:sy, size_z:sz });
   mesh.position.set(cc.x, cc.y, cc.z);
-  mesh.userData.cube = { ...c, color, size_x:sx, size_y:sy, size_z:sz };
+  mesh.userData.cube = { ...c, color, shape, size_x:sx, size_y:sy, size_z:sz };
   scene.add(mesh); cubeMeshes.set(c.id, mesh);
   paintCube(mesh);
   rebuildBlockedGround();
@@ -1210,8 +1335,6 @@ function updateCameraAnim(dt) {
 }
 
 // ---------- СОВЕТ БУЯ ----------
-// В гостях у чужого острова Буй рассказывает про ХОЗЯИНА, а не даёт советы
-// по твоей базе: игрок смотрит на чужой остров. На своём работает пул tips.
 function pickTip() {
   const bundle = I18N[lang];
 
@@ -1317,8 +1440,6 @@ const ghostMat = new THREE.MeshBasicMaterial({
 const ghost = new THREE.Mesh(new THREE.BoxGeometry(1,1,1), ghostMat);
 ghost.visible = false; scene.add(ghost);
 
-// Повороты ВЗАИМОИСКЛЮЧАЮЩИЕ. rotated — длинная сторона по Z,
-// vertical — блок встал на бок как столб. Одновременно активна одна.
 function effFootprint() {
   const s = selectedSize;
   if (vertical) return { sx: s.sy, sy: s.sx, sz: s.sz };
@@ -1334,7 +1455,7 @@ function canVertical() {
 function updateGhostGeometry() {
   const { sx, sy, sz } = effFootprint();
   ghost.geometry.dispose();
-  ghost.geometry = new THREE.BoxGeometry(sx, sy, sz);
+  ghost.geometry = shapeGeometry(selectedShape, sx, sy, sz);
 }
 function updateRotateButton() {
   const btnH = $('btn-rotate');
@@ -1393,15 +1514,13 @@ function computePlacement(ndcX, ndcY) {
     if (!raycaster.ray.intersectPlane(plane, hitPoint)) return null;
     x = Math.round(hitPoint.x - sx/2); y = 0; z = Math.round(hitPoint.z - sz/2);
   }
-  const price = WOOD_BASE_COST * sx * sy * sz;
+  const baseCost = cubeTypeInfo(selectedMaterial, selectedShape).cost;
+  const price = baseCost * sx * sy * sz;
 
-  // Границы сетки
   if (x < -32 || x + sx - 1 > 32 || z < -32 || z + sz - 1 > 32 || y < 0 || y + sy - 1 > 32) {
     return { x, y, z, sx, sy, sz, valid:false, reason: t('outOfBounds'), price };
   }
 
-  // Запрет строить в квадрате 3×3 вокруг Флага. Проверяем пересечение
-  // прямоугольников по X и Z. Y игнорируем: под и над Флагом тоже нельзя.
   const R = FLAG_CLEAR_RADIUS;
   if (
     x <= R && x + sx - 1 >= -R &&
@@ -1450,10 +1569,8 @@ function updateGhost() {
   const p = computePlacement(aimPoint.x, aimPoint.y);
   if (!p) { ghost.visible = false; priceEl.classList.add('hidden'); return; }
 
-  // Центр призрака считаем ПРЯМО ИЗ p, а не через cubeCenter(): та функция
-  // ждёт поля size_x/y/z, а у p они называются sx/sy/sz. Из-за этого раньше
-  // призрак всегда рисовался как 1×1×1 и у вертикальных блоков уезжал вниз.
-  ghost.position.set(p.x + p.sx / 2, p.y + p.sy / 2, p.z + p.sz / 2);
+  const cy = (selectedShape === 'half') ? p.y + p.sy * 0.25 : p.y + p.sy / 2;
+  ghost.position.set(p.x + p.sx / 2, cy, p.z + p.sz / 2);
   ghostMat.color.set(p.valid ? 0x22c55e : 0xef4444);
   ghost.visible = true;
 
@@ -1544,6 +1661,8 @@ function updatePanel() {
   $('btn-block-color').classList.toggle('hidden', !on);
   $('btn-palette').classList.toggle('hidden', !on);
   $('btn-demolish').classList.toggle('hidden', !on);
+  $('btn-shop').classList.toggle('hidden', !on);
+  $('btn-world').classList.toggle('hidden', on);
   $('reload').classList.toggle('hidden', on);
   $('target-pill').classList.toggle('hidden', mode === 'own');
   updateRotateButton();
@@ -1576,7 +1695,7 @@ function setDemolish(on) {
 }
 function showScreen(id) { $(id).classList.remove('hidden'); }
 function hideScreens() {
-  ['world-screen','loot-screen','onboard-screen','tip-screen'].forEach(id => $(id).classList.add('hidden'));
+  ['world-screen','loot-screen','onboard-screen','tip-screen','shop-screen'].forEach(id => $(id).classList.add('hidden'));
   closeAllPalettes();
 }
 function closeOnboard() {
@@ -1679,7 +1798,9 @@ function buildBlockPalette() {
     grid.appendChild(dot);
   }
 }
-function sizePrice(s) { return WOOD_BASE_COST * s.sx * s.sy * s.sz; }
+function sizePrice(s) {
+  return cubeTypeInfo(selectedMaterial, selectedShape).cost * s.sx * s.sy * s.sz;
+}
 function buildSizePalette() {
   const grid = $('size-grid'); grid.innerHTML = '';
   for (const s of BLOCK_SIZES) {
@@ -1716,6 +1837,118 @@ async function pickFlagColor(key) {
     closeAllPalettes();
     toast(t('flagColorChanged'), 'tip');
   } catch (e) { toast(e.message, 'error'); }
+}
+
+// ---------- МАГАЗИН ----------
+function cubeTypeInfo(material, shape) {
+  const key = `${material}_${shape}`;
+  const fromServer = catalog[key];
+  if (fromServer) return { cost: fromServer.cost, max_hp: fromServer.max_hp };
+  const fb = FALLBACK_PRICES[key];
+  if (fb) return { cost: fb.cost, max_hp: fb.hp };
+  return { cost: 10, max_hp: 100 };
+}
+
+async function loadCatalog() {
+  try {
+    const data = await api('/api/v1/build/catalog');
+    catalog = {};
+    for (const c of (data.cubes || [])) {
+      catalog[c.type] = { cost: c.cost, max_hp: c.max_hp };
+    }
+  } catch (e) {
+    // Тихо падаем на FALLBACK_PRICES: игра не должна блокироваться из-за каталога
+  }
+}
+
+function svgIsometric(shape, palette) {
+  const { light, mid, dark } = palette;
+  if (shape === 'half') {
+    return `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+      <path d="M50 30 L92 52 L50 74 L8 52 Z" fill="${light}"/>
+      <path d="M8 52 L50 74 L50 94 L8 72 Z" fill="${dark}"/>
+      <path d="M92 52 L50 74 L50 94 L92 72 Z" fill="${mid}"/>
+    </svg>`;
+  }
+  if (shape === 'triangle') {
+    return `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+      <path d="M50 10 L88 82 L12 82 Z" fill="${light}"/>
+      <path d="M50 10 L88 82 L88 92 L50 20 Z" fill="${mid}"/>
+      <path d="M12 82 L50 10 L50 20 L12 92 Z" fill="${dark}"/>
+    </svg>`;
+  }
+  if (shape === 'circle') {
+    return `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+      <path d="M 14 26 L 14 74 C 14 81.7 30.1 88 50 88 C 69.9 88 86 81.7 86 74 L 86 26 Z" fill="${mid}"/>
+      <ellipse cx="50" cy="74" rx="36" ry="14" fill="${dark}"/>
+      <ellipse cx="50" cy="26" rx="36" ry="14" fill="${light}"/>
+    </svg>`;
+  }
+  return `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+    <path d="M50 8 L92 30 L50 52 L8 30 Z" fill="${light}"/>
+    <path d="M8 30 L50 52 L50 94 L8 72 Z" fill="${dark}"/>
+    <path d="M92 30 L50 52 L50 94 L92 72 Z" fill="${mid}"/>
+  </svg>`;
+}
+
+function buildShop() {
+  const shapesEl = $('shop-shapes');
+  const matsEl = $('shop-materials');
+  shapesEl.innerHTML = '';
+  matsEl.innerHTML = '';
+
+  for (const s of SHOP_SHAPES) {
+    const info = cubeTypeInfo(selectedMaterial, s.key);
+    const btn = document.createElement('button');
+    btn.className = 'shop-card' + (s.key === selectedShape ? ' selected' : '');
+    btn.innerHTML = `
+      <div class="card-preview">${svgIsometric(s.key, MATERIAL_PALETTE[selectedMaterial])}</div>
+      <div class="card-name">${lang === 'ru' ? s.name : s.nameEn}</div>
+      <div class="card-info">${lang === 'ru' ? s.info : s.infoEn}</div>
+      <div class="card-price">${info.cost}⚡</div>
+    `;
+    btn.addEventListener('click', () => {
+      selectedShape = s.key;
+      buildShop();
+      updateGhostGeometry();
+    });
+    shapesEl.appendChild(btn);
+  }
+
+  for (const m of SHOP_MATERIALS) {
+    const info = cubeTypeInfo(m.key, selectedShape);
+    const btn = document.createElement('button');
+    btn.className = 'shop-card' + (m.key === selectedMaterial ? ' selected' : '');
+    btn.innerHTML = `
+      <div class="card-preview">${svgIsometric(selectedShape, MATERIAL_PALETTE[m.key])}</div>
+      <div class="card-name">${lang === 'ru' ? m.name : m.nameEn}</div>
+      <div class="card-info">${lang === 'ru' ? m.info : m.infoEn}</div>
+      <div class="card-price">${info.cost}⚡</div>
+    `;
+    btn.addEventListener('click', () => {
+      selectedMaterial = m.key;
+      buildShop();
+      updateGhostGeometry();
+    });
+    matsEl.appendChild(btn);
+  }
+
+  renderShopSummary();
+}
+
+function renderShopSummary() {
+  const info = cubeTypeInfo(selectedMaterial, selectedShape);
+  const s = SHOP_SHAPES.find(x => x.key === selectedShape);
+  const m = SHOP_MATERIALS.find(x => x.key === selectedMaterial);
+  const sName = lang === 'ru' ? s.name : s.nameEn;
+  const mName = lang === 'ru' ? m.name : m.nameEn;
+  $('shop-summary').innerHTML =
+    `<b>${sName}</b> · ${mName} · <b>${info.cost}⚡</b> · ${info.max_hp} HP`;
+}
+
+function openShop() {
+  buildShop();
+  showScreen('shop-screen');
 }
 
 // ---------- МИР ----------
@@ -1906,7 +2139,9 @@ async function handleBuildTap() {
       body: JSON.stringify({
         x:p.x, y:p.y, z:p.z,
         size_x:p.sx, size_y:p.sy, size_z:p.sz,
-        cube_type:'wood', color: selectedBlockColor,
+        material: selectedMaterial,
+        shape: selectedShape,
+        color: selectedBlockColor,
       }),
     });
     addCube(res.cube);
@@ -1948,19 +2183,22 @@ $('btn-size').addEventListener('click', () => togglePalette('size-palette'));
 $('btn-rotate').addEventListener('click', () => {
   if (!canRotate()) return;
   rotated = !rotated;
-  if (rotated) vertical = false;   // повороты взаимоисключающие
+  if (rotated) vertical = false;
   updateGhostGeometry();
   updateRotateButton();
 });
 $('btn-vertical').addEventListener('click', () => {
   if (!canVertical()) return;
   vertical = !vertical;
-  if (vertical) rotated = false;   // повороты взаимоисключающие
+  if (vertical) rotated = false;
   updateGhostGeometry();
   updateRotateButton();
 });
 $('btn-block-color').addEventListener('click', () => togglePalette('block-palette'));
 $('btn-palette').addEventListener('click', () => togglePalette('palette'));
+$('btn-shop').addEventListener('click', openShop);
+$('shop-close').addEventListener('click', hideScreens);
+$('shop-confirm').addEventListener('click', hideScreens);
 $('btn-world').addEventListener('click', openWorld);
 $('world-close').addEventListener('click', hideScreens);
 $('btn-back').addEventListener('click', returnHome);
@@ -2017,6 +2255,7 @@ animate();
     updateBlockSwatch();
     await auth();
     fail(t('loading'));
+    await loadCatalog();
     await loadMe();
     await loadOwnIsland();
     await loadEconomy();
