@@ -292,6 +292,11 @@ const API_URL = 'https://adrift-backend-ys3i.onrender.com';
 
 const WOOD_BASE_COST = 10;
 
+// Запрещено строить в квадрате 3×3 вокруг Флага. Радиус = 1 означает клетки
+// от -1 до 1 по каждой оси. Так клиент не даёт поставить стену вплотную
+// и не вводит игрока в заблуждение: сервер отклонит то же самое.
+const FLAG_CLEAR_RADIUS = 1;
+
 const BLOCK_SIZES = [
   { key: '1x1x1', sx: 1, sy: 1, sz: 1, label: '1×1' },
   { key: '2x1x1', sx: 2, sy: 1, sz: 1, label: '2×1' },
@@ -322,7 +327,7 @@ const I18N = {
     flagNeedPercent: 'Снеси ещё {need} наземных блоков, чтобы Флаг открылся. Сейчас {percent}%, порог {min}%.',
     flagNeedPath: 'К Флагу нет прохода: Буй не может подойти. Расчисти коридор шириной {width} клетки.',
     flagOpened: 'Флаг открыт. Бей по нему.',
-    flagReserved: 'Клетка Флага зарезервирована',
+    flagReserved: 'Слишком близко к Флагу',
     flagColorChanged: 'Цвет флага изменён',
     noone: 'Пока никого нет в твоём регионе',
     error: 'Ошибка',
@@ -347,7 +352,17 @@ const I18N = {
       { text: 'Главное — блоки на земле. Башни в воздухе в прогресс рейда не идут.', cond: 'always' },
       { text: 'Квадратик рядом с 📐 меняет цвет блока. Красный видно издалека.', cond: 'always' },
       { text: 'Заглядывай в ⚡ раз в час. Накопленное можно забрать одним тапом.', cond: 'always' },
-      { text: 'Ставь блоки плотнее к Флагу, там их сложнее разбить.', cond: 'hasCubes' },
+      { text: 'Ставь блоки плотнее к Флагу, но вплотную нельзя.', cond: 'hasCubes' },
+    ],
+    foreignTips: [
+      'Хозяин этого острова явно не любит гостей. Иди мимо.',
+      'Смотри, как он расставил стены. Может пригодиться.',
+      'Если соберёшься в рейд, сначала расчисти коридор шириной 2 клетки.',
+      'Пока рядом с Флагом стоят блоки, его не пробить.',
+      'Кто-то вложил в этот остров кучу эфира.',
+      'Хозяин часто бывает в отъезде, но это не точно.',
+      'Не подходи к Флагу без подготовки.',
+      'Тут могут быть ловушки. Смотри под ноги.',
     ],
     alertTips: [
       { text: 'На твой остров открыт рейд. Дострой блоки на земле, чтобы поднять процент сноса.', cond: 'alert' },
@@ -377,7 +392,7 @@ const I18N = {
     flagNeedPercent: 'Destroy {need} more ground blocks to open the Flag. Now {percent}%, threshold {min}%.',
     flagNeedPath: 'No path to the Flag: the Buoy cannot get through. Clear a corridor {width} cells wide.',
     flagOpened: 'The Flag is open. Hit it.',
-    flagReserved: 'Flag cell is reserved',
+    flagReserved: 'Too close to the Flag',
     flagColorChanged: 'Flag color changed',
     noone: 'Nobody in your region yet',
     error: 'Error',
@@ -402,7 +417,17 @@ const I18N = {
       { text: 'Ground blocks are what matters. Towers in the air do not count for raid progress.', cond: 'always' },
       { text: 'The square next to 📐 changes the block color. Red is visible from far away.', cond: 'always' },
       { text: 'Check ⚡ once an hour. Accrued Ether is claimed with one tap.', cond: 'always' },
-      { text: 'Place blocks closer to the Flag, they are harder to break there.', cond: 'hasCubes' },
+      { text: 'Place blocks closer to the Flag, but not flush.', cond: 'hasCubes' },
+    ],
+    foreignTips: [
+      'The owner clearly does not like guests. Move along.',
+      'See how he placed his walls. Might be useful.',
+      'If you plan a raid, clear a 2-cell wide corridor first.',
+      'The Flag is untouchable while blocks stay nearby.',
+      'Someone put a lot of ether into this island.',
+      'The owner is often away, but that is not certain.',
+      'Do not approach the Flag unprepared.',
+      'There might be traps here. Watch your step.',
     ],
     alertTips: [
       { text: 'A raid is open against your island. Add ground blocks to raise the destruction threshold.', cond: 'alert' },
@@ -471,9 +496,8 @@ let token = null, myId = null;
 let mode = 'own';
 let buildMode = true;
 let demolishMode = false;
-// Два независимых поворота. Горизонтальный меняет длинную сторону местами
-// (вдоль X или вдоль Z). Вертикальный переворачивает блок на бок: 2×1×1
-// становится 1×2×1, то есть столбом.
+// Повороты ВЗАИМОИСКЛЮЧАЮЩИЕ. rotated — длинная сторона по Z,
+// vertical — блок стоит как столб. Одновременно активна максимум одна.
 let rotated = false;
 let vertical = false;
 let selectedBlockColor = 'wood';
@@ -561,6 +585,17 @@ ground.position.y = -0.5; scene.add(ground);
 const grid = new THREE.GridHelper(64, 64, 0x3b82f6, 0x1e293b);
 grid.position.y = 0.01; scene.add(grid);
 
+// Подсветка запретной зоны вокруг Флага. Полупрозрачное кольцо, видно
+// только в режиме стройки. Рисуется чуть выше земли, чтобы не мерцало.
+const noBuildRing = new THREE.Mesh(
+  new THREE.RingGeometry(FLAG_CLEAR_RADIUS * Math.SQRT2, FLAG_CLEAR_RADIUS * Math.SQRT2 + 0.08, 48),
+  new THREE.MeshBasicMaterial({ color: 0xef4444, transparent: true, opacity: 0.45, side: THREE.DoubleSide, depthWrite: false })
+);
+noBuildRing.rotation.x = -Math.PI / 2;
+noBuildRing.position.y = 0.03;
+noBuildRing.visible = false;
+scene.add(noBuildRing);
+
 const flagGroup = new THREE.Group();
 const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.15,0.15,4,8), new THREE.MeshLambertMaterial({ color:0x94a3b8 }));
 pole.position.y = 2;
@@ -608,6 +643,8 @@ function makeCubeMaterial(color) {
     color: new THREE.Color(BLOCK_COLORS_HEX[color] || BLOCK_COLORS_HEX.wood),
   });
 }
+// Центр блока по его левому-нижнему углу и размерам. Ждёт ПОЛНЫЕ имена
+// size_x / size_y / size_z, потому что так приходит блок с сервера.
 function cubeCenter(c) {
   const sx = c.size_x||1, sy = c.size_y||1, sz = c.size_z||1;
   return { x: c.x + sx/2, y: c.y + sy/2, z: c.z + sz/2 };
@@ -806,6 +843,7 @@ const minion = {
   idleUntil: 0,
   facing: 0,
   lastTip: -1,
+  lastTipText: null,
   mood: 'calm',
   frozen: false,
   thinking: false,
@@ -817,6 +855,7 @@ const minion = {
   nextIdleAct: 0,
   idleAct: null,
   idleActUntil: 0,
+  pendingTip: null,
 };
 
 function setMinionFlagColor(color) {
@@ -1171,22 +1210,38 @@ function updateCameraAnim(dt) {
 }
 
 // ---------- СОВЕТ БУЯ ----------
+// В гостях у чужого острова Буй рассказывает про ХОЗЯИНА, а не даёт советы
+// по твоей базе: игрок смотрит на чужой остров. На своём работает пул tips.
 function pickTip() {
-  const alertTips = I18N[lang].alertTips || [];
-  const tips = I18N[lang].tips;
-  if (minion.mood === 'alert' && alertTips.length && Math.random() < 0.6) {
-    return alertTips[Math.floor(Math.random() * alertTips.length)].text;
+  const bundle = I18N[lang];
+
+  if (mode === 'visit') {
+    const pool = bundle.foreignTips || [];
+    if (!pool.length) return t('flagProtected');
+    let idx = Math.floor(Math.random() * pool.length);
+    if (pool[idx] === minion.lastTipText) idx = (idx + 1) % pool.length;
+    minion.lastTipText = pool[idx];
+    return pool[idx];
   }
+
+  const alertTips = bundle.alertTips || [];
+  const tips = bundle.tips;
+  if (minion.mood === 'alert' && alertTips.length && Math.random() < 0.6) {
+    const choice = alertTips[Math.floor(Math.random() * alertTips.length)];
+    minion.lastTipText = choice.text;
+    return choice.text;
+  }
+
   const hasCubes = cubeMeshes.size > 0;
-  const pool = tips.filter(tip => {
+  const filtered = tips.filter(tip => {
     if (tip.cond === 'hasCubes') return hasCubes;
     if (tip.cond === 'noCubes') return !hasCubes;
     return true;
   });
-  let idx = Math.floor(Math.random() * pool.length);
-  if (pool[idx].text === minion.lastTipText) idx = (idx + 1) % pool.length;
-  minion.lastTipText = pool[idx].text;
-  return pool[idx].text;
+  let idx = Math.floor(Math.random() * filtered.length);
+  if (filtered[idx].text === minion.lastTipText) idx = (idx + 1) % filtered.length;
+  minion.lastTipText = filtered[idx].text;
+  return filtered[idx].text;
 }
 
 function animateTipText(text) {
@@ -1212,7 +1267,7 @@ function animateTipText(text) {
 
 function openTip() {
   const text = pickTip();
-  minion.lastTipText = text;
+  minion.pendingTip = text;
   minion.frozen = true;
   minion.thinking = true;
   minion.thinkUntil = performance.now() / 1000 + THINK_TIME;
@@ -1262,19 +1317,19 @@ const ghostMat = new THREE.MeshBasicMaterial({
 const ghost = new THREE.Mesh(new THREE.BoxGeometry(1,1,1), ghostMat);
 ghost.visible = false; scene.add(ghost);
 
-// Итоговые размеры после двух поворотов. Порядок: сначала горизонтальный
-// (swap sx <-> sz), потом вертикальный (swap sx <-> sy). Оба поворота
-// независимы, объём не меняется, значит и цена не меняется.
+// Повороты ВЗАИМОИСКЛЮЧАЮЩИЕ. rotated — длинная сторона по Z,
+// vertical — блок встал на бок как столб. Одновременно активна одна.
 function effFootprint() {
   const s = selectedSize;
-  let a = s.sx, b = s.sy, c = s.sz;
-  if (rotated)  { const t = a; a = c; c = t; }
-  if (vertical) { const t = a; a = b; b = t; }
-  return { sx: a, sy: b, sz: c };
+  if (vertical) return { sx: s.sy, sy: s.sx, sz: s.sz };
+  if (rotated)  return { sx: s.sz, sy: s.sy, sz: s.sx };
+  return { sx: s.sx, sy: s.sy, sz: s.sz };
 }
-function canRotate() { return selectedSize.sx !== selectedSize.sz; }
+function canRotate() {
+  return selectedSize.sx !== selectedSize.sz && selectedSize.sy === 1;
+}
 function canVertical() {
-  return selectedSize.sx !== selectedSize.sy || selectedSize.sz !== selectedSize.sy;
+  return selectedSize.sy === 1 && selectedSize.sx * selectedSize.sz > 1;
 }
 function updateGhostGeometry() {
   const { sx, sy, sz } = effFootprint();
@@ -1285,10 +1340,10 @@ function updateRotateButton() {
   const btnH = $('btn-rotate');
   const btnV = $('btn-vertical');
   const on = buildMode && mode === 'own';
+  btnH.textContent = '↔️';
+  btnV.textContent = '↕️';
   btnH.classList.toggle('hidden', !canRotate() || !on);
   btnV.classList.toggle('hidden', !canVertical() || !on);
-  btnH.textContent = rotated ? '↕️' : '↔️';
-  btnV.textContent = '↕️';
   btnH.classList.toggle('rot-on', rotated);
   btnV.classList.toggle('rot-on', vertical);
 }
@@ -1339,12 +1394,22 @@ function computePlacement(ndcX, ndcY) {
     x = Math.round(hitPoint.x - sx/2); y = 0; z = Math.round(hitPoint.z - sz/2);
   }
   const price = WOOD_BASE_COST * sx * sy * sz;
+
+  // Границы сетки
   if (x < -32 || x + sx - 1 > 32 || z < -32 || z + sz - 1 > 32 || y < 0 || y + sy - 1 > 32) {
     return { x, y, z, sx, sy, sz, valid:false, reason: t('outOfBounds'), price };
   }
-  if (x <= 0 && 0 <= x+sx-1 && y <= 0 && 0 <= y+sy-1 && z <= 0 && 0 <= z+sz-1) {
+
+  // Запрет строить в квадрате 3×3 вокруг Флага. Проверяем пересечение
+  // прямоугольников по X и Z. Y игнорируем: под и над Флагом тоже нельзя.
+  const R = FLAG_CLEAR_RADIUS;
+  if (
+    x <= R && x + sx - 1 >= -R &&
+    z <= R && z + sz - 1 >= -R
+  ) {
     return { x, y, z, sx, sy, sz, valid:false, reason: t('flagReserved'), price };
   }
+
   for (const m of cubeMeshes.values()) {
     const c = m.userData.cube;
     const csx = c.size_x||1, csy = c.size_y||1, csz = c.size_z||1;
@@ -1376,17 +1441,25 @@ function computePlacement(ndcX, ndcY) {
 
 function updateGhost() {
   if (!buildMode || mode !== 'own' || demolishMode) {
-    ghost.visible = false; priceEl.classList.add('hidden'); return;
+    ghost.visible = false; priceEl.classList.add('hidden');
+    noBuildRing.visible = false;
+    return;
   }
+  noBuildRing.visible = true;
+
   const p = computePlacement(aimPoint.x, aimPoint.y);
   if (!p) { ghost.visible = false; priceEl.classList.add('hidden'); return; }
-  const cc = cubeCenter(p);
-  ghost.position.set(cc.x, cc.y, cc.z);
+
+  // Центр призрака считаем ПРЯМО ИЗ p, а не через cubeCenter(): та функция
+  // ждёт поля size_x/y/z, а у p они называются sx/sy/sz. Из-за этого раньше
+  // призрак всегда рисовался как 1×1×1 и у вертикальных блоков уезжал вниз.
+  ghost.position.set(p.x + p.sx / 2, p.y + p.sy / 2, p.z + p.sz / 2);
   ghostMat.color.set(p.valid ? 0x22c55e : 0xef4444);
   ghost.visible = true;
+
   priceEl.textContent = p.price + '⚡';
   priceEl.classList.toggle('bad', !p.valid);
-  projVec.set(cc.x, cc.y + p.sy/2 + 0.35, cc.z).project(camera);
+  projVec.set(p.x + p.sx / 2, p.y + p.sy + 0.35, p.z + p.sz / 2).project(camera);
   if (projVec.z > 1) { priceEl.classList.add('hidden'); return; }
   const px = (projVec.x * 0.5 + 0.5) * innerWidth;
   const py = (-projVec.y * 0.5 + 0.5) * innerHeight;
@@ -1617,8 +1690,6 @@ function buildSizePalette() {
     btn.append(glyph, price);
     btn.addEventListener('click', () => {
       selectedSize = s;
-      // Смена размера сбрасывает оба поворота: у нового блока своя
-      // геометрия, и старая ориентация к ней неприменима.
       rotated = false;
       vertical = false;
       updateSizeLabel(); updateGhostGeometry(); updateRotateButton();
@@ -1877,12 +1948,14 @@ $('btn-size').addEventListener('click', () => togglePalette('size-palette'));
 $('btn-rotate').addEventListener('click', () => {
   if (!canRotate()) return;
   rotated = !rotated;
+  if (rotated) vertical = false;   // повороты взаимоисключающие
   updateGhostGeometry();
   updateRotateButton();
 });
 $('btn-vertical').addEventListener('click', () => {
   if (!canVertical()) return;
   vertical = !vertical;
+  if (vertical) rotated = false;   // повороты взаимоисключающие
   updateGhostGeometry();
   updateRotateButton();
 });
@@ -1957,4 +2030,4 @@ animate();
 })();
 </script>
 </body>
- </html>
+</html>
