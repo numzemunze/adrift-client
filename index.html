@@ -8,21 +8,12 @@
   * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
   html,body { width:100%; height:100%; overflow:hidden; background:#0b1020; font-family:system-ui,-apple-system,sans-serif; color:#fff; }
   #app { position:fixed; inset:0; }
-
   .bar { position:fixed; left:0; right:0; padding:10px 12px; display:flex; gap:8px; align-items:center; z-index:10; pointer-events:none; flex-wrap:wrap; justify-content:center; }
   .bar * { pointer-events:auto; }
   #top { top:0; justify-content:flex-start; background:linear-gradient(180deg,rgba(11,16,32,.9),rgba(11,16,32,0)); }
-  #bottom, #bottom-visit, #bottom-raid {
-    bottom:0; background:linear-gradient(0deg,rgba(11,16,32,.92),rgba(11,16,32,0));
-    padding-bottom:14px;
-  }
-
+  #bottom, #bottom-visit, #bottom-raid { bottom:0; background:linear-gradient(0deg,rgba(11,16,32,.92),rgba(11,16,32,0)); padding-bottom:14px; }
   .bar.reveal { animation: barSlide .28s cubic-bezier(.2,.7,.3,1); }
-  @keyframes barSlide {
-    from { opacity:0; transform: translateY(18px); }
-    to   { opacity:1; transform: translateY(0); }
-  }
-
+  @keyframes barSlide { from { opacity:0; transform: translateY(18px); } to   { opacity:1; transform: translateY(0); } }
   .pill { background:rgba(255,255,255,.08); backdrop-filter:blur(8px); padding:6px 12px; border-radius:20px; font-size:14px; font-variant-numeric:tabular-nums; color:#fff; border:1px solid rgba(255,255,255,.1); font-family:inherit; }
   .pill b { color:#7dd3fc; }
   .pill-btn { display:flex; gap:8px; align-items:center; cursor:pointer; transition:background .15s; }
@@ -31,15 +22,7 @@
   .pill-btn.ready b { color:#fff; }
   #claim-hint { font-size:12px; opacity:.8; }
   #target-pill b { color:#fca5a5; }
-
-  button {
-    background:linear-gradient(180deg, rgba(255,255,255,.14), rgba(255,255,255,.06));
-    border:1px solid rgba(255,255,255,.16);
-    color:#fff; padding:11px 14px; border-radius:12px;
-    font-size:14px; font-weight:500; font-family:inherit; cursor:pointer;
-    box-shadow:0 2px 8px rgba(0,0,0,.25);
-    transition:transform .1s ease, background .15s ease, box-shadow .15s ease;
-  }
+  button { background:linear-gradient(180deg, rgba(255,255,255,.14), rgba(255,255,255,.06)); border:1px solid rgba(255,255,255,.16); color:#fff; padding:11px 14px; border-radius:12px; font-size:14px; font-weight:500; font-family:inherit; cursor:pointer; box-shadow:0 2px 8px rgba(0,0,0,.25); transition:transform .1s ease, background .15s ease, box-shadow .15s ease; }
   button:active { transform:scale(.94); background:rgba(255,255,255,.22); }
   button.on { background:linear-gradient(180deg,#3b82f6,#2563eb); border-color:#60a5fa; }
   button.locked { opacity:.5; }
@@ -52,56 +35,21 @@
   button.rot-on { background:linear-gradient(180deg,#3b82f6,#2563eb); border-color:#60a5fa; }
   button.big { padding:13px 20px; font-size:15px; display:flex; align-items:center; gap:9px; }
   button.big .ico { font-size:19px; line-height:1; }
-
-  .swatch {
-    display:block; width:22px; height:22px; border-radius:6px;
-    border:2px solid rgba(255,255,255,.5);
-    box-shadow: inset 0 1px 3px rgba(0,0,0,.4);
-    transition: background .15s ease;
-  }
-
+  .swatch { display:block; width:22px; height:22px; border-radius:6px; border:2px solid rgba(255,255,255,.5); box-shadow: inset 0 1px 3px rgba(0,0,0,.4); transition: background .15s ease; }
   #btn-shop { position:relative; padding:10px 14px; }
   #btn-shop .shop-ico { font-size:16px; line-height:1; display:inline-block; vertical-align:middle; }
-  #shop-mini {
-    position:absolute; right:-2px; bottom:-2px;
-    width:16px; height:16px; border-radius:4px;
-    border:1.5px solid rgba(255,255,255,.7);
-    box-shadow:0 1px 4px rgba(0,0,0,.5);
-    background:#c9a06a;
-    transition: background .15s ease;
-    overflow:hidden;
-  }
+  #shop-mini { position:absolute; right:-2px; bottom:-2px; width:16px; height:16px; border-radius:4px; border:1.5px solid rgba(255,255,255,.7); box-shadow:0 1px 4px rgba(0,0,0,.5); background:#c9a06a; transition: background .15s ease; overflow:hidden; }
   #shop-mini svg { display:block; width:100%; height:100%; }
-
-  #toast {
-    position:fixed; top:64px; left:50%; transform:translateX(-50%) translateY(-8px);
-    background:rgba(30,41,59,.96); backdrop-filter:blur(10px);
-    border:1px solid rgba(255,255,255,.14); border-radius:14px;
-    padding:12px 20px; font-size:14px; font-weight:500;
-    max-width:88vw; text-align:center; pointer-events:none; z-index:200;
-    box-shadow:0 8px 24px rgba(0,0,0,.4);
-    opacity:0; transition:opacity .2s ease, transform .2s ease;
-  }
+  #toast { position:fixed; top:64px; left:50%; transform:translateX(-50%) translateY(-8px); background:rgba(30,41,59,.96); backdrop-filter:blur(10px); border:1px solid rgba(255,255,255,.14); border-radius:14px; padding:12px 20px; font-size:14px; font-weight:500; max-width:88vw; text-align:center; pointer-events:none; z-index:200; box-shadow:0 8px 24px rgba(0,0,0,.4); opacity:0; transition:opacity .2s ease, transform .2s ease; }
   #toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
   #toast.error { background:rgba(127,29,29,.96); border-color:rgba(239,68,68,.5); }
   #toast.tip { background:rgba(21,128,61,.96); border-color:rgba(74,222,128,.5); }
   #toast.warn { background:rgba(120,53,15,.96); border-color:rgba(245,158,11,.55); }
-
-  #price-tag {
-    position:fixed; top:0; left:0;
-    background:rgba(17,26,51,.94); backdrop-filter:blur(6px);
-    padding:4px 10px; border-radius:10px;
-    font-size:13px; font-weight:600; color:#fde68a;
-    border:1px solid rgba(255,255,255,.18);
-    pointer-events:none; z-index:9; white-space:nowrap;
-    box-shadow:0 4px 14px rgba(0,0,0,.45);
-  }
+  #price-tag { position:fixed; top:0; left:0; background:rgba(17,26,51,.94); backdrop-filter:blur(6px); padding:4px 10px; border-radius:10px; font-size:13px; font-weight:600; color:#fde68a; border:1px solid rgba(255,255,255,.18); pointer-events:none; z-index:9; white-space:nowrap; box-shadow:0 4px 14px rgba(0,0,0,.45); }
   #price-tag.bad { color:#fca5a5; }
-
   #status { position:fixed; inset:0; display:flex; align-items:center; justify-content:center; text-align:center; padding:24px; background:#0b1020; z-index:100; font-size:16px; line-height:1.5; }
   #status.hidden { display:none; }
   #err { color:#fca5a5; font-size:13px; }
-
   .screen { position:fixed; inset:0; background:#0b1020; z-index:50; display:flex; flex-direction:column; padding:14px; overflow-y:auto; animation:fadeIn .25s ease-out; }
   @keyframes fadeIn { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
   .screen-head { display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; }
@@ -113,7 +61,6 @@
   .island-meta { font-size:13px; color:rgba(255,255,255,.7); }
   .island-badge { font-size:12px; color:#fca5a5; }
   .screen-note { text-align:center; color:rgba(255,255,255,.5); padding:32px 16px; }
-
   #loot-screen { align-items:center; justify-content:center; }
   .loot-card { background:#111a33; border:1px solid rgba(255,255,255,.15); border-radius:18px; padding:28px 24px; text-align:center; max-width:340px; width:100%; }
   .loot-emoji { font-size:48px; margin-bottom:8px; }
@@ -121,38 +68,17 @@
   .loot-row { font-size:15px; color:rgba(255,255,255,.8); margin-bottom:8px; }
   .loot-row b { color:#7dd3fc; font-size:18px; }
   .loot-card button { width:100%; margin-top:16px; }
-
   #onboard-screen { align-items:center; justify-content:center; }
-  .onboard-card {
-    background:#111a33; border:1px solid rgba(255,255,255,.15);
-    border-radius:18px; padding:24px 22px; max-width:360px; width:100%;
-    transition: transform .28s cubic-bezier(.3,.8,.4,1), opacity .28s ease;
-  }
-  #onboard-screen.closing .onboard-card {
-    transform: scale(.94) translateY(6px);
-    opacity: 0;
-  }
+  .onboard-card { background:#111a33; border:1px solid rgba(255,255,255,.15); border-radius:18px; padding:24px 22px; max-width:360px; width:100%; transition: transform .28s cubic-bezier(.3,.8,.4,1), opacity .28s ease; }
+  #onboard-screen.closing .onboard-card { transform: scale(.94) translateY(6px); opacity: 0; }
   #onboard-screen.closing { background: transparent; }
   .onboard-emoji { font-size:44px; text-align:center; margin-bottom:6px; }
   .onboard-title { font-size:19px; font-weight:700; text-align:center; margin-bottom:18px; }
   .onboard-step { font-size:14px; line-height:1.5; color:rgba(255,255,255,.85); margin-bottom:12px; }
   .onboard-step b { color:#7dd3fc; }
   .onboard-card button { width:100%; margin-top:6px; }
-
-  #tip-screen {
-    background:linear-gradient(0deg, rgba(11,16,32,.95) 0%, rgba(11,16,32,.55) 45%, rgba(11,16,32,0) 100%);
-    justify-content:flex-end;
-    align-items:center;
-    padding-bottom:36px;
-  }
-  .tip-card {
-    background:rgba(17,26,51,.97);
-    border:1px solid rgba(255,255,255,.18);
-    border-radius:18px;
-    padding:18px 20px 16px;
-    width:100%; max-width:440px;
-    box-shadow:0 14px 44px rgba(0,0,0,.6);
-  }
+  #tip-screen { background:linear-gradient(0deg, rgba(11,16,32,.95) 0%, rgba(11,16,32,.55) 45%, rgba(11,16,32,0) 100%); justify-content:flex-end; align-items:center; padding-bottom:36px; }
+  .tip-card { background:rgba(17,26,51,.97); border:1px solid rgba(255,255,255,.18); border-radius:18px; padding:18px 20px 16px; width:100%; max-width:440px; box-shadow:0 14px 44px rgba(0,0,0,.6); }
   .tip-head { display:flex; align-items:center; gap:10px; margin-bottom:10px; }
   .tip-dot { width:10px; height:10px; border-radius:50%; background:#7dd3fc; box-shadow:0 0 10px #7dd3fc; animation: tipPulse 1.6s ease-in-out infinite; }
   @keyframes tipPulse { 0%,100% { transform:scale(1); opacity:1; } 50% { transform:scale(1.35); opacity:.6; } }
@@ -162,83 +88,44 @@
   .tip-char { display:inline-block; opacity:0; animation: tipChar .32s ease-out forwards; }
   @keyframes tipChar { from { opacity:0; transform: translateY(7px) scale(.9); } to { opacity:1; transform: none; } }
   .tip-card button { width:100%; }
-
-  #palette, #block-palette, #size-palette {
-    position:fixed; bottom:78px; left:50%; transform:translateX(-50%);
-    background:rgba(17,26,51,.98); backdrop-filter:blur(12px);
-    border:1px solid rgba(255,255,255,.15); border-radius:16px;
-    padding:14px; z-index:60; box-shadow:0 12px 40px rgba(0,0,0,.6);
-    animation:popIn .18s ease-out;
-  }
+  #palette, #block-palette, #size-palette { position:fixed; bottom:78px; left:50%; transform:translateX(-50%); background:rgba(17,26,51,.98); backdrop-filter:blur(12px); border:1px solid rgba(255,255,255,.15); border-radius:16px; padding:14px; z-index:60; box-shadow:0 12px 40px rgba(0,0,0,.6); animation:popIn .18s ease-out; }
   @keyframes popIn { from { opacity:0; transform:translateX(-50%) scale(.92); } to { opacity:1; transform:translateX(-50%) scale(1); } }
   .palette-title { font-size:12px; color:rgba(255,255,255,.65); margin-bottom:10px; text-align:center; letter-spacing:.5px; text-transform:uppercase; }
   .palette-grid { display:grid; grid-template-columns:repeat(4, 1fr); gap:10px; }
   .color-dot { width:46px; height:46px; border-radius:12px; border:2px solid rgba(255,255,255,.2); cursor:pointer; padding:0; }
   .color-dot:active { transform:scale(.86); }
   .color-dot.selected { border-color:#fff; border-width:3px; }
-
   .size-grid { display:grid; grid-template-columns:repeat(2, 1fr); gap:10px; }
   .size-btn { display:flex; flex-direction:column; align-items:center; gap:4px; min-width:100px; padding:12px 10px; }
   .size-btn .glyph { font-family:ui-monospace,monospace; font-size:15px; font-weight:700; }
   .size-btn .price { font-size:11px; opacity:.75; }
   .size-btn.selected { background:linear-gradient(180deg,#3b82f6,#2563eb); border-color:#60a5fa; }
-
   .shop-section { margin-bottom:18px; }
-  .shop-label {
-    font-size:12px; color:rgba(255,255,255,.55);
-    text-transform:uppercase; letter-spacing:.9px; margin-bottom:10px;
-  }
+  .shop-label { font-size:12px; color:rgba(255,255,255,.55); text-transform:uppercase; letter-spacing:.9px; margin-bottom:10px; }
   .shop-grid { display:grid; grid-template-columns:repeat(2, 1fr); gap:10px; }
-  .shop-card {
-    display:flex; flex-direction:column; align-items:center; gap:6px;
-    background:rgba(255,255,255,.05);
-    border:2px solid rgba(255,255,255,.12);
-    border-radius:14px;
-    padding:12px 10px 10px;
-    cursor:pointer; font-family:inherit; color:#fff;
-    transition: transform .12s ease, border-color .15s, background .15s;
-  }
+  .shop-card { display:flex; flex-direction:column; align-items:center; gap:6px; background:rgba(255,255,255,.05); border:2px solid rgba(255,255,255,.12); border-radius:14px; padding:12px 10px 10px; cursor:pointer; font-family:inherit; color:#fff; transition: transform .12s ease, border-color .15s, background .15s; }
   .shop-card:active { transform: scale(.96); }
   .shop-card.selected { border-color:#3b82f6; background:rgba(59,130,246,.15); }
-  .card-preview {
-    width:72px; height:72px;
-    display:flex; align-items:center; justify-content:center;
-    animation: cardFloat 3.6s ease-in-out infinite;
-  }
+  .card-preview { width:72px; height:72px; display:flex; align-items:center; justify-content:center; animation: cardFloat 3.6s ease-in-out infinite; }
   .card-preview svg { width:100%; height:100%; filter: drop-shadow(0 4px 8px rgba(0,0,0,.45)); }
-  @keyframes cardFloat {
-    0%,100% { transform: translateY(0) rotate(-2deg); }
-    50%     { transform: translateY(-5px) rotate(2deg); }
-  }
+  @keyframes cardFloat { 0%,100% { transform: translateY(0) rotate(-2deg); } 50% { transform: translateY(-5px) rotate(2deg); } }
   .card-name { font-size:14px; font-weight:600; }
   .card-info { font-size:11px; color:rgba(255,255,255,.6); text-align:center; line-height:1.3; min-height:28px; }
   .card-price { font-size:12px; color:#fde68a; font-weight:600; }
-
-  .shop-summary {
-    text-align:center; font-size:15px; padding:12px;
-    background:rgba(255,255,255,.05); border-radius:12px;
-    margin-bottom:12px; color:rgba(255,255,255,.85);
-  }
+  .shop-summary { text-align:center; font-size:15px; padding:12px; background:rgba(255,255,255,.05); border-radius:12px; margin-bottom:12px; color:rgba(255,255,255,.85); }
   .shop-summary b { color:#fde68a; }
-
   .hidden { display:none !important; }
 </style>
 </head>
 <body>
 <div id="app"></div>
-
 <div class="bar" id="top">
-  <button class="pill pill-btn" id="claim-btn" title="Claim">
-    ⚡ <b id="ether">—</b>
-    <span id="claim-hint">…</span>
-  </button>
+  <button class="pill pill-btn" id="claim-btn" title="Claim">⚡ <b id="ether">—</b><span id="claim-hint">…</span></button>
   <div class="pill">🧱 <b id="cubes">—</b></div>
   <div class="pill">🚩 <b id="flag">—</b></div>
   <div class="pill hidden" id="target-pill">👁 <b id="target-name">—</b></div>
 </div>
-
 <div id="price-tag" class="hidden">10⚡</div>
-
 <div class="bar" id="bottom">
   <button id="btn-build" class="primary icon" title="Build">🔨</button>
   <button id="btn-size" class="hidden">📐 <span id="size-label">1×1</span></button>
@@ -251,46 +138,21 @@
   <button id="btn-world" class="icon" title="World">🌍</button>
   <button id="reload" class="icon" title="Reload">↻</button>
 </div>
-
 <div class="bar hidden" id="bottom-visit">
   <button id="btn-back" class="big"><span class="ico">↩</span><span data-i18n="back">Назад</span></button>
   <button id="btn-raid" class="danger big"><span class="ico">⚔️</span><span data-i18n="raid">Рейд</span></button>
 </div>
-
 <div class="bar hidden" id="bottom-raid">
-  <button id="btn-flag" class="danger big">
-    <span id="btn-flag-ico" class="ico">🚩</span>
-    <span id="btn-flag-label" data-i18n="flag">Флаг</span>
-  </button>
-  <button id="btn-leave" class="big">
-    <span class="ico">🏳</span>
-    <span data-i18n="leave">Выйти</span>
-  </button>
+  <button id="btn-flag" class="danger big"><span id="btn-flag-ico" class="ico">🚩</span><span id="btn-flag-label" data-i18n="flag">Флаг</span></button>
+  <button id="btn-leave" class="big"><span class="ico">🏳</span><span data-i18n="leave">Выйти</span></button>
 </div>
-
-<div id="palette" class="hidden">
-  <div class="palette-title" data-i18n="flagColor">Цвет флага</div>
-  <div class="palette-grid" id="palette-grid"></div>
-</div>
-
-<div id="block-palette" class="hidden">
-  <div class="palette-title" data-i18n="blockColor">Цвет блока</div>
-  <div class="palette-grid" id="block-palette-grid"></div>
-</div>
-
-<div id="size-palette" class="hidden">
-  <div class="palette-title" data-i18n="sizeTitle">Размер блока</div>
-  <div class="size-grid" id="size-grid"></div>
-</div>
-
+<div id="palette" class="hidden"><div class="palette-title" data-i18n="flagColor">Цвет флага</div><div class="palette-grid" id="palette-grid"></div></div>
+<div id="block-palette" class="hidden"><div class="palette-title" data-i18n="blockColor">Цвет блока</div><div class="palette-grid" id="block-palette-grid"></div></div>
+<div id="size-palette" class="hidden"><div class="palette-title" data-i18n="sizeTitle">Размер блока</div><div class="size-grid" id="size-grid"></div></div>
 <div class="screen hidden" id="world-screen">
-  <div class="screen-head">
-    <div class="screen-title" data-i18n="worldTitle">🌍 Мир</div>
-    <button id="world-close">✕</button>
-  </div>
+  <div class="screen-head"><div class="screen-title" data-i18n="worldTitle">🌍 Мир</div><button id="world-close">✕</button></div>
   <div id="world-list"></div>
 </div>
-
 <div class="screen hidden" id="loot-screen">
   <div class="loot-card">
     <div class="loot-emoji">🏆</div>
@@ -300,18 +162,13 @@
     <button id="loot-ok" class="go" data-i18n="returnHome">Вернуться</button>
   </div>
 </div>
-
 <div class="screen hidden" id="tip-screen">
   <div class="tip-card">
-    <div class="tip-head">
-      <div class="tip-dot"></div>
-      <div class="tip-title" id="tip-title" data-i18n="tipTitle">Буй говорит</div>
-    </div>
+    <div class="tip-head"><div class="tip-dot"></div><div class="tip-title" id="tip-title" data-i18n="tipTitle">Буй говорит</div></div>
     <div class="tip-text" id="tip-text"></div>
     <button id="tip-ok" class="go" data-i18n="tipOk">Ок</button>
   </div>
 </div>
-
 <div class="screen hidden" id="onboard-screen">
   <div class="onboard-card">
     <div class="onboard-emoji">🏝️</div>
@@ -323,40 +180,21 @@
     <button id="onboard-ok" class="go" data-i18n="onboardOk">Понятно, играем</button>
   </div>
 </div>
-
 <div class="screen hidden" id="shop-screen">
-  <div class="screen-head">
-    <div class="screen-title" data-i18n="shopTitle">🛒 Магазин</div>
-    <button id="shop-close">✕</button>
-  </div>
-
-  <div class="shop-section">
-    <div class="shop-label" data-i18n="shopShape">1. Форма</div>
-    <div class="shop-grid" id="shop-shapes"></div>
-  </div>
-
-  <div class="shop-section">
-    <div class="shop-label" data-i18n="shopMaterial">2. Материал</div>
-    <div class="shop-grid" id="shop-materials"></div>
-  </div>
-
+  <div class="screen-head"><div class="screen-title" data-i18n="shopTitle">🛒 Магазин</div><button id="shop-close">✕</button></div>
+  <div class="shop-section"><div class="shop-label" data-i18n="shopShape">1. Форма</div><div class="shop-grid" id="shop-shapes"></div></div>
+  <div class="shop-section"><div class="shop-label" data-i18n="shopMaterial">2. Материал</div><div class="shop-grid" id="shop-materials"></div></div>
   <div class="shop-summary" id="shop-summary"></div>
-  <button class="go big" id="shop-confirm" style="width:100%;justify-content:center;">
-    <span class="ico">🔨</span>
-    <span data-i18n="shopBuild">Строить</span>
-  </button>
+  <button class="go big" id="shop-confirm" style="width:100%;justify-content:center;"><span class="ico">🔨</span><span data-i18n="shopBuild">Строить</span></button>
 </div>
-
 <div id="toast" class="hidden"></div>
 <div id="status">Loading...<br><span id="err"></span></div>
-
 <script type="importmap">
 { "imports": {
   "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
   "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
 }}
 </script>
-
 <script type="module">
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
@@ -407,8 +245,7 @@ const I18N = {
     flagColor: 'Цвет флага', blockColor: 'Цвет блока', sizeTitle: 'Размер блока',
     worldTitle: '🌍 Мир', back: 'Назад', raid: 'Рейд', flag: 'Флаг', leave: 'Выйти',
     lootTitle: 'Флаг разрушен!', lootStolen: 'Украдено:', lootBalance: 'Баланс:',
-    returnHome: 'Вернуться',
-    tipTitle: 'Буй говорит', tipOk: 'Ок',
+    returnHome: 'Вернуться', tipTitle: 'Буй говорит', tipOk: 'Ок',
     minionPanic: 'Буй в панике. Сейчас ему не до разговоров.',
     raidAlertToast: 'На твой остров открыт рейд. Проверь Флаг.',
     onboardTitle: 'Добро пожаловать в ADRIFT',
@@ -425,20 +262,13 @@ const I18N = {
     flagNeedPercent: 'Снеси ещё {need} наземных блоков, чтобы Флаг открылся. Сейчас {percent}%, порог {min}%.',
     flagNeedPath: 'К Флагу нет прохода: Буй не может подойти. Расчисти коридор шириной {width} клетки.',
     flagOpened: 'Флаг открыт. Бей по нему.',
-    flagReserved: 'Слишком близко к Флагу',
-    flagColorChanged: 'Цвет флага изменён',
-    noone: 'Пока никого нет в твоём регионе',
-    error: 'Ошибка',
+    flagReserved: 'Слишком близко к Флагу', flagColorChanged: 'Цвет флага изменён',
+    noone: 'Пока никого нет в твоём регионе', error: 'Ошибка',
     yourIsland: 'это твой остров',
     dmgyou: 'Флагу', refund: 'возвращено', ether: 'Эфира',
-    noSupport: 'Нужна опора снизу',
-    occupied: 'Здесь уже стоит блок',
-    noEther: 'Не хватает Эфира',
-    outOfBounds: 'За границей острова',
-    shopTitle: '🛒 Магазин',
-    shopShape: '1. Форма',
-    shopMaterial: '2. Материал',
-    shopBuild: 'Строить',
+    noSupport: 'Нужна опора снизу', occupied: 'Здесь уже стоит блок',
+    noEther: 'Не хватает Эфира', outOfBounds: 'За границей острова',
+    shopTitle: '🛒 Магазин', shopShape: '1. Форма', shopMaterial: '2. Материал', shopBuild: 'Строить',
     tips: [
       { text: 'Наведи камеру на клетку и тапни по экрану. Там появится куб.', cond: 'always' },
       { text: 'Кнопка 📐 меняет размер блока. Большие блоки стоят дороже.', cond: 'always' },
@@ -466,8 +296,7 @@ const I18N = {
       'Пока рядом с Флагом стоят блоки, его не пробить.',
       'Кто-то вложил в этот остров кучу эфира.',
       'Хозяин часто бывает в отъезде, но это не точно.',
-      'Не подходи к Флагу без подготовки.',
-      'Тут могут быть ловушки. Смотри под ноги.',
+      'Не подходи к Флагу без подготовки.', 'Тут могут быть ловушки. Смотри под ноги.',
     ],
     alertTips: [
       { text: 'На твой остров открыт рейд. Дострой блоки на земле, чтобы поднять процент сноса.', cond: 'alert' },
@@ -479,8 +308,7 @@ const I18N = {
     flagColor: 'Flag color', blockColor: 'Block color', sizeTitle: 'Block size',
     worldTitle: '🌍 World', back: 'Back', raid: 'Raid', flag: 'Flag', leave: 'Leave',
     lootTitle: 'Flag destroyed!', lootStolen: 'Stolen:', lootBalance: 'Balance:',
-    returnHome: 'Return',
-    tipTitle: 'Buoy says', tipOk: 'OK',
+    returnHome: 'Return', tipTitle: 'Buoy says', tipOk: 'OK',
     minionPanic: 'Buoy is panicking. No time for a chat.',
     raidAlertToast: 'A raid is open against your island. Check your Flag.',
     onboardTitle: 'Welcome to ADRIFT',
@@ -492,25 +320,16 @@ const I18N = {
     loading: 'Loading...', login: 'Signing in...', returning: 'Returning...',
     islandLoading: 'Loading island',
     raidStart: 'Starting raid...', raidStartOk: 'Raid started. Tap an enemy cube',
-    raidFinished: 'Raid finished',
-    flagProtected: 'The Flag is still closed',
+    raidFinished: 'Raid finished', flagProtected: 'The Flag is still closed',
     flagNeedPercent: 'Destroy {need} more ground blocks to open the Flag. Now {percent}%, threshold {min}%.',
     flagNeedPath: 'No path to the Flag: the Buoy cannot get through. Clear a corridor {width} cells wide.',
-    flagOpened: 'The Flag is open. Hit it.',
-    flagReserved: 'Too close to the Flag',
-    flagColorChanged: 'Flag color changed',
-    noone: 'Nobody in your region yet',
-    error: 'Error',
-    yourIsland: 'your island',
+    flagOpened: 'The Flag is open. Hit it.', flagReserved: 'Too close to the Flag',
+    flagColorChanged: 'Flag color changed', noone: 'Nobody in your region yet',
+    error: 'Error', yourIsland: 'your island',
     dmgyou: 'Flag damage', refund: 'refunded', ether: 'Ether',
-    noSupport: 'Needs support below',
-    occupied: 'Already occupied',
-    noEther: 'Not enough Ether',
-    outOfBounds: 'Out of bounds',
-    shopTitle: '🛒 Shop',
-    shopShape: '1. Shape',
-    shopMaterial: '2. Material',
-    shopBuild: 'Build',
+    noSupport: 'Needs support below', occupied: 'Already occupied',
+    noEther: 'Not enough Ether', outOfBounds: 'Out of bounds',
+    shopTitle: '🛒 Shop', shopShape: '1. Shape', shopMaterial: '2. Material', shopBuild: 'Build',
     tips: [
       { text: 'Aim the camera at a cell and tap the screen. A cube appears there.', cond: 'always' },
       { text: 'The 📐 button changes block size. Bigger blocks cost more.', cond: 'always' },
@@ -550,13 +369,7 @@ const I18N = {
 };
 
 const lang = (navigator.language || 'ru').toLowerCase().startsWith('ru') ? 'ru' : 'en';
-
-function t(key, vars) {
-  let s = (I18N[lang] && I18N[lang][key]) || I18N.ru[key] || key;
-  if (vars) for (const [k, v] of Object.entries(vars)) s = s.replace('{' + k + '}', v);
-  return s;
-}
-
+function t(key, vars) { let s = (I18N[lang] && I18N[lang][key]) || I18N.ru[key] || key; if (vars) for (const [k, v] of Object.entries(vars)) s = s.replace('{' + k + '}', v); return s; }
 function applyI18n() {
   document.querySelectorAll('[data-i18n]').forEach(el => { el.textContent = t(el.dataset.i18n); });
   document.querySelectorAll('[data-i18n-html]').forEach(el => { el.innerHTML = t(el.dataset.i18nHtml); });
@@ -565,10 +378,8 @@ function applyI18n() {
 
 const FLAG_COLORS_HEX = { red:0xef4444, orange:0xf97316, yellow:0xeab308, green:0x22c55e, teal:0x14b8a6, blue:0x3b82f6, purple:0xa855f7, pink:0xec4899, white:0xf1f5f9, black:0x334155 };
 const FLAG_COLORS_CSS = { red:'#ef4444', orange:'#f97316', yellow:'#eab308', green:'#22c55e', teal:'#14b8a6', blue:'#3b82f6', purple:'#a855f7', pink:'#ec4899', white:'#f1f5f9', black:'#334155' };
-
 const BLOCK_COLORS_HEX = { wood:0xc9a06a, red:0xd94a4a, blue:0x4a7fd9, green:0x4ad96b, yellow:0xd9c94a, purple:0x9b4ad9, dark:0x6b6b6b, light:0xd9d9d9 };
 const BLOCK_COLORS_CSS = { wood:'#c9a06a', red:'#d94a4a', blue:'#4a7fd9', green:'#4ad96b', yellow:'#d9c94a', purple:'#9b4ad9', dark:'#6b6b6b', light:'#d9d9d9' };
-
 const CHARGE_COST = { 1: 10, 2: 25, 3: 60 };
 
 const $ = (id) => document.getElementById(id);
@@ -588,10 +399,7 @@ function toast(msg, kind = 'info') {
   requestAnimationFrame(() => toastEl.classList.add('show'));
   clearTimeout(toastTimer);
   const dur = kind === 'error' ? 2600 : (kind === 'warn' ? 3200 : (kind === 'tip' ? 3000 : 1600));
-  toastTimer = setTimeout(() => {
-    toastEl.classList.remove('show');
-    setTimeout(() => toastEl.classList.add('hidden'), 220);
-  }, dur);
+  toastTimer = setTimeout(() => { toastEl.classList.remove('show'); setTimeout(() => toastEl.classList.add('hidden'), 220); }, dur);
 }
 
 const uid = () => (crypto.randomUUID ? crypto.randomUUID() : String(Date.now()) + Math.random().toString(16).slice(2));
@@ -608,7 +416,6 @@ let token = null, myId = null;
 let mode = 'own';
 let buildMode = true;
 let demolishMode = false;
-// rotationStep: 0..3, вращение вокруг Y на 90° за шаг.
 let rotationStep = 0;
 let vertical = false;
 let selectedBlockColor = 'wood';
@@ -658,7 +465,6 @@ async function api(path, options = {}) {
   return body;
 }
 const AUTH_ERRORS = ['TOKEN_EXPIRED','TOKEN_INVALID','TOKEN_MISSING','UNAUTHORIZED'];
-
 async function auth() {
   const saved = localStorage.getItem('adrift_token');
   const savedId = localStorage.getItem('adrift_id');
@@ -674,31 +480,25 @@ async function auth() {
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x0b1020);
 scene.fog = new THREE.Fog(0x0b1020, 60, 140);
-
 const camera = new THREE.PerspectiveCamera(55, innerWidth/innerHeight, 0.1, 500);
 camera.position.set(28, 32, 28);
-
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
 renderer.setSize(innerWidth, innerHeight);
 $('app').appendChild(renderer.domElement);
-
 const controls = new OrbitControls(camera, renderer.domElement);
 controls.target.set(0, 0, 0);
 controls.enableDamping = true;
 controls.maxPolarAngle = Math.PI / 2.2;
 controls.minDistance = 10;
 controls.maxDistance = 90;
-
 scene.add(new THREE.AmbientLight(0xffffff, 0.75));
 const sun = new THREE.DirectionalLight(0xffffff, 1.0);
 sun.position.set(30, 50, 20); scene.add(sun);
-
 const ground = new THREE.Mesh(new THREE.BoxGeometry(66,1,66), new THREE.MeshLambertMaterial({ color: 0x1e3a2f }));
 ground.position.y = -0.5; scene.add(ground);
 const grid = new THREE.GridHelper(64, 64, 0x3b82f6, 0x1e293b);
 grid.position.y = 0.01; scene.add(grid);
-
 const noBuildRing = new THREE.Mesh(
   new THREE.RingGeometry(FLAG_CLEAR_RADIUS * Math.SQRT2, FLAG_CLEAR_RADIUS * Math.SQRT2 + 0.08, 48),
   new THREE.MeshBasicMaterial({ color: 0xef4444, transparent: true, opacity: 0.45, side: THREE.DoubleSide, depthWrite: false })
@@ -707,7 +507,6 @@ noBuildRing.rotation.x = -Math.PI / 2;
 noBuildRing.position.y = 0.03;
 noBuildRing.visible = false;
 scene.add(noBuildRing);
-
 const flagGroup = new THREE.Group();
 const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.15,0.15,4,8), new THREE.MeshLambertMaterial({ color:0x94a3b8 }));
 pole.position.y = 2;
@@ -750,67 +549,35 @@ function makeIronTexture() {
   const canvas = document.createElement('canvas');
   canvas.width = canvas.height = size;
   const ctx = canvas.getContext('2d');
-
-  ctx.fillStyle = '#ffffff';
-  ctx.fillRect(0, 0, size, size);
-
+  ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, size, size);
   const grad = ctx.createLinearGradient(0, 0, 0, size);
   grad.addColorStop(0.0, 'rgba(255,255,255,0.30)');
   grad.addColorStop(0.5, 'rgba(0,0,0,0.03)');
   grad.addColorStop(1.0, 'rgba(0,0,0,0.20)');
-  ctx.fillStyle = grad;
-  ctx.fillRect(0, 0, size, size);
-
-  ctx.strokeStyle = 'rgba(0,0,0,0.055)';
-  ctx.lineWidth = 1;
+  ctx.fillStyle = grad; ctx.fillRect(0, 0, size, size);
+  ctx.strokeStyle = 'rgba(0,0,0,0.055)'; ctx.lineWidth = 1;
   for (let i = -size; i < size * 2; i += 13) {
-    ctx.beginPath();
-    ctx.moveTo(i, 0);
-    ctx.lineTo(i + size, size);
-    ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i + size, size); ctx.stroke();
   }
-
   const rivet = (x, y, r) => {
-    ctx.fillStyle = 'rgba(0,0,0,0.4)';
-    ctx.beginPath();
-    ctx.arc(x + 0.7, y + 0.7, r, 0, Math.PI * 2);
-    ctx.fill();
+    ctx.fillStyle = 'rgba(0,0,0,0.4)'; ctx.beginPath(); ctx.arc(x + 0.7, y + 0.7, r, 0, Math.PI * 2); ctx.fill();
     const g = ctx.createRadialGradient(x - r * 0.35, y - r * 0.35, 0.5, x, y, r);
     g.addColorStop(0, 'rgba(255,255,255,0.95)');
     g.addColorStop(0.6, 'rgba(200,200,200,0.85)');
     g.addColorStop(1, 'rgba(150,150,150,0.85)');
-    ctx.fillStyle = g;
-    ctx.beginPath();
-    ctx.arc(x, y, r, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.strokeStyle = 'rgba(0,0,0,0.28)';
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    ctx.arc(x, y, r, 0, Math.PI * 2);
-    ctx.stroke();
+    ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = 'rgba(0,0,0,0.28)'; ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.stroke();
   };
   const R = 6, R2 = 4.5, pad = 13;
-  rivet(pad, pad, R);
-  rivet(size - pad, pad, R);
-  rivet(pad, size - pad, R);
-  rivet(size - pad, size - pad, R);
-  rivet(size / 2, pad, R2);
-  rivet(size / 2, size - pad, R2);
-  rivet(pad, size / 2, R2);
-  rivet(size - pad, size / 2, R2);
-
-  ctx.strokeStyle = 'rgba(255,255,255,0.35)';
-  ctx.lineWidth = 0.8;
+  rivet(pad, pad, R); rivet(size - pad, pad, R); rivet(pad, size - pad, R); rivet(size - pad, size - pad, R);
+  rivet(size / 2, pad, R2); rivet(size / 2, size - pad, R2); rivet(pad, size / 2, R2); rivet(size - pad, size / 2, R2);
+  ctx.strokeStyle = 'rgba(255,255,255,0.35)'; ctx.lineWidth = 0.8;
   for (let i = 0; i < 6; i++) {
     const x = 24 + Math.random() * (size - 48);
     const y = 24 + Math.random() * (size - 48);
     const len = 5 + Math.random() * 10;
-    ctx.beginPath();
-    ctx.moveTo(x, y);
-    ctx.lineTo(x + len, y + (Math.random() - 0.5) * 3);
-    ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x + len, y + (Math.random() - 0.5) * 3); ctx.stroke();
   }
-
   const tex = new THREE.CanvasTexture(canvas);
   tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
   tex.colorSpace = THREE.SRGBColorSpace;
@@ -818,7 +585,7 @@ function makeIronTexture() {
 }
 const IRON_TEXTURE = makeIronTexture();
 
-// ---------- ФОРМА / МАТЕРИАЛ: вывод из cube_type ----------
+// ---------- ФОРМА / МАТЕРИАЛ ----------
 function effectiveShape(c) {
   const ct = (c && c.cube_type) || '';
   if (ct.endsWith('_half'))     return 'half';
@@ -832,39 +599,58 @@ function effectiveMaterial(c) {
   return (c && c.material) || 'wood';
 }
 
+// Полублок «горизонтальный» (плашмя) — тонкий по Y. Если sy > 1, значит
+// игрок поставил его вертикально: тонкая сторона теперь по X, а по Y он
+// занимает весь размер клетки. Логика используется и в geometry, и в центре.
+function isFlatHalf(shape, sy) {
+  return shape === 'half' && sy <= 1;
+}
+
 // ---------- ГЕОМЕТРИЯ ПО ФОРМЕ ----------
 // ВАЖНО: localDims() ниже возвращает "до-поворотные" размеры. Меш вращается
 // через rotation.y, и его мировой AABB становится (sx_world, sy, sz_world).
 function shapeGeometry(shape, sx, sy, sz) {
   if (shape === 'triangle') {
-    // Прямоугольный треугольник, вписанный в AABB [0..sx] × [0..sy] × [0..sz].
-    // Раньше здесь был CylinderGeometry(0.5, 0.5, 1, 3): у него AABB был
-    // 0.866×0.75, центрирован не в клетке — после scale(sx, sy, sz) клин
-    // торчал из клетки и был смещён вбок.
+    // Прямоугольный клин, вписанный в ЦЕНТРИРОВАННЫЙ AABB:
+    // x ∈ [-sx/2, sx/2], y ∈ [-sy/2, sy/2], z ∈ [-sz/2, sz/2].
+    //
+    // Две критичных детали:
+    //   1. Вершины центрированы по 0. Раньше они были в (0..sx, 0..sy, 0..sz),
+    //      а mesh.position = центр клетки — из-за этого клин торчал наполовину.
+    //   2. Геометрия non-indexed и с ЯВНЫМИ UV на каждую грань. Без UV все
+    //      вершины смотрят в (0,0) — текстура залипает в один пиксель.
+    const hx = sx / 2, hy = sy / 2, hz = sz / 2;
+    const A  = [-hx, -hy, -hz];
+    const B  = [ hx, -hy, -hz];
+    const C  = [-hx, -hy,  hz];
+    const A2 = [-hx,  hy, -hz];
+    const B2 = [ hx,  hy, -hz];
+    const C2 = [-hx,  hy,  hz];
+
+    const pos = [];
+    const uvs = [];
+    function tri(p1, p2, p3, u1, u2, u3) {
+      pos.push(p1[0], p1[1], p1[2], p2[0], p2[1], p2[2], p3[0], p3[1], p3[2]);
+      uvs.push(u1[0], u1[1], u2[0], u2[1], u3[0], u3[1]);
+    }
+
+    // низ (нормаль -Y)
+    tri(A,  B,  C,  [0,0], [1,0], [0,1]);
+    // верх (нормаль +Y)
+    tri(A2, C2, B2, [0,0], [0,1], [1,0]);
+    // бок AB (z=-hz, нормаль -Z)
+    tri(A,  A2, B2, [0,0], [0,1], [1,1]);
+    tri(A,  B2, B,  [0,0], [1,1], [1,0]);
+    // бок CA (x=-hx, нормаль -X)
+    tri(A,  C,  C2, [0,0], [1,0], [1,1]);
+    tri(A,  C2, A2, [0,0], [1,1], [0,1]);
+    // бок BC (гипотенуза, наружу +X+Z)
+    tri(B,  B2, C2, [0,0], [0,1], [1,1]);
+    tri(B,  C2, C,  [0,0], [1,1], [1,0]);
+
     const g = new THREE.BufferGeometry();
-    const positions = new Float32Array([
-      // низ (y = 0)
-      0,  0,  0,
-      sx, 0,  0,
-      0,  0,  sz,
-      // верх (y = sy)
-      0,  sy, 0,
-      sx, sy, 0,
-      0,  sy, sz,
-    ]);
-    g.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-    g.setIndex([
-      // низ (нормаль -Y)
-      0, 2, 1,
-      // верх (нормаль +Y)
-      3, 4, 5,
-      // бок AB, плоскость z=0, нормаль -Z
-      0, 1, 4, 0, 4, 3,
-      // бок BC, гипотенуза, нормаль в сторону +X +Z
-      1, 2, 5, 1, 5, 4,
-      // бок CA, плоскость x=0, нормаль -X
-      2, 0, 3, 2, 3, 5,
-    ]);
+    g.setAttribute('position', new THREE.BufferAttribute(new Float32Array(pos), 3));
+    g.setAttribute('uv', new THREE.BufferAttribute(new Float32Array(uvs), 2));
     g.computeVertexNormals();
     return g;
   }
@@ -874,13 +660,16 @@ function shapeGeometry(shape, sx, sy, sz) {
     return g;
   }
   if (shape === 'half') {
-    return new THREE.BoxGeometry(sx, sy * 0.5, sz);
+    // Режем ту ось, по которой блок «тонкий».
+    // Горизонтально (sy = 1): тонкий по Y, режем Y.
+    // Вертикально (sy > 1): тонкий по X, режем X — получаем стоящую плиту,
+    // а не куб, как раньше.
+    if (isFlatHalf('half', sy)) return new THREE.BoxGeometry(sx, sy * 0.5, sz);
+    return new THREE.BoxGeometry(sx * 0.5, sy, sz);
   }
   return new THREE.BoxGeometry(sx, sy, sz);
 }
 
-// "Локальные" размеры для построения геометрии. Для нечётных шагов поворота
-// они совпадают с мировым AABB, но в порядке ДО вращения.
 function localDims(size_x, size_y, size_z, rotation) {
   if (rotation % 2 === 1) return { sx: size_z, sy: size_y, sz: size_x };
   return { sx: size_x, sy: size_y, sz: size_z };
@@ -893,25 +682,20 @@ function effectiveColorHex(material, color) {
 }
 function makeCubeMaterial(material, color) {
   const map = (material === 'iron') ? IRON_TEXTURE : WOOD_TEXTURE;
-  return new THREE.MeshLambertMaterial({
-    map,
-    color: new THREE.Color(effectiveColorHex(material, color)),
-  });
+  return new THREE.MeshLambertMaterial({ map, color: new THREE.Color(effectiveColorHex(material, color)) });
 }
 
 // ---------- КУБЫ ----------
 const cubeMeshes = new Map();
 let blockedGround = new Set();
 
-// Мировой AABB блока: x,y,z — минимальный угол, размеры уже с учётом поворота.
 function cubeCenter(c) {
   const sx = c.size_x||1, sy = c.size_y||1, sz = c.size_z||1;
-  const isHalf = ((c.shape || effectiveShape(c)) === 'half');
-  return {
-    x: c.x + sx / 2,
-    y: c.y + (isHalf ? sy * 0.25 : sy / 2),
-    z: c.z + sz / 2,
-  };
+  const shape = c.shape || effectiveShape(c);
+  // Для плоской плиты центр смещён вниз на четверть высоты (плита прижата к полу).
+  // Для вертикальной плиты — центр по центру, потому что по Y она полного размера.
+  const yOffset = isFlatHalf(shape, sy) ? sy * 0.25 : sy / 2;
+  return { x: c.x + sx / 2, y: c.y + yOffset, z: c.z + sz / 2 };
 }
 function rebuildBlockedGround() {
   blockedGround = new Set();
@@ -928,12 +712,8 @@ function rebuildBlockedGround() {
 function buildCubeMesh(shape, sxWorld, syWorld, szWorld, material, color, rotation) {
   const { sx, sy, sz } = localDims(sxWorld, syWorld, szWorld, rotation);
   const geo = shapeGeometry(shape, sx, sy, sz);
-  // Клин — асимметричная фигура. Вращение вокруг Y разворачивает его в 4 стороны.
-  // Кубы/плиты/цилиндры симметричны, их вращать не нужно.
   const mesh = new THREE.Mesh(geo, makeCubeMaterial(material, color));
-  if (shape === 'triangle' && rotation) {
-    mesh.rotation.y = rotation * Math.PI / 2;
-  }
+  if (shape === 'triangle' && rotation) mesh.rotation.y = rotation * Math.PI / 2;
   return mesh;
 }
 function addCube(c) {
@@ -943,14 +723,10 @@ function addCube(c) {
   const material = effectiveMaterial(c);
   const sx = c.size_x||1, sy = c.size_y||1, sz = c.size_z||1;
   const rotation = ((c.rotation|0) % 4 + 4) % 4;
-
   const mesh = buildCubeMesh(shape, sx, sy, sz, material, color, rotation);
   const cc = cubeCenter({ ...c, shape, material, size_x:sx, size_y:sy, size_z:sz });
   mesh.position.set(cc.x, cc.y, cc.z);
-  mesh.userData.cube = {
-    ...c, color, shape, material,
-    size_x:sx, size_y:sy, size_z:sz, rotation,
-  };
+  mesh.userData.cube = { ...c, color, shape, material, size_x:sx, size_y:sy, size_z:sz, rotation };
   scene.add(mesh); cubeMeshes.set(c.id, mesh);
   paintCube(mesh);
   rebuildBlockedGround();
@@ -963,10 +739,7 @@ function paintCube(mesh) {
   const hurt = new THREE.Color(0x7f1d1d);
   mesh.material.color.copy(base).lerp(hurt, 1 - ratio);
 }
-function updateCubeHp(id, hp) {
-  const mesh = cubeMeshes.get(id); if (!mesh) return;
-  mesh.userData.cube.hp = hp; paintCube(mesh);
-}
+function updateCubeHp(id, hp) { const mesh = cubeMeshes.get(id); if (!mesh) return; mesh.userData.cube.hp = hp; paintCube(mesh); }
 function removeCube(id) {
   const mesh = cubeMeshes.get(id); if (!mesh) return;
   scene.remove(mesh); mesh.geometry.dispose(); mesh.material.dispose(); cubeMeshes.delete(id);
@@ -985,7 +758,7 @@ function setFlagVisual(hp, maxHp, color) {
 }
 
 // ===========================================================================
-// ЭМОДЗИ СПРАЙТЫ
+// ЭМОДЗИ СПРАЙТЫ + МИНЬОН (без изменений)
 // ===========================================================================
 const emojiTexCache = new Map();
 function emojiTexture(char) {
@@ -1003,30 +776,18 @@ function emojiTexture(char) {
   return tex;
 }
 function makeSprite(char, size) {
-  const sp = new THREE.Sprite(new THREE.SpriteMaterial({
-    map: emojiTexture(char), transparent: true, depthWrite: false, opacity: 0,
-  }));
+  const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: emojiTexture(char), transparent: true, depthWrite: false, opacity: 0 }));
   sp.scale.set(size, size, 1); sp.userData.char = char;
   return sp;
 }
 function setSpriteChar(sp, char, size) {
-  if (sp.userData.char !== char) {
-    sp.material.map = emojiTexture(char);
-    sp.userData.char = char;
-    sp.material.needsUpdate = true;
-  }
+  if (sp.userData.char !== char) { sp.material.map = emojiTexture(char); sp.userData.char = char; sp.material.needsUpdate = true; }
   sp.scale.set(size, size, 1);
 }
 
-// ===========================================================================
-// МИНЬОН («Буй»)
-// ===========================================================================
-const MINION_RADIUS_MIN = 4;
-const MINION_RADIUS_MAX = 12;
-const PANIC_RADIUS_MIN = 3;
-const PANIC_RADIUS_MAX = 9;
+const MINION_RADIUS_MIN = 4, MINION_RADIUS_MAX = 12;
+const PANIC_RADIUS_MIN = 3, PANIC_RADIUS_MAX = 9;
 const THINK_TIME = 1.4;
-
 const MINION_BUBBLES = ['💬', '💭', '✨', '🎵', '❤️', '🎉', '😎', '🗿', '⚡', '🧠', '🥱', '😴'];
 const IDLE_ACTS = ['stretch', 'tapFoot', 'scratchHead', 'lookAround', 'dance', 'kick', 'whistle', 'think'];
 
@@ -1038,119 +799,65 @@ let bubbleSprite = null;
 const droplets = [];
 
 (function buildMinion() {
-  const SKIN = 0xe8dcc8;
-  const CLOTH = 0x9c9184;
-  const DARK = 0x6b6152;
-  const EYE = 0x241f19;
-
+  const SKIN = 0xe8dcc8, CLOTH = 0x9c9184, DARK = 0x6b6152, EYE = 0x241f19;
   const matSkin = new THREE.MeshLambertMaterial({ color: SKIN });
   const matCloth = new THREE.MeshLambertMaterial({ color: CLOTH });
   const matDark = new THREE.MeshLambertMaterial({ color: DARK });
   const matEye = new THREE.MeshBasicMaterial({ color: EYE });
   minionFlagMat = new THREE.MeshLambertMaterial({ color: 0xef4444 });
-
   const bodyGroup = new THREE.Group();
-
-  const torso = new THREE.Mesh(new THREE.BoxGeometry(0.52, 0.6, 0.38), matCloth);
-  torso.position.y = 0.8;
-  bodyGroup.add(torso);
-
-  const head = new THREE.Mesh(new THREE.BoxGeometry(0.58, 0.54, 0.52), matSkin);
-  head.position.y = 1.38;
+  const torso = new THREE.Mesh(new THREE.BoxGeometry(0.52, 0.6, 0.38), matCloth); torso.position.y = 0.8; bodyGroup.add(torso);
+  const head = new THREE.Mesh(new THREE.BoxGeometry(0.58, 0.54, 0.52), matSkin); head.position.y = 1.38;
   const eyeGeo = new THREE.BoxGeometry(0.1, 0.14, 0.02);
   const eyeL = new THREE.Mesh(eyeGeo, matEye); eyeL.position.set(-0.13, 0.03, 0.27);
   const eyeR = new THREE.Mesh(eyeGeo, matEye); eyeR.position.set( 0.13, 0.03, 0.27);
-  head.add(eyeL, eyeR);
-  bodyGroup.add(head);
-
+  head.add(eyeL, eyeR); bodyGroup.add(head);
   const armGeo = new THREE.BoxGeometry(0.17, 0.46, 0.17);
   const handGeo = new THREE.BoxGeometry(0.19, 0.14, 0.19);
-
   const armLPivot = new THREE.Group(); armLPivot.position.set(-0.35, 1.02, 0);
   const armL = new THREE.Mesh(armGeo, matDark); armL.position.y = -0.23;
   const handL = new THREE.Mesh(handGeo, matSkin); handL.position.y = -0.5;
-  armLPivot.add(armL, handL);
-  bodyGroup.add(armLPivot);
-
-  const armRPivot = new THREE.Group(); armRPivot.position.set(0.35, 1.02, 0);
-  armRPivot.rotation.x = Math.PI;
+  armLPivot.add(armL, handL); bodyGroup.add(armLPivot);
+  const armRPivot = new THREE.Group(); armRPivot.position.set(0.35, 1.02, 0); armRPivot.rotation.x = Math.PI;
   const armR = new THREE.Mesh(armGeo, matDark); armR.position.y = -0.23;
   const handR = new THREE.Mesh(handGeo, matSkin); handR.position.y = -0.5;
-  armRPivot.add(armR, handR);
-  bodyGroup.add(armRPivot);
-
-  const mPole = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, 1.0, 6), matDark);
-  mPole.position.set(0.35, 1.72, 0);
-  const mFlag = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.3, 0.02), minionFlagMat);
-  mFlag.position.set(0.58, 2.02, 0);
+  armRPivot.add(armR, handR); bodyGroup.add(armRPivot);
+  const mPole = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, 1.0, 6), matDark); mPole.position.set(0.35, 1.72, 0);
+  const mFlag = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.3, 0.02), minionFlagMat); mFlag.position.set(0.58, 2.02, 0);
   bodyGroup.add(mPole, mFlag);
-
   const legGeo = new THREE.BoxGeometry(0.2, 0.5, 0.2);
   const footGeo = new THREE.BoxGeometry(0.22, 0.1, 0.28);
-
   const legLPivot = new THREE.Group(); legLPivot.position.set(-0.13, 0.5, 0);
   const legL = new THREE.Mesh(legGeo, matDark); legL.position.y = -0.25;
   const footL = new THREE.Mesh(footGeo, matDark); footL.position.set(0, -0.45, 0.03);
   legLPivot.add(legL, footL);
-
   const legRPivot = new THREE.Group(); legRPivot.position.set(0.13, 0.5, 0);
   const legR = new THREE.Mesh(legGeo, matDark); legR.position.y = -0.25;
   const footR = new THREE.Mesh(footGeo, matDark); footR.position.set(0, -0.45, 0.03);
   legRPivot.add(legR, footR);
-
   minionGroup.add(bodyGroup, legLPivot, legRPivot);
   minionHitMeshes.push(torso, head, armL, armR, legL, legR, mPole, mFlag, handL, handR);
-
   Object.assign(minionParts, { bodyGroup, torso, head, armLPivot, armRPivot, legLPivot, legRPivot });
-
-  bubbleSprite = makeSprite('💬', 1.1);
-  bubbleSprite.position.set(0, 2.55, 0);
-  minionGroup.add(bubbleSprite);
-
+  bubbleSprite = makeSprite('💬', 1.1); bubbleSprite.position.set(0, 2.55, 0); minionGroup.add(bubbleSprite);
   for (let i = 0; i < 3; i++) {
-    const d = makeSprite('💦', 0.55);
-    d.userData.phase = i / 3;
-    d.position.set(0, 1.2, 0);
-    minionGroup.add(d);
-    droplets.push(d);
+    const d = makeSprite('💦', 0.55); d.userData.phase = i / 3; d.position.set(0, 1.2, 0);
+    minionGroup.add(d); droplets.push(d);
   }
-
   scene.add(minionGroup);
 })();
 
 const minion = {
-  x: 3, z: 3,
-  path: [],
-  phase: 0,
-  idleUntil: 0,
-  facing: 0,
-  lastTip: -1,
-  lastTipText: null,
-  mood: 'calm',
-  frozen: false,
-  thinking: false,
-  thinkUntil: 0,
-  panicBoost: 0,
-  nextTalk: 0,
-  talkUntil: 0,
-  bubbleChar: '💬',
-  nextIdleAct: 0,
-  idleAct: null,
-  idleActUntil: 0,
-  pendingTip: null,
+  x: 3, z: 3, path: [], phase: 0, idleUntil: 0, facing: 0, lastTip: -1, lastTipText: null,
+  mood: 'calm', frozen: false, thinking: false, thinkUntil: 0, panicBoost: 0, nextTalk: 0,
+  talkUntil: 0, bubbleChar: '💬', nextIdleAct: 0, idleAct: null, idleActUntil: 0, pendingTip: null,
 };
-
-function setMinionFlagColor(color) {
-  minionFlagMat.color.set(FLAG_COLORS_HEX[color] || FLAG_COLORS_HEX.red);
-}
-
+function setMinionFlagColor(color) { minionFlagMat.color.set(FLAG_COLORS_HEX[color] || FLAG_COLORS_HEX.red); }
 function refreshMinionMood() {
   if (minion.frozen || minion.thinking) return;
   if (mode === 'raid') minion.mood = 'panic';
   else if (mode === 'own' && myRaidAlert) minion.mood = 'alert';
   else minion.mood = 'calm';
 }
-
 function cellFree(x, z) {
   if (x < -32 || x > 32 || z < -32 || z > 32) return false;
   if (x === 0 && z === 0) return false;
@@ -1159,35 +866,24 @@ function cellFree(x, z) {
 function bfsPath(sx, sz, tx, tz) {
   if (!cellFree(tx, tz)) return null;
   const key = (x, z) => x + ',' + z;
-  const queue = [[sx, sz]];
-  const prev = new Map();
-  prev.set(key(sx, sz), null);
+  const queue = [[sx, sz]]; const prev = new Map(); prev.set(key(sx, sz), null);
   let head = 0;
   while (head < queue.length) {
     const [x, z] = queue[head++];
     if (x === tx && z === tz) {
-      const path = [];
-      let cur = key(x, z);
-      while (cur !== null) {
-        const [px, pz] = cur.split(',').map(Number);
-        path.push([px, pz]);
-        cur = prev.get(cur);
-      }
+      const path = []; let cur = key(x, z);
+      while (cur !== null) { const [px, pz] = cur.split(',').map(Number); path.push([px, pz]); cur = prev.get(cur); }
       return path.reverse();
     }
     for (const [dx, dz] of [[1,0],[-1,0],[0,1],[0,-1]]) {
-      const nx = x + dx, nz = z + dz;
-      const k = key(nx, nz);
-      if (prev.has(k)) continue;
-      if (!cellFree(nx, nz)) continue;
-      prev.set(k, key(x, z));
-      queue.push([nx, nz]);
+      const nx = x + dx, nz = z + dz; const k = key(nx, nz);
+      if (prev.has(k)) continue; if (!cellFree(nx, nz)) continue;
+      prev.set(k, key(x, z)); queue.push([nx, nz]);
     }
   }
   return null;
 }
 function resetMinionPath() { minion.path = []; }
-
 function pickMinionTarget() {
   const panic = minion.mood === 'panic';
   const rMin = panic ? PANIC_RADIUS_MIN : MINION_RADIUS_MIN;
@@ -1209,48 +905,28 @@ function placeMinionInitial() {
       const ang = (a / 16) * Math.PI * 2;
       const x = Math.round(Math.cos(ang) * r);
       const z = Math.round(Math.sin(ang) * r);
-      if (cellFree(x, z)) {
-        minion.x = x; minion.z = z;
-        minionGroup.position.set(x + 0.5, 0, z + 0.5);
-        resetMinionPath();
-        return;
-      }
+      if (cellFree(x, z)) { minion.x = x; minion.z = z; minionGroup.position.set(x + 0.5, 0, z + 0.5); resetMinionPath(); return; }
     }
   }
   minionGroup.position.set(2.5, 0, 2.5);
 }
-
-function approach(current, target, dt, k) {
-  return current + (target - current) * Math.min(1, dt * k);
-}
-
-function pickIdleAct(now) {
-  minion.idleAct = IDLE_ACTS[Math.floor(Math.random() * IDLE_ACTS.length)];
-  minion.idleActUntil = now + 1.8;
-}
+function approach(current, target, dt, k) { return current + (target - current) * Math.min(1, dt * k); }
+function pickIdleAct(now) { minion.idleAct = IDLE_ACTS[Math.floor(Math.random() * IDLE_ACTS.length)]; minion.idleActUntil = now + 1.8; }
 
 function updateBubbles(now, dt) {
-  let char = null;
-  let size = 1.1;
-
+  let char = null, size = 1.1;
   if (minion.thinking) { char = '🤔'; size = 1.15; }
   else if (minion.frozen) { char = '👋'; size = 1.15; }
   else if (minion.mood === 'panic') { char = '💦'; size = 0.95; }
   else if (minion.mood === 'alert') { char = '⚠️'; size = 1.0; }
   else if (now < minion.talkUntil) { char = minion.bubbleChar || '💬'; size = 1.0; }
-
   if (char) {
     setSpriteChar(bubbleSprite, char, size);
-    const pulse = char === '⚠️'
-      ? 1 + Math.sin(now * 5) * 0.1
-      : 1 + Math.sin(now * 2.4) * 0.04;
+    const pulse = char === '⚠️' ? 1 + Math.sin(now * 5) * 0.1 : 1 + Math.sin(now * 2.4) * 0.04;
     bubbleSprite.scale.set(size * pulse, size * pulse, 1);
     bubbleSprite.position.y = 2.55 + Math.sin(now * 2.1) * 0.07;
     bubbleSprite.material.opacity = 1;
-  } else {
-    bubbleSprite.material.opacity = 0;
-  }
-
+  } else { bubbleSprite.material.opacity = 0; }
   for (const d of droplets) {
     if (minion.mood !== 'panic') { d.material.opacity = 0; continue; }
     const t = ((now * 0.75 + d.userData.phase) % 1);
@@ -1262,68 +938,26 @@ function updateBubbles(now, dt) {
 }
 
 function idleMinion(now, dt) {
-  const panic = minion.mood === 'panic';
-  const alert = minion.mood === 'alert';
+  const panic = minion.mood === 'panic', alert = minion.mood === 'alert';
   const breath = Math.sin(now * 1.7);
-
-  let legLx = 0, legRx = 0;
-  let armLx = breath * 0.06, armRx = Math.PI;
-  let headZ = Math.sin(now * 0.7) * 0.05;
-  let headY = Math.sin(now * 0.45) * 0.16;
-  let rootY = breath * 0.015;
-  let bodyY = 0;
-
-  if (panic) {
-    armLx = Math.PI * 0.85 + Math.sin(now * 8) * 0.35;
-    armRx = Math.PI;
-    headZ = Math.sin(now * 9) * 0.1;
-    headY = Math.sin(now * 7) * 0.12;
-    bodyY = Math.abs(Math.sin(now * 6)) * 0.03;
-  } else if (alert) {
-    armLx = 0.5 + Math.sin(now * 3) * 0.12;
-    armRx = Math.PI;
-    headZ = Math.sin(now * 2.2) * 0.05;
-    headY = Math.sin(now * 1.1) * 0.28;
-    bodyY = breath * 0.012;
-  } else if (minion.idleAct && now < minion.idleActUntil) {
+  let legLx = 0, legRx = 0, armLx = breath * 0.06, armRx = Math.PI;
+  let headZ = Math.sin(now * 0.7) * 0.05, headY = Math.sin(now * 0.45) * 0.16;
+  let rootY = breath * 0.015, bodyY = 0;
+  if (panic) { armLx = Math.PI * 0.85 + Math.sin(now * 8) * 0.35; headZ = Math.sin(now * 9) * 0.1; headY = Math.sin(now * 7) * 0.12; bodyY = Math.abs(Math.sin(now * 6)) * 0.03; }
+  else if (alert) { armLx = 0.5 + Math.sin(now * 3) * 0.12; headZ = Math.sin(now * 2.2) * 0.05; headY = Math.sin(now * 1.1) * 0.28; bodyY = breath * 0.012; }
+  else if (minion.idleAct && now < minion.idleActUntil) {
     const t = now - (minion.idleActUntil - 1.8);
     switch (minion.idleAct) {
-      case 'stretch':
-        armLx = -2.4; armRx = Math.PI - 0.4;
-        headZ = -0.1;
-        rootY = Math.sin(t * 2.5) * 0.03;
-        break;
-      case 'tapFoot':
-        armLx = 0.3; legLx = -0.1;
-        rootY = Math.abs(Math.sin(t * 9)) * 0.02;
-        break;
-      case 'scratchHead':
-        armLx = -2.55; headZ = 0.1;
-        headY = Math.sin(t * 1.2) * 0.1;
-        break;
-      case 'lookAround':
-        headY = Math.sin(t * 2.5) * 0.5;
-        break;
-      case 'dance':
-        armLx = -2.2 + Math.sin(t * 6) * 0.3;
-        armRx = Math.PI - 0.5 + Math.cos(t * 6) * 0.3;
-        headZ = Math.sin(t * 6) * 0.15;
-        rootY = Math.abs(Math.sin(t * 6)) * 0.06;
-        break;
-      case 'kick':
-        legLx = -0.8;
-        armLx = -0.4; armRx = Math.PI + 0.3;
-        break;
-      case 'whistle':
-        armLx = -1.9; headZ = 0.06;
-        headY = Math.sin(t * 3) * 0.05;
-        break;
-      case 'think':
-        armLx = -1.7; headZ = 0.08; headY = 0.1;
-        break;
+      case 'stretch': armLx = -2.4; armRx = Math.PI - 0.4; headZ = -0.1; rootY = Math.sin(t * 2.5) * 0.03; break;
+      case 'tapFoot': armLx = 0.3; legLx = -0.1; rootY = Math.abs(Math.sin(t * 9)) * 0.02; break;
+      case 'scratchHead': armLx = -2.55; headZ = 0.1; headY = Math.sin(t * 1.2) * 0.1; break;
+      case 'lookAround': headY = Math.sin(t * 2.5) * 0.5; break;
+      case 'dance': armLx = -2.2 + Math.sin(t * 6) * 0.3; armRx = Math.PI - 0.5 + Math.cos(t * 6) * 0.3; headZ = Math.sin(t * 6) * 0.15; rootY = Math.abs(Math.sin(t * 6)) * 0.06; break;
+      case 'kick': legLx = -0.8; armLx = -0.4; armRx = Math.PI + 0.3; break;
+      case 'whistle': armLx = -1.9; headZ = 0.06; headY = Math.sin(t * 3) * 0.05; break;
+      case 'think': armLx = -1.7; headZ = 0.08; headY = 0.1; break;
     }
   }
-
   minionParts.legLPivot.rotation.x = approach(minionParts.legLPivot.rotation.x, legLx, dt, 8);
   minionParts.legRPivot.rotation.x = approach(minionParts.legRPivot.rotation.x, legRx, dt, 8);
   minionParts.armLPivot.rotation.x = approach(minionParts.armLPivot.rotation.x, armLx, dt, 9);
@@ -1337,11 +971,8 @@ function idleMinion(now, dt) {
 
 function updateMinion(dt) {
   const now = performance.now() / 1000;
-
   if (!minion.frozen && !cellFree(minion.x, minion.z)) placeMinionInitial();
-
   if (minion.idleAct && now >= minion.idleActUntil) minion.idleAct = null;
-
   if (minion.thinking) {
     minionParts.armLPivot.rotation.x = approach(minionParts.armLPivot.rotation.x, -1.9, dt, 7);
     minionParts.armRPivot.rotation.x = Math.PI;
@@ -1353,7 +984,6 @@ function updateMinion(dt) {
     minionGroup.position.y = approach(minionGroup.position.y, 0, dt, 10);
     return;
   }
-
   if (minion.frozen) {
     minionParts.armLPivot.rotation.x = Math.PI * 0.7 + Math.sin(now * 5) * 0.3;
     minionParts.armRPivot.rotation.x = Math.PI;
@@ -1367,28 +997,19 @@ function updateMinion(dt) {
     minionGroup.position.y = approach(minionGroup.position.y, 0, dt, 10);
     return;
   }
-
-  const panic = minion.mood === 'panic';
-  const alert = minion.mood === 'alert';
+  const panic = minion.mood === 'panic', alert = minion.mood === 'alert';
   minion.panicBoost = Math.max(0, minion.panicBoost - dt * 0.6);
-
   if (minion.path.length === 0) {
     if (now < minion.idleUntil) {
       idleMinion(now, dt);
-      if (now > minion.nextIdleAct) {
-        minion.nextIdleAct = now + 5 + Math.random() * 8;
-        if (Math.random() < 0.7) pickIdleAct(now);
-      }
+      if (now > minion.nextIdleAct) { minion.nextIdleAct = now + 5 + Math.random() * 8; if (Math.random() < 0.7) pickIdleAct(now); }
       return;
     }
     pickMinionTarget();
     if (minion.path.length === 0) { minion.idleUntil = now + 1.0; return; }
-    const basePause = panic ? 0.1 + Math.random() * 0.3
-                    : (alert ? 0.5 + Math.random() * 1.2
-                             : 0.9 + Math.random() * 2.6);
+    const basePause = panic ? 0.1 + Math.random() * 0.3 : (alert ? 0.5 + Math.random() * 1.2 : 0.9 + Math.random() * 2.6);
     minion.idleUntil = now + basePause;
   }
-
   const [nx, nz] = minion.path[0];
   const tx = nx + 0.5, tz = nz + 0.5;
   const px = minionGroup.position.x, pz = minionGroup.position.z;
@@ -1396,85 +1017,53 @@ function updateMinion(dt) {
   const dist = Math.hypot(dx, dz);
   const speed = panic ? (3.0 + minion.panicBoost * 0.8) : (alert ? 2.0 : 1.5);
   const step = speed * dt;
-
-  if (dist <= step) {
-    minionGroup.position.x = tx; minionGroup.position.z = tz;
-    minion.x = nx; minion.z = nz;
-    minion.path.shift();
-  } else {
-    minionGroup.position.x += (dx / dist) * step;
-    minionGroup.position.z += (dz / dist) * step;
-  }
-
+  if (dist <= step) { minionGroup.position.x = tx; minionGroup.position.z = tz; minion.x = nx; minion.z = nz; minion.path.shift(); }
+  else { minionGroup.position.x += (dx / dist) * step; minionGroup.position.z += (dz / dist) * step; }
   const targetAngle = Math.atan2(dx, dz);
   let diff = targetAngle - minion.facing;
   while (diff > Math.PI) diff -= Math.PI * 2;
   while (diff < -Math.PI) diff += Math.PI * 2;
   minion.facing += diff * Math.min(1, dt * (panic ? 12 : 7));
   minionGroup.rotation.y = minion.facing;
-
   const freq = panic ? 13 + minion.panicBoost * 2 : (alert ? 8 : 6.5);
   minion.phase += dt * freq;
   const s = Math.sin(minion.phase);
-
   minionParts.head.rotation.x = approach(minionParts.head.rotation.x, 0, dt, 5);
-
   if (panic) {
-    minionParts.legLPivot.rotation.x = s * 0.95;
-    minionParts.legRPivot.rotation.x = -s * 0.95;
+    minionParts.legLPivot.rotation.x = s * 0.95; minionParts.legRPivot.rotation.x = -s * 0.95;
     minionParts.armLPivot.rotation.x = Math.PI * 0.85 + Math.sin(minion.phase * 1.6) * 0.45;
     minionParts.armRPivot.rotation.x = Math.PI + Math.sin(minion.phase * 1.9 + 1) * 0.2;
     minionParts.head.rotation.z = Math.sin(minion.phase * 0.7) * 0.13;
     minionParts.head.rotation.y = approach(minionParts.head.rotation.y, 0, dt, 8);
     minionParts.bodyGroup.rotation.x = 0.18;
-    minionParts.bodyGroup.position.y = 0;
     minionGroup.position.y = Math.abs(s) * 0.13;
   } else if (alert) {
-    minionParts.legLPivot.rotation.x = s * 0.75;
-    minionParts.legRPivot.rotation.x = -s * 0.75;
-    minionParts.armLPivot.rotation.x = 0.45 - s * 0.35;
-    minionParts.armRPivot.rotation.x = Math.PI;
-    minionParts.head.rotation.z = s * 0.05;
-    minionParts.head.rotation.y = Math.sin(performance.now() / 420) * 0.24;
+    minionParts.legLPivot.rotation.x = s * 0.75; minionParts.legRPivot.rotation.x = -s * 0.75;
+    minionParts.armLPivot.rotation.x = 0.45 - s * 0.35; minionParts.armRPivot.rotation.x = Math.PI;
+    minionParts.head.rotation.z = s * 0.05; minionParts.head.rotation.y = Math.sin(performance.now() / 420) * 0.24;
     minionParts.bodyGroup.rotation.x = 0.1;
-    minionParts.bodyGroup.position.y = 0;
     minionGroup.position.y = Math.abs(s) * 0.06;
   } else {
-    minionParts.legLPivot.rotation.x = s * 0.62;
-    minionParts.legRPivot.rotation.x = -s * 0.62;
-    minionParts.armLPivot.rotation.x = -s * 0.5;
-    minionParts.armRPivot.rotation.x = Math.PI;
-    minionParts.head.rotation.z = s * 0.04;
-    minionParts.head.rotation.y = approach(minionParts.head.rotation.y, 0, dt, 5);
+    minionParts.legLPivot.rotation.x = s * 0.62; minionParts.legRPivot.rotation.x = -s * 0.62;
+    minionParts.armLPivot.rotation.x = -s * 0.5; minionParts.armRPivot.rotation.x = Math.PI;
+    minionParts.head.rotation.z = s * 0.04; minionParts.head.rotation.y = approach(minionParts.head.rotation.y, 0, dt, 5);
     minionParts.bodyGroup.rotation.x = 0.06;
-    minionParts.bodyGroup.position.y = 0;
     minionGroup.position.y = Math.abs(s) * 0.05;
   }
-
   if (!panic && !alert && now > minion.nextTalk && now > minion.talkUntil) {
-    minion.talkUntil = now + 2.0;
-    minion.nextTalk = now + 6 + Math.random() * 8;
+    minion.talkUntil = now + 2.0; minion.nextTalk = now + 6 + Math.random() * 8;
     minion.bubbleChar = MINION_BUBBLES[Math.floor(Math.random() * MINION_BUBBLES.length)];
   }
 }
 
 // ---------- КАМЕРА: АНИМАЦИЯ ФОКУСА ----------
-const camAnim = {
-  active: false, t: 0, dur: 1,
-  fromPos: new THREE.Vector3(), toPos: new THREE.Vector3(),
-  fromTgt: new THREE.Vector3(), toTgt: new THREE.Vector3(),
-  onDone: null,
-};
+const camAnim = { active: false, t: 0, dur: 1, fromPos: new THREE.Vector3(), toPos: new THREE.Vector3(), fromTgt: new THREE.Vector3(), toTgt: new THREE.Vector3(), onDone: null };
 const savedCam = { pos: new THREE.Vector3(), tgt: new THREE.Vector3() };
-
 function animateCamera(toPos, toTgt, dur, onDone) {
   camAnim.active = true; camAnim.t = 0; camAnim.dur = Math.max(0.01, dur);
-  camAnim.fromPos.copy(camera.position);
-  camAnim.fromTgt.copy(controls.target);
-  camAnim.toPos.copy(toPos);
-  camAnim.toTgt.copy(toTgt);
-  camAnim.onDone = onDone || null;
-  controls.enabled = false;
+  camAnim.fromPos.copy(camera.position); camAnim.fromTgt.copy(controls.target);
+  camAnim.toPos.copy(toPos); camAnim.toTgt.copy(toTgt);
+  camAnim.onDone = onDone || null; controls.enabled = false;
 }
 function updateCameraAnim(dt) {
   if (!camAnim.active) return false;
@@ -1483,35 +1072,24 @@ function updateCameraAnim(dt) {
   const e = k < 0.5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2;
   camera.position.lerpVectors(camAnim.fromPos, camAnim.toPos, e);
   controls.target.lerpVectors(camAnim.fromTgt, camAnim.toTgt, e);
-  if (k >= 1) {
-    camAnim.active = false;
-    const cb = camAnim.onDone; camAnim.onDone = null;
-    if (cb) cb();
-  }
+  if (k >= 1) { camAnim.active = false; const cb = camAnim.onDone; camAnim.onDone = null; if (cb) cb(); }
   return true;
 }
 
 // ---------- СОВЕТ БУЯ ----------
 function pickTip() {
   const bundle = I18N[lang];
-
   if (mode === 'visit') {
-    const pool = bundle.foreignTips || [];
-    if (!pool.length) return t('flagProtected');
+    const pool = bundle.foreignTips || []; if (!pool.length) return t('flagProtected');
     let idx = Math.floor(Math.random() * pool.length);
     if (pool[idx] === minion.lastTipText) idx = (idx + 1) % pool.length;
-    minion.lastTipText = pool[idx];
-    return pool[idx];
+    minion.lastTipText = pool[idx]; return pool[idx];
   }
-
-  const alertTips = bundle.alertTips || [];
-  const tips = bundle.tips;
+  const alertTips = bundle.alertTips || [], tips = bundle.tips;
   if (minion.mood === 'alert' && alertTips.length && Math.random() < 0.6) {
     const choice = alertTips[Math.floor(Math.random() * alertTips.length)];
-    minion.lastTipText = choice.text;
-    return choice.text;
+    minion.lastTipText = choice.text; return choice.text;
   }
-
   const hasCubes = cubeMeshes.size > 0;
   const filtered = tips.filter(tip => {
     if (tip.cond === 'hasCubes') return hasCubes;
@@ -1520,84 +1098,49 @@ function pickTip() {
   });
   let idx = Math.floor(Math.random() * filtered.length);
   if (filtered[idx].text === minion.lastTipText) idx = (idx + 1) % filtered.length;
-  minion.lastTipText = filtered[idx].text;
-  return filtered[idx].text;
+  minion.lastTipText = filtered[idx].text; return filtered[idx].text;
 }
-
 function animateTipText(text) {
-  const el = $('tip-text');
-  el.innerHTML = '';
-  let i = 0;
+  const el = $('tip-text'); el.innerHTML = ''; let i = 0;
   for (const word of text.split(' ')) {
-    const w = document.createElement('span');
-    w.className = 'tip-word';
-    for (const ch of word) {
-      const s = document.createElement('span');
-      s.className = 'tip-char';
-      s.textContent = ch;
-      s.style.animationDelay = (i * 26) + 'ms';
-      w.appendChild(s); i++;
-    }
-    el.appendChild(w);
-    el.appendChild(document.createTextNode(' '));
-    i++;
+    const w = document.createElement('span'); w.className = 'tip-word';
+    for (const ch of word) { const s = document.createElement('span'); s.className = 'tip-char'; s.textContent = ch; s.style.animationDelay = (i * 26) + 'ms'; w.appendChild(s); i++; }
+    el.appendChild(w); el.appendChild(document.createTextNode(' ')); i++;
   }
   return i * 26 + 340;
 }
-
 function openTip() {
   const text = pickTip();
-  minion.pendingTip = text;
-  minion.frozen = true;
-  minion.thinking = true;
-  minion.thinkUntil = performance.now() / 1000 + THINK_TIME;
-  minion.path = [];
-  minion.idleAct = null;
-
+  minion.pendingTip = text; minion.frozen = true; minion.thinking = true;
+  minion.thinkUntil = performance.now() / 1000 + THINK_TIME; minion.path = []; minion.idleAct = null;
   const mp = minionGroup.position;
   const toCam = new THREE.Vector3().subVectors(camera.position, mp).setY(0);
   if (toCam.lengthSq() < 0.001) toCam.set(1, 0, 1);
   toCam.normalize();
-  minion.facing = Math.atan2(toCam.x, toCam.z);
-  minionGroup.rotation.y = minion.facing;
-
-  savedCam.pos.copy(camera.position);
-  savedCam.tgt.copy(controls.target);
-
+  minion.facing = Math.atan2(toCam.x, toCam.z); minionGroup.rotation.y = minion.facing;
+  savedCam.pos.copy(camera.position); savedCam.tgt.copy(controls.target);
   const camPos = new THREE.Vector3(mp.x + toCam.x * 4.2, mp.y + 2.3, mp.z + toCam.z * 4.2);
   const camTgt = new THREE.Vector3(mp.x, mp.y + 0.85, mp.z);
   animateCamera(camPos, camTgt, 0.55);
-
-  $('tip-text').innerHTML = '';
-  $('tip-ok').disabled = true;
-  showScreen('tip-screen');
+  $('tip-text').innerHTML = ''; $('tip-ok').disabled = true; showScreen('tip-screen');
 }
-
 function finishThinking() {
   if (!minion.thinking) return;
-  minion.thinking = false;
-  $('tip-text').innerHTML = '';
-  const text = minion.pendingTip || pickTip();
-  minion.pendingTip = null;
+  minion.thinking = false; $('tip-text').innerHTML = '';
+  const text = minion.pendingTip || pickTip(); minion.pendingTip = null;
   const ms = animateTipText(text);
   setTimeout(() => { $('tip-ok').disabled = false; }, ms);
 }
-
 function closeTip() {
-  hideScreens();
-  minion.frozen = false;
-  minion.thinking = false;
+  hideScreens(); minion.frozen = false; minion.thinking = false;
   animateCamera(savedCam.pos, savedCam.tgt, 0.45, () => { controls.enabled = true; });
 }
 
 // ---------- ПРИЗРАК БЛОКА ----------
-const ghostMat = new THREE.MeshBasicMaterial({
-  color: 0x22c55e, transparent: true, opacity: 0.4, depthWrite: false,
-});
+const ghostMat = new THREE.MeshBasicMaterial({ color: 0x22c55e, transparent: true, opacity: 0.4, depthWrite: false });
 const ghost = new THREE.Mesh(new THREE.BoxGeometry(1,1,1), ghostMat);
 ghost.visible = false; scene.add(ghost);
 
-// Мировой AABB с учётом rotationStep и vertical.
 function effFootprint() {
   const s = selectedSize;
   if (vertical) return { sx: s.sy, sy: s.sx, sz: s.sz };
@@ -1617,44 +1160,32 @@ function updateGhostGeometry() {
   const { sx, sy, sz } = localDims(sxW, syW, szW, effectiveRotation);
   ghost.geometry.dispose();
   ghost.geometry = shapeGeometry(selectedShape, sx, sy, sz);
-  if (selectedShape === 'triangle' && effectiveRotation) {
-    ghost.rotation.y = effectiveRotation * Math.PI / 2;
-  } else {
-    ghost.rotation.y = 0;
-  }
+  if (selectedShape === 'triangle' && effectiveRotation) ghost.rotation.y = effectiveRotation * Math.PI / 2;
+  else ghost.rotation.y = 0;
 }
 function updateRotateButton() {
-  const btnH = $('btn-rotate');
-  const btnV = $('btn-vertical');
+  const btnH = $('btn-rotate'), btnV = $('btn-vertical');
   const on = buildMode && mode === 'own';
-  btnH.textContent = '↔️';
-  btnV.textContent = '↕️';
+  btnH.textContent = '↔️'; btnV.textContent = '↕️';
   btnH.classList.toggle('hidden', !canRotate() || !on);
   btnV.classList.toggle('hidden', !canVertical() || !on);
   btnH.classList.toggle('rot-on', rotationStep !== 0);
   btnV.classList.toggle('rot-on', vertical);
 }
-function updateBlockSwatch() {
-  $('swatch-block').style.background = BLOCK_COLORS_CSS[selectedBlockColor] || '#c9a06a';
-}
+function updateBlockSwatch() { $('swatch-block').style.background = BLOCK_COLORS_CSS[selectedBlockColor] || '#c9a06a'; }
 
 const raycaster = new THREE.Raycaster();
 const plane = new THREE.Plane(new THREE.Vector3(0,1,0), 0);
 const hitPoint = new THREE.Vector3();
 const normalMatrix = new THREE.Matrix3();
 const projVec = new THREE.Vector3();
-
 const aimPoint = { x: 0, y: 0 };
 function updateAimFromClient(clientX, clientY) {
   aimPoint.x = (clientX / innerWidth) * 2 - 1;
   aimPoint.y = -(clientY / innerHeight) * 2 + 1;
 }
-window.addEventListener('pointermove', (ev) => {
-  updateAimFromClient(ev.clientX, ev.clientY);
-});
-window.addEventListener('pointerdown', (ev) => {
-  updateAimFromClient(ev.clientX, ev.clientY);
-}, true);
+window.addEventListener('pointermove', (ev) => { updateAimFromClient(ev.clientX, ev.clientY); });
+window.addEventListener('pointerdown', (ev) => { updateAimFromClient(ev.clientX, ev.clientY); }, true);
 
 function computePlacement(ndcX, ndcY) {
   const { sx, sy, sz } = effFootprint();
@@ -1669,43 +1200,25 @@ function computePlacement(ndcX, ndcY) {
     normalMatrix.getNormalMatrix(h.object.matrixWorld);
     const n = h.face.normal.clone().applyMatrix3(normalMatrix).normalize();
     const ax = Math.round(n.x), ay = Math.round(n.y), az = Math.round(n.z);
-    if (ay !== 0) {
-      y = ay > 0 ? base.y + bsy : base.y - sy;
-      x = Math.round(bc.x - sx/2); z = Math.round(bc.z - sz/2);
-    } else if (ax !== 0) {
-      x = ax > 0 ? base.x + bsx : base.x - sx;
-      y = base.y + Math.round((bsy - sy)/2);
-      z = Math.round(bc.z - sz/2);
-    } else {
-      z = az > 0 ? base.z + bsz : base.z - sz;
-      y = base.y + Math.round((bsy - sy)/2);
-      x = Math.round(bc.x - sx/2);
-    }
+    if (ay !== 0) { y = ay > 0 ? base.y + bsy : base.y - sy; x = Math.round(bc.x - sx/2); z = Math.round(bc.z - sz/2); }
+    else if (ax !== 0) { x = ax > 0 ? base.x + bsx : base.x - sx; y = base.y + Math.round((bsy - sy)/2); z = Math.round(bc.z - sz/2); }
+    else { z = az > 0 ? base.z + bsz : base.z - sz; y = base.y + Math.round((bsy - sy)/2); x = Math.round(bc.x - sx/2); }
   } else {
     if (!raycaster.ray.intersectPlane(plane, hitPoint)) return null;
     x = Math.round(hitPoint.x - sx/2); y = 0; z = Math.round(hitPoint.z - sz/2);
   }
   const baseCost = cubeTypeInfo(selectedMaterial, selectedShape).cost;
   const price = baseCost * sx * sy * sz;
-
-  if (x < -32 || x + sx - 1 > 32 || z < -32 || z + sz - 1 > 32 || y < 0 || y + sy - 1 > 32) {
+  if (x < -32 || x + sx - 1 > 32 || z < -32 || z + sz - 1 > 32 || y < 0 || y + sy - 1 > 32)
     return { x, y, z, sx, sy, sz, valid:false, reason: t('outOfBounds'), price };
-  }
-
   const R = FLAG_CLEAR_RADIUS;
-  if (
-    x <= R && x + sx - 1 >= -R &&
-    z <= R && z + sz - 1 >= -R
-  ) {
+  if (x <= R && x + sx - 1 >= -R && z <= R && z + sz - 1 >= -R)
     return { x, y, z, sx, sy, sz, valid:false, reason: t('flagReserved'), price };
-  }
-
   for (const m of cubeMeshes.values()) {
     const c = m.userData.cube;
     const csx = c.size_x||1, csy = c.size_y||1, csz = c.size_z||1;
-    if (x < c.x+csx && x+sx > c.x && y < c.y+csy && y+sy > c.y && z < c.z+csz && z+sz > c.z) {
+    if (x < c.x+csx && x+sx > c.x && y < c.y+csy && y+sy > c.y && z < c.z+csz && z+sz > c.z)
       return { x, y, z, sx, sy, sz, valid:false, reason: t('occupied'), price };
-    }
   }
   if (y > 0) {
     for (let dx = 0; dx < sx; dx++) {
@@ -1715,39 +1228,27 @@ function computePlacement(ndcX, ndcY) {
         for (const m of cubeMeshes.values()) {
           const c = m.userData.cube;
           const csx = c.size_x||1, csy = c.size_y||1, csz = c.size_z||1;
-          if (c.y <= y-1 && c.y + csy - 1 >= y-1 &&
-              c.x <= cx && c.x + csx - 1 >= cx &&
-              c.z <= cz && c.z + csz - 1 >= cz) { supported = true; break; }
+          if (c.y <= y-1 && c.y + csy - 1 >= y-1 && c.x <= cx && c.x + csx - 1 >= cx && c.z <= cz && c.z + csz - 1 >= cz) { supported = true; break; }
         }
         if (!supported) return { x, y, z, sx, sy, sz, valid:false, reason: t('noSupport'), price };
       }
     }
   }
-  if (econ.ether_balance < price) {
-    return { x, y, z, sx, sy, sz, valid:false, reason: t('noEther'), price };
-  }
+  if (econ.ether_balance < price) return { x, y, z, sx, sy, sz, valid:false, reason: t('noEther'), price };
   return { x, y, z, sx, sy, sz, valid:true, reason:'', price };
 }
 
 function updateGhost() {
-  if (!buildMode || mode !== 'own' || demolishMode) {
-    ghost.visible = false; priceEl.classList.add('hidden');
-    noBuildRing.visible = false;
-    return;
-  }
+  if (!buildMode || mode !== 'own' || demolishMode) { ghost.visible = false; priceEl.classList.add('hidden'); noBuildRing.visible = false; return; }
   noBuildRing.visible = true;
-
   const p = computePlacement(aimPoint.x, aimPoint.y);
   if (!p) { ghost.visible = false; priceEl.classList.add('hidden'); return; }
-
-  const isHalf = (selectedShape === 'half');
-  const cx = p.x + p.sx / 2;
-  const cy = p.y + (isHalf ? p.sy * 0.25 : p.sy / 2);
-  const cz = p.z + p.sz / 2;
-  ghost.position.set(cx, cy, cz);
+  // Тот же расчёт центра, что и у настоящего блока (учитывает вертикальную плиту).
+  const flat = isFlatHalf(selectedShape, p.sy);
+  const cy = p.y + (flat ? p.sy * 0.25 : p.sy / 2);
+  ghost.position.set(p.x + p.sx / 2, cy, p.z + p.sz / 2);
   ghostMat.color.set(p.valid ? 0x22c55e : 0xef4444);
   ghost.visible = true;
-
   priceEl.textContent = p.price + '⚡';
   priceEl.classList.toggle('bad', !p.valid);
   projVec.set(p.x + p.sx / 2, p.y + p.sy + 0.35, p.z + p.sz / 2).project(camera);
@@ -1761,73 +1262,32 @@ function updateGhost() {
 // ---------- КНОПКА ФЛАГА ----------
 function flagLockedMessage(st) {
   if (!st) return t('flagProtected');
-  if (st.percent < st.min_percent) {
-    return t('flagNeedPercent', {
-      need: st.cubes_left_to_min,
-      percent: st.percent,
-      min: st.min_percent,
-    });
-  }
+  if (st.percent < st.min_percent) return t('flagNeedPercent', { need: st.cubes_left_to_min, percent: st.percent, min: st.min_percent });
   return t('flagNeedPath', { width: st.corridor_width });
 }
-
 function applyFlagState(st) {
   raidFlagState = st;
   if (!st) { updateFlagButton(); return; }
-
-  if (st.can_attack && !flagWasOpen) {
-    flagWasOpen = true;
-    toast(t('flagOpened'), 'tip');
-  }
+  if (st.can_attack && !flagWasOpen) { flagWasOpen = true; toast(t('flagOpened'), 'tip'); }
   if (!st.can_attack && flagWasOpen) flagWasOpen = false;
-
   updateFlagButton();
 }
-
 function updateFlagButton() {
-  const btn = $('btn-flag');
-  const label = $('btn-flag-label');
-  const ico = $('btn-flag-ico');
-
-  if (mode !== 'raid' || !raidFlagState) {
-    if (label) label.textContent = t('flag');
-    if (ico) ico.textContent = '🚩';
-    btn.classList.add('locked');
-    return;
-  }
-
-  if (raidFlagState.can_attack) {
-    if (label) label.textContent = t('flag');
-    if (ico) ico.textContent = '🚩';
-    btn.classList.remove('locked');
-    return;
-  }
-
+  const btn = $('btn-flag'), label = $('btn-flag-label'), ico = $('btn-flag-ico');
+  if (mode !== 'raid' || !raidFlagState) { if (label) label.textContent = t('flag'); if (ico) ico.textContent = '🚩'; btn.classList.add('locked'); return; }
+  if (raidFlagState.can_attack) { if (label) label.textContent = t('flag'); if (ico) ico.textContent = '🚩'; btn.classList.remove('locked'); return; }
   btn.classList.add('locked');
-  if (raidFlagState.percent < raidFlagState.min_percent) {
-    if (ico) ico.textContent = '🔒';
-    if (label) label.textContent = raidFlagState.percent + '%';
-  } else {
-    if (ico) ico.textContent = '🚧';
-    if (label) label.textContent = t('flag');
-  }
+  if (raidFlagState.percent < raidFlagState.min_percent) { if (ico) ico.textContent = '🔒'; if (label) label.textContent = raidFlagState.percent + '%'; }
+  else { if (ico) ico.textContent = '🚧'; if (label) label.textContent = t('flag'); }
 }
 
 // ---------- ПАНЕЛЬ ----------
 function applyTab(id, visible) {
   const el = $(id);
   if (visible) {
-    if (el.classList.contains('hidden')) {
-      el.classList.remove('hidden');
-      el.classList.remove('reveal');
-      void el.offsetWidth;
-      el.classList.add('reveal');
-    }
-  } else {
-    el.classList.add('hidden');
-  }
+    if (el.classList.contains('hidden')) { el.classList.remove('hidden'); el.classList.remove('reveal'); void el.offsetWidth; el.classList.add('reveal'); }
+  } else el.classList.add('hidden');
 }
-
 function updatePanel() {
   const on = buildMode && mode === 'own';
   $('btn-build').classList.toggle('on', on);
@@ -1841,7 +1301,6 @@ function updatePanel() {
   $('target-pill').classList.toggle('hidden', mode === 'own');
   updateRotateButton();
   updateShopMini();
-
   applyTab('bottom', mode === 'own');
   applyTab('bottom-visit', mode === 'visit');
   applyTab('bottom-raid', mode === 'raid');
@@ -1849,37 +1308,16 @@ function updatePanel() {
 function setMode(next) {
   mode = next;
   if (next !== 'own') buildMode = false;
-  minion.frozen = false; minion.thinking = false;
-  minion.panicBoost = 0;
-  minion.idleAct = null;
-  resetMinionPath();
-  refreshMinionMood();
-  closeAllPalettes();
-  updatePanel();
+  minion.frozen = false; minion.thinking = false; minion.panicBoost = 0; minion.idleAct = null;
+  resetMinionPath(); refreshMinionMood(); closeAllPalettes(); updatePanel();
 }
-function setBuildMode(on) {
-  buildMode = on;
-  if (!on) setDemolish(false);
-  closeAllPalettes();
-  updatePanel();
-}
-function setDemolish(on) {
-  demolishMode = on;
-  $('btn-demolish').classList.toggle('demolish-on', on);
-  updatePanel();
-}
+function setBuildMode(on) { buildMode = on; if (!on) setDemolish(false); closeAllPalettes(); updatePanel(); }
+function setDemolish(on) { demolishMode = on; $('btn-demolish').classList.toggle('demolish-on', on); updatePanel(); }
 function showScreen(id) { $(id).classList.remove('hidden'); }
-function hideScreens() {
-  ['world-screen','loot-screen','onboard-screen','tip-screen','shop-screen'].forEach(id => $(id).classList.add('hidden'));
-  closeAllPalettes();
-}
+function hideScreens() { ['world-screen','loot-screen','onboard-screen','tip-screen','shop-screen'].forEach(id => $(id).classList.add('hidden')); closeAllPalettes(); }
 function closeOnboard() {
-  const el = $('onboard-screen');
-  el.classList.add('closing');
-  setTimeout(() => {
-    el.classList.remove('closing');
-    el.classList.add('hidden');
-  }, 300);
+  const el = $('onboard-screen'); el.classList.add('closing');
+  setTimeout(() => { el.classList.remove('closing'); el.classList.add('hidden'); }, 300);
 }
 
 // ---------- ОСТРОВ ----------
@@ -1891,15 +1329,13 @@ async function loadOwnIsland() {
 }
 async function loadMe() {
   const me = await api('/api/v1/me');
-  $('ether').textContent = me.ether_balance;
-  econ.ether_balance = me.ether_balance;
+  $('ether').textContent = me.ether_balance; econ.ether_balance = me.ether_balance;
   myFlagColor = me.flag_color || 'red'; displayFlagColor = myFlagColor;
   setMinionFlagColor(myFlagColor);
 }
 async function returnHome() {
   targetUser = null; raidId = null; raidFlagState = null; flagWasOpen = false; hideScreens();
-  setDemolish(false); setMode('own');
-  buildMode = true; updatePanel();
+  setDemolish(false); setMode('own'); buildMode = true; updatePanel();
   $('target-name').textContent = '—';
   fail(t('returning'));
   try { await loadOwnIsland(); await loadMe(); await loadEconomy(); pollRaidAlert(); } finally { ok(); }
@@ -1923,13 +1359,7 @@ function renderEconomy() {
   if (econ.accrued_now >= 1) { btn.classList.add('ready'); hint.textContent = '+' + econ.accrued_now; }
   else { btn.classList.remove('ready'); hint.textContent = fmtTime(econ.seconds_to_next); }
 }
-async function loadEconomy() {
-  try {
-    econ = await api('/api/v1/economy/rates');
-    $('ether').textContent = econ.ether_balance;
-    renderEconomy();
-  } catch (e) {}
-}
+async function loadEconomy() { try { econ = await api('/api/v1/economy/rates'); $('ether').textContent = econ.ether_balance; renderEconomy(); } catch (e) {} }
 async function claimEther() {
   if (econ.accrued_now < 1) return;
   try {
@@ -1937,16 +1367,9 @@ async function claimEther() {
     $('ether').textContent = res.ether_balance;
     toast('+' + res.claimed + ' ' + t('ether'), 'tip');
     await loadEconomy();
-  } catch (e) {
-    if (e.code === 'CLAIM_TOO_EARLY') { await loadEconomy(); return; }
-    toast(e.message, 'error');
-  }
+  } catch (e) { if (e.code === 'CLAIM_TOO_EARLY') { await loadEconomy(); return; } toast(e.message, 'error'); }
 }
-setInterval(() => {
-  if (econ.accrued_now >= 1) return;
-  if (econ.seconds_to_next > 0) { econ.seconds_to_next -= 1; renderEconomy(); }
-  else loadEconomy();
-}, 1000);
+setInterval(() => { if (econ.accrued_now >= 1) return; if (econ.seconds_to_next > 0) { econ.seconds_to_next -= 1; renderEconomy(); } else loadEconomy(); }, 1000);
 setInterval(loadEconomy, 30000);
 
 // ---------- ПАЛИТРЫ ----------
@@ -1967,45 +1390,24 @@ function buildBlockPalette() {
     const dot = document.createElement('button');
     dot.className = 'color-dot' + (key === selectedBlockColor ? ' selected' : '');
     dot.style.background = hex;
-    dot.addEventListener('click', () => {
-      selectedBlockColor = key;
-      updateBlockSwatch();
-      saveBuildPrefs();
-      closeAllPalettes();
-    });
+    dot.addEventListener('click', () => { selectedBlockColor = key; updateBlockSwatch(); saveBuildPrefs(); closeAllPalettes(); });
     grid.appendChild(dot);
   }
 }
-
-// ---------- СОХРАНЕНИЕ ВЫБОРА СТРОЙКИ (localStorage) ----------
 function saveBuildPrefs() {
-  try {
-    localStorage.setItem('adrift_build_prefs', JSON.stringify({
-      shape: selectedShape,
-      material: selectedMaterial,
-      color: selectedBlockColor,
-      sizeKey: selectedSize.key,
-    }));
-  } catch (e) {}
+  try { localStorage.setItem('adrift_build_prefs', JSON.stringify({ shape: selectedShape, material: selectedMaterial, color: selectedBlockColor, sizeKey: selectedSize.key })); } catch (e) {}
 }
 function loadBuildPrefs() {
   try {
-    const raw = localStorage.getItem('adrift_build_prefs');
-    if (!raw) return;
+    const raw = localStorage.getItem('adrift_build_prefs'); if (!raw) return;
     const p = JSON.parse(raw);
     if (p.shape && SHOP_SHAPES.some(s => s.key === p.shape)) selectedShape = p.shape;
     if (p.material && SHOP_MATERIALS.some(m => m.key === p.material)) selectedMaterial = p.material;
     if (p.color && BLOCK_COLORS_CSS[p.color]) selectedBlockColor = p.color;
-    if (p.sizeKey) {
-      const sz = BLOCK_SIZES.find(x => x.key === p.sizeKey);
-      if (sz) selectedSize = sz;
-    }
+    if (p.sizeKey) { const sz = BLOCK_SIZES.find(x => x.key === p.sizeKey); if (sz) selectedSize = sz; }
   } catch (e) {}
 }
-
-function sizePrice(s) {
-  return cubeTypeInfo(selectedMaterial, selectedShape).cost * s.sx * s.sy * s.sz;
-}
+function sizePrice(s) { return cubeTypeInfo(selectedMaterial, selectedShape).cost * s.sx * s.sy * s.sz; }
 function buildSizePalette() {
   const grid = $('size-grid'); grid.innerHTML = '';
   for (const s of BLOCK_SIZES) {
@@ -2015,12 +1417,9 @@ function buildSizePalette() {
     const price = document.createElement('span'); price.className = 'price'; price.textContent = sizePrice(s) + '⚡';
     btn.append(glyph, price);
     btn.addEventListener('click', () => {
-      selectedSize = s;
-      rotationStep = 0;
-      vertical = false;
+      selectedSize = s; rotationStep = 0; vertical = false;
       updateSizeLabel(); updateGhostGeometry(); updateRotateButton();
-      saveBuildPrefs();
-      closeAllPalettes();
+      saveBuildPrefs(); closeAllPalettes();
     });
     grid.appendChild(btn);
   }
@@ -2040,8 +1439,7 @@ async function pickFlagColor(key) {
     const res = await api('/api/v1/me/flag-color', { method:'POST', body: JSON.stringify({ color:key }) });
     myFlagColor = res.flag_color;
     if (mode !== 'raid') setFlagVisual(currentFlagHp, currentFlagMax, myFlagColor);
-    closeAllPalettes();
-    toast(t('flagColorChanged'), 'tip');
+    closeAllPalettes(); toast(t('flagColorChanged'), 'tip');
   } catch (e) { toast(e.message, 'error'); }
 }
 
@@ -2054,117 +1452,60 @@ function cubeTypeInfo(material, shape) {
   if (fb) return { cost: fb.cost, max_hp: fb.hp };
   return { cost: 10, max_hp: 100 };
 }
-
 async function loadCatalog() {
   try {
     const data = await api('/api/v1/build/catalog');
     catalog = {};
-    for (const c of (data.cubes || [])) {
-      catalog[c.type] = { cost: c.cost, max_hp: c.max_hp };
-    }
+    for (const c of (data.cubes || [])) catalog[c.type] = { cost: c.cost, max_hp: c.max_hp };
   } catch (e) {}
 }
-
 function updateShopMini() {
-  const el = $('shop-mini');
-  if (!el) return;
+  const el = $('shop-mini'); if (!el) return;
   const pal = MATERIAL_PALETTE[selectedMaterial];
   el.style.background = pal ? pal.mid : '#c9a06a';
   el.innerHTML = svgIsometric(selectedShape, pal || MATERIAL_PALETTE.wood);
 }
-
 function svgIsometric(shape, palette) {
   const { light, mid, dark } = palette;
   if (shape === 'half') {
-    return `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-      <path d="M50 30 L92 52 L50 74 L8 52 Z" fill="${light}"/>
-      <path d="M8 52 L50 74 L50 94 L8 72 Z" fill="${dark}"/>
-      <path d="M92 52 L50 74 L50 94 L92 72 Z" fill="${mid}"/>
-    </svg>`;
+    return `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><path d="M50 30 L92 52 L50 74 L8 52 Z" fill="${light}"/><path d="M8 52 L50 74 L50 94 L8 72 Z" fill="${dark}"/><path d="M92 52 L50 74 L50 94 L92 72 Z" fill="${mid}"/></svg>`;
   }
   if (shape === 'triangle') {
-    return `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-      <path d="M50 10 L88 82 L12 82 Z" fill="${light}"/>
-      <path d="M50 10 L88 82 L88 92 L50 20 Z" fill="${mid}"/>
-      <path d="M12 82 L50 10 L50 20 L12 92 Z" fill="${dark}"/>
-    </svg>`;
+    return `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><path d="M50 10 L88 82 L12 82 Z" fill="${light}"/><path d="M50 10 L88 82 L88 92 L50 20 Z" fill="${mid}"/><path d="M12 82 L50 10 L50 20 L12 92 Z" fill="${dark}"/></svg>`;
   }
   if (shape === 'circle') {
-    return `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-      <path d="M 14 26 L 14 74 C 14 81.7 30.1 88 50 88 C 69.9 88 86 81.7 86 74 L 86 26 Z" fill="${mid}"/>
-      <ellipse cx="50" cy="74" rx="36" ry="14" fill="${dark}"/>
-      <ellipse cx="50" cy="26" rx="36" ry="14" fill="${light}"/>
-    </svg>`;
+    return `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><path d="M 14 26 L 14 74 C 14 81.7 30.1 88 50 88 C 69.9 88 86 81.7 86 74 L 86 26 Z" fill="${mid}"/><ellipse cx="50" cy="74" rx="36" ry="14" fill="${dark}"/><ellipse cx="50" cy="26" rx="36" ry="14" fill="${light}"/></svg>`;
   }
-  return `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-    <path d="M50 8 L92 30 L50 52 L8 30 Z" fill="${light}"/>
-    <path d="M8 30 L50 52 L50 94 L8 72 Z" fill="${dark}"/>
-    <path d="M92 30 L50 52 L50 94 L92 72 Z" fill="${mid}"/>
-  </svg>`;
+  return `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><path d="M50 8 L92 30 L50 52 L8 30 Z" fill="${light}"/><path d="M8 30 L50 52 L50 94 L8 72 Z" fill="${dark}"/><path d="M92 30 L50 52 L50 94 L92 72 Z" fill="${mid}"/></svg>`;
 }
-
 function buildShop() {
-  const shapesEl = $('shop-shapes');
-  const matsEl = $('shop-materials');
-  shapesEl.innerHTML = '';
-  matsEl.innerHTML = '';
-
+  const shapesEl = $('shop-shapes'), matsEl = $('shop-materials');
+  shapesEl.innerHTML = ''; matsEl.innerHTML = '';
   for (const s of SHOP_SHAPES) {
     const info = cubeTypeInfo(selectedMaterial, s.key);
     const btn = document.createElement('button');
     btn.className = 'shop-card' + (s.key === selectedShape ? ' selected' : '');
-    btn.innerHTML = `
-      <div class="card-preview">${svgIsometric(s.key, MATERIAL_PALETTE[selectedMaterial])}</div>
-      <div class="card-name">${lang === 'ru' ? s.name : s.nameEn}</div>
-      <div class="card-info">${lang === 'ru' ? s.info : s.infoEn}</div>
-      <div class="card-price">${info.cost}⚡</div>
-    `;
-    btn.addEventListener('click', () => {
-      selectedShape = s.key;
-      saveBuildPrefs();
-      buildShop();
-      updateGhostGeometry();
-    });
+    btn.innerHTML = `<div class="card-preview">${svgIsometric(s.key, MATERIAL_PALETTE[selectedMaterial])}</div><div class="card-name">${lang === 'ru' ? s.name : s.nameEn}</div><div class="card-info">${lang === 'ru' ? s.info : s.infoEn}</div><div class="card-price">${info.cost}⚡</div>`;
+    btn.addEventListener('click', () => { selectedShape = s.key; saveBuildPrefs(); buildShop(); updateGhostGeometry(); });
     shapesEl.appendChild(btn);
   }
-
   for (const m of SHOP_MATERIALS) {
     const info = cubeTypeInfo(m.key, selectedShape);
     const btn = document.createElement('button');
     btn.className = 'shop-card' + (m.key === selectedMaterial ? ' selected' : '');
-    btn.innerHTML = `
-      <div class="card-preview">${svgIsometric(selectedShape, MATERIAL_PALETTE[m.key])}</div>
-      <div class="card-name">${lang === 'ru' ? m.name : m.nameEn}</div>
-      <div class="card-info">${lang === 'ru' ? m.info : m.infoEn}</div>
-      <div class="card-price">${info.cost}⚡</div>
-    `;
-    btn.addEventListener('click', () => {
-      selectedMaterial = m.key;
-      saveBuildPrefs();
-      buildShop();
-      updateGhostGeometry();
-    });
+    btn.innerHTML = `<div class="card-preview">${svgIsometric(selectedShape, MATERIAL_PALETTE[m.key])}</div><div class="card-name">${lang === 'ru' ? m.name : m.nameEn}</div><div class="card-info">${lang === 'ru' ? m.info : m.infoEn}</div><div class="card-price">${info.cost}⚡</div>`;
+    btn.addEventListener('click', () => { selectedMaterial = m.key; saveBuildPrefs(); buildShop(); updateGhostGeometry(); });
     matsEl.appendChild(btn);
   }
-
-  renderShopSummary();
-  updateShopMini();
+  renderShopSummary(); updateShopMini();
 }
-
 function renderShopSummary() {
   const info = cubeTypeInfo(selectedMaterial, selectedShape);
-  const s = SHOP_SHAPES.find(x => x.key === selectedShape);
-  const m = SHOP_MATERIALS.find(x => x.key === selectedMaterial);
-  const sName = lang === 'ru' ? s.name : s.nameEn;
-  const mName = lang === 'ru' ? m.name : m.nameEn;
-  $('shop-summary').innerHTML =
-    `<b>${sName}</b> · ${mName} · <b>${info.cost}⚡</b> · ${info.max_hp} HP`;
+  const s = SHOP_SHAPES.find(x => x.key === selectedShape), m = SHOP_MATERIALS.find(x => x.key === selectedMaterial);
+  const sName = lang === 'ru' ? s.name : s.nameEn, mName = lang === 'ru' ? m.name : m.nameEn;
+  $('shop-summary').innerHTML = `<b>${sName}</b> · ${mName} · <b>${info.cost}⚡</b> · ${info.max_hp} HP`;
 }
-
-function openShop() {
-  buildShop();
-  showScreen('shop-screen');
-}
+function openShop() { buildShop(); showScreen('shop-screen'); }
 
 // ---------- МИР ----------
 function blockLabel(isl) {
@@ -2182,10 +1523,7 @@ function makeIslandRow(isl) {
   const meta = document.createElement('div'); meta.className = 'island-meta';
   meta.textContent = `🧱 ${isl.cube_count} · ⚡ ${isl.potential_loot} · 🚩 ${isl.flag_hp}`;
   row.append(name, meta);
-  if (!isl.can_raid) {
-    const badge = document.createElement('div'); badge.className = 'island-badge'; badge.textContent = blockLabel(isl);
-    row.appendChild(badge);
-  }
+  if (!isl.can_raid) { const badge = document.createElement('div'); badge.className = 'island-badge'; badge.textContent = blockLabel(isl); row.appendChild(badge); }
   row.addEventListener('click', () => visitIsland(isl.user_id, isl.username));
   return row;
 }
@@ -2197,10 +1535,7 @@ async function openWorld() {
   try {
     const data = await api('/api/v1/islands?limit=50');
     list.innerHTML = '';
-    if (!data.islands.length) {
-      const empty = document.createElement('div'); empty.className = 'screen-note'; empty.textContent = t('noone');
-      list.appendChild(empty); return;
-    }
+    if (!data.islands.length) { const empty = document.createElement('div'); empty.className = 'screen-note'; empty.textContent = t('noone'); list.appendChild(empty); return; }
     for (const isl of data.islands) list.appendChild(makeIslandRow(isl));
   } catch (e) {
     list.innerHTML = '';
@@ -2231,14 +1566,12 @@ function pickCharge(cube) {
   while (want > 1 && bal < CHARGE_COST[want]) want--;
   return want;
 }
-
 async function startRaid() {
   if (!targetUser) return;
   fail(t('raidStart'));
   try {
     const res = await api(`/api/v1/raids/${targetUser.user_id}/start`, { method:'POST' });
-    raidId = res.raid_id;
-    flagWasOpen = false;
+    raidId = res.raid_id; flagWasOpen = false;
     applyFlagState(res.flag_state);
     $('ether').textContent = res.ether_balance; econ.ether_balance = res.ether_balance;
     const detail = await api(`/api/v1/islands/${targetUser.user_id}`);
@@ -2249,9 +1582,7 @@ async function startRaid() {
   } catch (e) { ok(); toast(e.message, 'error'); }
 }
 function raidGone(e) {
-  if (e.code === 'RAID_NOT_FOUND' || e.code === 'RAID_ALREADY_FINISHED') {
-    toast(t('raidFinished'), 'warn'); raidId = null; setTimeout(returnHome, 1200); return true;
-  }
+  if (e.code === 'RAID_NOT_FOUND' || e.code === 'RAID_ALREADY_FINISHED') { toast(t('raidFinished'), 'warn'); raidId = null; setTimeout(returnHome, 1200); return true; }
   return false;
 }
 async function attackCube(cube) {
@@ -2259,16 +1590,10 @@ async function attackCube(cube) {
   const charge = pickCharge(cube);
   attacking = true;
   try {
-    const res = await api(`/api/v1/raids/${raidId}/attack-cube`, {
-      method:'POST', headers:{ 'Idempotency-Key': uid() },
-      body: JSON.stringify({ cube_id: cube.id, charge }),
-    });
+    const res = await api(`/api/v1/raids/${raidId}/attack-cube`, { method:'POST', headers:{ 'Idempotency-Key': uid() }, body: JSON.stringify({ cube_id: cube.id, charge }) });
     $('ether').textContent = res.ether_balance; econ.ether_balance = res.ether_balance;
-    if (res.cube.destroyed) {
-      removeCube(res.cube.id);
-      minion.panicBoost = 3;
-      minion.path = [];
-    } else updateCubeHp(res.cube.id, res.cube.hp);
+    if (res.cube.destroyed) { removeCube(res.cube.id); minion.panicBoost = 3; minion.path = []; }
+    else updateCubeHp(res.cube.id, res.cube.hp);
     for (const c of res.collapsed) removeCube(c.id);
     refreshCounters();
     if (res.flag_state) applyFlagState(res.flag_state);
@@ -2277,17 +1602,10 @@ async function attackCube(cube) {
 }
 async function attackFlag() {
   if (!raidId || attacking) return;
-
-  if (raidFlagState && !raidFlagState.can_attack) {
-    toast(flagLockedMessage(raidFlagState), 'error');
-    return;
-  }
-
+  if (raidFlagState && !raidFlagState.can_attack) { toast(flagLockedMessage(raidFlagState), 'error'); return; }
   attacking = true;
   try {
-    const res = await api(`/api/v1/raids/${raidId}/attack-flag`, {
-      method:'POST', headers:{ 'Idempotency-Key': uid() },
-    });
+    const res = await api(`/api/v1/raids/${raidId}/attack-flag`, { method:'POST', headers:{ 'Idempotency-Key': uid() } });
     $('ether').textContent = res.ether_balance; econ.ether_balance = res.ether_balance;
     setFlagVisual(res.flag_hp, res.flag_max_hp);
     if (res.flag_state) applyFlagState(res.flag_state);
@@ -2302,8 +1620,7 @@ async function attackFlag() {
       if (e.code === 'FLAG_PROTECTED' && e.details) applyFlagState(e.details);
       toast(e.code === 'FLAG_PROTECTED' ? flagLockedMessage(e.details) : e.message, 'error');
     }
-  }
-  finally { attacking = false; }
+  } finally { attacking = false; }
 }
 async function leaveRaid() {
   if (raidId) { try { await api(`/api/v1/raids/${raidId}/finish`, { method:'POST' }); } catch (e) {} }
@@ -2316,8 +1633,7 @@ const TAP_MAX_MOVE = 8, TAP_MAX_TIME = 400;
 renderer.domElement.addEventListener('pointerdown', (ev) => {
   if (ev.button !== 0) return;
   pointerStart = { x:ev.clientX, y:ev.clientY, t:performance.now(), id:ev.pointerId };
-  updateAimFromClient(ev.clientX, ev.clientY);
-  updateGhost();
+  updateAimFromClient(ev.clientX, ev.clientY); updateGhost();
 });
 renderer.domElement.addEventListener('pointercancel', () => { pointerStart = null; });
 renderer.domElement.addEventListener('pointerup', async (ev) => {
@@ -2329,23 +1645,15 @@ renderer.domElement.addEventListener('pointerup', async (ev) => {
   if (loading) return;
   if (camAnim.active) return;
   if (!$('tip-screen').classList.contains('hidden')) return;
-
   const ndcX = (ev.clientX / innerWidth) * 2 - 1;
   const ndcY = -(ev.clientY / innerHeight) * 2 + 1;
-
   raycaster.setFromCamera({ x:ndcX, y:ndcY }, camera);
   const minionHits = raycaster.intersectObjects(minionHitMeshes, false);
-  if (minionHits.length) {
-    if (minion.mood === 'panic') { toast(t('minionPanic'), 'warn'); return; }
-    openTip();
-    return;
-  }
-
+  if (minionHits.length) { if (minion.mood === 'panic') { toast(t('minionPanic'), 'warn'); return; } openTip(); return; }
   if (mode === 'own' && demolishMode) return handleDemolishTap(ndcX, ndcY);
   if (mode === 'own' && buildMode) return handleBuildTap();
   if (mode === 'raid') return handleRaidTap(ndcX, ndcY);
 });
-
 async function handleBuildTap() {
   const p = computePlacement(aimPoint.x, aimPoint.y);
   if (!p) return;
@@ -2357,15 +1665,12 @@ async function handleBuildTap() {
       body: JSON.stringify({
         x:p.x, y:p.y, z:p.z,
         size_x:p.sx, size_y:p.sy, size_z:p.sz,
-        material: selectedMaterial,
-        shape: selectedShape,
-        color: selectedBlockColor,
-        rotation: effectiveRotation,
+        material: selectedMaterial, shape: selectedShape,
+        color: selectedBlockColor, rotation: effectiveRotation,
       }),
     });
     addCube(res.cube);
-    $('ether').textContent = res.ether_balance;
-    econ.ether_balance = res.ether_balance;
+    $('ether').textContent = res.ether_balance; econ.ether_balance = res.ether_balance;
     $('cubes').textContent = res.island_cube_count;
   } catch (e) { toast(e.message, 'error'); }
 }
@@ -2378,8 +1683,7 @@ async function handleDemolishTap(ndcX, ndcY) {
     const res = await api(`/api/v1/build/cube/${cube.id}`, { method:'DELETE' });
     for (const c of res.removed) removeCube(c.id);
     refreshCounters();
-    $('ether').textContent = res.ether_balance;
-    econ.ether_balance = res.ether_balance;
+    $('ether').textContent = res.ether_balance; econ.ether_balance = res.ether_balance;
     toast('+' + res.ether_refunded + ' ' + t('refund'), 'tip');
   } catch (e) { toast(e.message, 'error'); }
 }
@@ -2401,17 +1705,13 @@ $('btn-demolish').addEventListener('click', () => setDemolish(!demolishMode));
 $('btn-size').addEventListener('click', () => togglePalette('size-palette'));
 $('btn-rotate').addEventListener('click', () => {
   if (!canRotate()) return;
-  rotationStep = (rotationStep + 1) % 4;
-  vertical = false;
-  updateGhostGeometry();
-  updateRotateButton();
+  rotationStep = (rotationStep + 1) % 4; vertical = false;
+  updateGhostGeometry(); updateRotateButton();
 });
 $('btn-vertical').addEventListener('click', () => {
   if (!canVertical()) return;
-  vertical = !vertical;
-  if (vertical) rotationStep = 0;
-  updateGhostGeometry();
-  updateRotateButton();
+  vertical = !vertical; if (vertical) rotationStep = 0;
+  updateGhostGeometry(); updateRotateButton();
 });
 $('btn-block-color').addEventListener('click', () => togglePalette('block-palette'));
 $('btn-palette').addEventListener('click', () => togglePalette('palette'));
@@ -2426,40 +1726,23 @@ $('btn-flag').addEventListener('click', attackFlag);
 $('btn-leave').addEventListener('click', leaveRaid);
 $('loot-ok').addEventListener('click', returnHome);
 $('tip-ok').addEventListener('click', closeTip);
-$('onboard-ok').addEventListener('click', () => {
-  localStorage.setItem('adrift_onboarded', '1');
-  closeOnboard();
-});
+$('onboard-ok').addEventListener('click', () => { localStorage.setItem('adrift_onboarded', '1'); closeOnboard(); });
 
 // ---------- ЦИКЛ ----------
-addEventListener('resize', () => {
-  camera.aspect = innerWidth / innerHeight;
-  camera.updateProjectionMatrix();
-  renderer.setSize(innerWidth, innerHeight);
-});
-
+addEventListener('resize', () => { camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); renderer.setSize(innerWidth, innerHeight); });
 let lastFrame = performance.now();
-
 function animate() {
   requestAnimationFrame(animate);
   const now = performance.now();
   const dt = Math.min((now - lastFrame) / 1000, 0.1);
   lastFrame = now;
   const nowSec = now / 1000;
-
-  if (updateCameraAnim(dt)) {
-    camera.lookAt(controls.target);
-  } else {
-    controls.update();
-  }
+  if (updateCameraAnim(dt)) camera.lookAt(controls.target); else controls.update();
   flagGroup.rotation.y += 0.005;
-
   if (minion.thinking && nowSec >= minion.thinkUntil) finishThinking();
-
   updateMinion(dt);
   updateBubbles(nowSec, dt);
   updateGhost();
-
   renderer.render(scene, camera);
 }
 animate();
@@ -2467,22 +1750,13 @@ animate();
 // ---------- СТАРТ ----------
 (async () => {
   try {
-    applyI18n();
-    loadBuildPrefs();
-    updateSizeLabel();
-    updateGhostGeometry();
-    updateRotateButton();
-    updateBlockSwatch();
-    await auth();
-    fail(t('loading'));
+    applyI18n(); loadBuildPrefs(); updateSizeLabel(); updateGhostGeometry(); updateRotateButton(); updateBlockSwatch();
+    await auth(); fail(t('loading'));
     await loadCatalog();
     await loadMe();
     await loadOwnIsland();
     await loadEconomy();
-    setMode('own');
-    buildMode = true;
-    updatePanel();
-    ok();
+    setMode('own'); buildMode = true; updatePanel(); ok();
     pollRaidAlert();
     if (!localStorage.getItem('adrift_onboarded')) showScreen('onboard-screen');
   } catch (e) { fail(t('error') + ': ' + e.message); }
