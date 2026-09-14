@@ -40,17 +40,7 @@
   #btn-shop .shop-ico { font-size:16px; line-height:1; display:inline-block; vertical-align:middle; }
   #shop-mini { position:absolute; right:-2px; bottom:-2px; width:16px; height:16px; border-radius:4px; border:1.5px solid rgba(255,255,255,.7); box-shadow:0 1px 4px rgba(0,0,0,.5); background:#c9a06a; transition: background .15s ease; overflow:hidden; }
   #shop-mini svg { display:block; width:100%; height:100%; }
-  /* Баннер «нет соединения». Едет сверху вниз, сидит над всеми барами,
-     но под тостами и #status: если сервер спит, первым видно его. */
-  #net-banner {
-    position:fixed; top:0; left:0; right:0;
-    background:rgba(120,53,15,.96);
-    border-bottom:1px solid rgba(245,158,11,.55);
-    color:#fde68a; padding:6px 12px; font-size:13px; font-weight:600;
-    text-align:center; z-index:150;
-    transform: translateY(-100%); transition: transform .25s ease;
-    pointer-events:none;
-  }
+  #net-banner { position:fixed; top:0; left:0; right:0; background:rgba(120,53,15,.96); border-bottom:1px solid rgba(245,158,11,.55); color:#fde68a; padding:6px 12px; font-size:13px; font-weight:600; text-align:center; z-index:150; transform: translateY(-100%); transition: transform .25s ease; pointer-events:none; }
   #net-banner.show { transform: translateY(0); }
   #toast { position:fixed; top:64px; left:50%; transform:translateX(-50%) translateY(-8px); background:rgba(30,41,59,.96); backdrop-filter:blur(10px); border:1px solid rgba(255,255,255,.14); border-radius:14px; padding:12px 20px; font-size:14px; font-weight:500; max-width:88vw; text-align:center; pointer-events:none; z-index:200; box-shadow:0 8px 24px rgba(0,0,0,.4); opacity:0; transition:opacity .2s ease, transform .2s ease; }
   #toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
@@ -131,7 +121,7 @@
 </head>
 <body>
 <div id="app"></div>
-<div id="net-banner">📡 Нет соединения с сервером…</div>
+<div id="net-banner" data-i18n="netDown">📡 Нет соединения с сервером…</div>
 <div class="bar" id="top">
   <button class="pill pill-btn" id="claim-btn" title="Claim">⚡ <b id="ether">—</b><span id="claim-hint">…</span></button>
   <div class="pill">🧱 <b id="cubes">—</b></div>
@@ -255,12 +245,14 @@ const FALLBACK_PRICES = {
 
 const I18N = {
   ru: {
+    // --- общие ---
     flagColor: 'Цвет флага', blockColor: 'Цвет блока', sizeTitle: 'Размер блока',
     worldTitle: '🌍 Мир', back: 'Назад', raid: 'Рейд', flag: 'Флаг', leave: 'Выйти',
     lootTitle: 'Флаг разрушен!', lootStolen: 'Украдено:', lootBalance: 'Баланс:',
     returnHome: 'Вернуться', tipTitle: 'Буй говорит', tipOk: 'Ок',
     minionPanic: 'Буй в панике. Сейчас ему не до разговоров.',
     raidAlertToast: 'На твой остров открыт рейд. Проверь Флаг.',
+    netDown: '📡 Нет соединения с сервером…',
     onboardTitle: 'Добро пожаловать в ADRIFT',
     onboard1: '<b>1.</b> Ты уже в режиме стройки. Наведи камеру, увидишь полупрозрачный блок там, куда встанет куб.',
     onboard2: '<b>2.</b> Зелёный значит можно ставить, красный значит нельзя. <b>📐</b> размер, <b>↔️</b> поворот на 90°.',
@@ -282,6 +274,45 @@ const I18N = {
     noSupport: 'Нужна опора снизу', occupied: 'Здесь уже стоит блок',
     noEther: 'Не хватает Эфира', outOfBounds: 'За границей острова',
     shopTitle: '🛒 Магазин', shopShape: '1. Форма', shopMaterial: '2. Материал', shopBuild: 'Строить',
+
+    // --- тексты ошибок (humanError) ---
+    errNetTimeout: 'Сервер не отвечает, попробуй ещё раз',
+    errNetDown: 'Нет соединения с сервером',
+    errNotReady: 'Сервер перегружен, попробуй ещё раз',
+    errConflict: 'Конфликт одновременных действий, повтори',
+    errValidation: 'Некорректные данные запроса',
+    errRateLimited: 'Слишком часто, сбавь темп',
+    errRateLimitedWait: 'Слишком часто, подожди {s} с',
+    errInternal: 'Внутренняя ошибка сервера, попробуй позже',
+    errTokenExpired: 'Сессия истекла, перезайди в игру',
+    errTokenInvalid: 'Нужно переавторизоваться',
+    errProfileMissing: 'Профиль не найден',
+    errCellOccupied: 'Здесь уже стоит блок',
+    errOutOfBounds: 'За границей острова или слишком близко к Флагу',
+    errNoSupport: 'Нужна опора снизу',
+    errCubeLimit: 'Достигнут лимит кубов',
+    errCubeLimitN: 'Достигнут лимит кубов ({n})',
+    errNotEnoughEther: 'Не хватает Эфира',
+    errNotEnoughEtherAmount: 'Не хватает Эфира: нужно {need}, есть {have}',
+    errNotYourCube: 'Это не твой куб',
+    errInvalidCubeType: 'Эта форма или материал недоступны',
+    errIslandBusy: 'Остров занят: постройка идёт, попробуй ещё раз',
+    errSafeZoneUpgrade: 'Кубы в безопасной зоне нельзя улучшать',
+    errRaidNotFound: 'Рейд не найден',
+    errRaidFinished: 'Рейд уже завершён',
+    errRaidForbiddenTarget: 'По этому острову рейд невозможен',
+    errTargetShielded: 'У защитника активен щит',
+    errTargetShieldedTime: 'Цель под щитом ещё {time}',
+    errTargetIsSelf: 'Это твой остров',
+    errCooldown: 'Этот игрок недавно подвергался атаке',
+    errCooldownTime: 'Кулдаун ещё {time}',
+    errCubeInSafeZone: 'Внутри безопасной зоны Флага атака запрещена',
+    errFlagProtected: 'Флаг пока закрыт',
+    errFlagAlreadyDestroyed: 'Флаг уже разрушен',
+    errClaimTooEarly: 'Эфир ещё не накопился',
+    errIdempotency: 'Повторный запрос, уже обработано',
+    errAuth: 'Ошибка авторизации ({status})',
+
     tips: [
       { text: 'Наведи камеру на клетку и тапни по экрану. Там появится куб.', cond: 'always' },
       { text: 'Кнопка 📐 меняет размер блока. Большие блоки стоят дороже.', cond: 'always' },
@@ -318,12 +349,14 @@ const I18N = {
     ],
   },
   en: {
+    // --- general ---
     flagColor: 'Flag color', blockColor: 'Block color', sizeTitle: 'Block size',
     worldTitle: '🌍 World', back: 'Back', raid: 'Raid', flag: 'Flag', leave: 'Leave',
     lootTitle: 'Flag destroyed!', lootStolen: 'Stolen:', lootBalance: 'Balance:',
     returnHome: 'Return', tipTitle: 'Buoy says', tipOk: 'OK',
     minionPanic: 'Buoy is panicking. No time for a chat.',
     raidAlertToast: 'A raid is open against your island. Check your Flag.',
+    netDown: '📡 No connection to the server…',
     onboardTitle: 'Welcome to ADRIFT',
     onboard1: '<b>1.</b> You are already in build mode. Aim the camera, a translucent block shows where the cube will go.',
     onboard2: '<b>2.</b> Green means you can place, red means you cannot. <b>📐</b> size, <b>↔️</b> rotates 90°.',
@@ -343,6 +376,45 @@ const I18N = {
     noSupport: 'Needs support below', occupied: 'Already occupied',
     noEther: 'Not enough Ether', outOfBounds: 'Out of bounds',
     shopTitle: '🛒 Shop', shopShape: '1. Shape', shopMaterial: '2. Material', shopBuild: 'Build',
+
+    // --- error texts (humanError) ---
+    errNetTimeout: 'The server is not responding, try again',
+    errNetDown: 'No connection to the server',
+    errNotReady: 'Server is overloaded, try again',
+    errConflict: 'Concurrent action conflict, retry',
+    errValidation: 'Invalid request data',
+    errRateLimited: 'Too fast, slow down',
+    errRateLimitedWait: 'Too fast, wait {s} s',
+    errInternal: 'Internal server error, try later',
+    errTokenExpired: 'Session expired, sign in again',
+    errTokenInvalid: 'Please sign in again',
+    errProfileMissing: 'Profile not found',
+    errCellOccupied: 'This cell is already occupied',
+    errOutOfBounds: 'Out of bounds or too close to the Flag',
+    errNoSupport: 'Needs support below',
+    errCubeLimit: 'Cube limit reached',
+    errCubeLimitN: 'Cube limit reached ({n})',
+    errNotEnoughEther: 'Not enough Ether',
+    errNotEnoughEtherAmount: 'Not enough Ether: need {need}, have {have}',
+    errNotYourCube: 'That is not your cube',
+    errInvalidCubeType: 'That shape or material is not available',
+    errIslandBusy: 'Island is busy: build in progress, try again',
+    errSafeZoneUpgrade: 'Cubes in the safe zone cannot be upgraded',
+    errRaidNotFound: 'Raid not found',
+    errRaidFinished: 'Raid is already finished',
+    errRaidForbiddenTarget: 'This island cannot be raided',
+    errTargetShielded: 'Defender has an active shield',
+    errTargetShieldedTime: 'Target is shielded for another {time}',
+    errTargetIsSelf: 'This is your own island',
+    errCooldown: 'This player was recently attacked',
+    errCooldownTime: 'Cooldown for another {time}',
+    errCubeInSafeZone: 'Attacks are disabled inside the Flag safe zone',
+    errFlagProtected: 'The Flag is still closed',
+    errFlagAlreadyDestroyed: 'The Flag is already destroyed',
+    errClaimTooEarly: 'No Ether accrued yet',
+    errIdempotency: 'Duplicate request, already handled',
+    errAuth: 'Authorization error ({status})',
+
     tips: [
       { text: 'Aim the camera at a cell and tap the screen. A cube appears there.', cond: 'always' },
       { text: 'The 📐 button changes block size. Bigger blocks cost more.', cond: 'always' },
@@ -425,9 +497,6 @@ const fmtTime = (s) => {
 };
 
 // ---------- СЕТЬ: ТАЙМАУТ + БАННЕР «НЕТ СОЕДИНЕНИЯ» ----------
-// fetch без таймаута на мобильном может висеть минутами: клиент показывает
-// вечный спиннер, а игрок не понимает, что сервер недоступен. Оборачиваем
-// с AbortController: если за 15 секунд ответа нет — рвём и показываем баннер.
 const NET_TIMEOUT_MS = 15000;
 let netDownTimer = null;
 let netDownShown = false;
@@ -438,25 +507,20 @@ function showNetDown() {
   const el = $('net-banner'); if (el) el.classList.add('show');
 }
 function hideNetDown() {
-  // Небольшая задержка: если упал один запрос, но следующий прошёл — не мигаем.
   clearTimeout(netDownTimer);
   netDownTimer = setTimeout(() => {
     netDownShown = false;
     const el = $('net-banner'); if (el) el.classList.remove('show');
   }, 300);
 }
-
 async function fetchT(url, opts = {}, ms = NET_TIMEOUT_MS) {
   const ac = new AbortController();
   const timer = setTimeout(() => ac.abort(), ms);
   try {
     const res = await fetch(url, { ...opts, signal: ac.signal });
-    // Даже если сервер вернул 500 — сеть жива. Баннер не показываем.
     hideNetDown();
     return res;
   } catch (e) {
-    // AbortError — таймаут; TypeError — «Failed to fetch» (нет интернета,
-    // DNS, CORS, оффлайн). В обоих случаях игрок должен видеть, что связи нет.
     if (e && (e.name === 'AbortError' || e instanceof TypeError)) showNetDown();
     throw e;
   } finally {
@@ -464,58 +528,73 @@ async function fetchT(url, opts = {}, ms = NET_TIMEOUT_MS) {
   }
 }
 
-// ---------- ЧЕЛОВЕЧЕСКИЕ СООБЩЕНИЯ ОБ ОШИБКАХ ----------
+// ---------- ЧЕЛОВЕЧЕСКИЕ СООБЩЕНИЯ ОБ ОШИБКАХ (через I18N) ----------
+// Единственная точка перевода ErrorCode -> текст игроку. Все тексты живут
+// в I18N[lang].err*, а не хардкодом: иначе интерфейс переключается, а
+// ошибки остаются на русском.
 function humanError(e) {
   const code = e && e.code;
   const srv = (e && e.message) || '';
   const d = (e && e.details) || {};
 
-  // Сетевые сбои fetchT приходят без .code: AbortError = таймаут, TypeError = нет связи.
+  // Сетевые сбои приходят без .code: AbortError = таймаут, TypeError = нет связи.
   if (!code && e) {
-    if (e.name === 'AbortError') return 'Сервер не отвечает, попробуй ещё раз';
-    if (e instanceof TypeError)   return 'Нет соединения с сервером';
+    if (e.name === 'AbortError') return t('errNetTimeout');
+    if (e instanceof TypeError)   return t('errNetDown');
   }
 
   switch (code) {
-    case 'NOT_READY': return 'Сервер перегружен, попробуй ещё раз';
-    case 'CONFLICT': return 'Конфликт одновременных действий, повтори';
+    case 'NOT_READY': return t('errNotReady');
+    case 'CONFLICT': return t('errConflict');
     case 'VALIDATION_ERROR':
-    case 'BAD_REQUEST': return 'Некорректные данные запроса';
-    case 'RATE_LIMITED': return d.retry_after ? `Слишком часто, подожди ${d.retry_after} с` : 'Слишком часто, сбавь темп';
-    case 'INTERNAL_ERROR': return 'Внутренняя ошибка сервера, попробуй позже';
+    case 'BAD_REQUEST': return t('errValidation');
+    case 'RATE_LIMITED':
+      return d.retry_after
+        ? t('errRateLimitedWait', { s: d.retry_after })
+        : t('errRateLimited');
+    case 'INTERNAL_ERROR': return t('errInternal');
 
-    case 'TOKEN_EXPIRED': return 'Сессия истекла, перезайди в игру';
+    case 'TOKEN_EXPIRED': return t('errTokenExpired');
     case 'TOKEN_INVALID':
     case 'TOKEN_MISSING':
-    case 'UNAUTHORIZED': return 'Нужно переавторизоваться';
-    case 'PROFILE_MISSING': return 'Профиль не найден';
+    case 'UNAUTHORIZED': return t('errTokenInvalid');
+    case 'PROFILE_MISSING': return t('errProfileMissing');
 
-    case 'CELL_OCCUPIED': return 'Здесь уже стоит блок';
-    case 'OUT_OF_BOUNDS': return 'За границей острова или слишком близко к Флагу';
-    case 'NO_SUPPORT': return 'Нужна опора снизу';
-    case 'CUBE_LIMIT_REACHED': return d.limit ? `Достигнут лимит кубов (${d.limit})` : 'Достигнут лимит кубов';
+    case 'CELL_OCCUPIED': return t('errCellOccupied');
+    case 'OUT_OF_BOUNDS': return t('errOutOfBounds');
+    case 'NO_SUPPORT': return t('errNoSupport');
+    case 'CUBE_LIMIT_REACHED':
+      return d.limit ? t('errCubeLimitN', { n: d.limit }) : t('errCubeLimit');
     case 'NOT_ENOUGH_ETHER':
-      if (d.required != null && d.available != null) return `Не хватает Эфира: нужно ${d.required}, есть ${d.available}`;
-      return 'Не хватает Эфира';
-    case 'NOT_YOUR_CUBE': return 'Это не твой куб';
-    case 'INVALID_CUBE_TYPE': return 'Эта форма или материал недоступны';
-    case 'BUILD_ISLAND_BUSY': return 'Остров занят: постройка идёт, попробуй ещё раз';
-    case 'SAFE_ZONE_UPGRADE_FORBIDDEN': return 'Кубы в безопасной зоне нельзя улучшать';
+      if (d.required != null && d.available != null)
+        return t('errNotEnoughEtherAmount', { need: d.required, have: d.available });
+      return t('errNotEnoughEther');
+    case 'NOT_YOUR_CUBE': return t('errNotYourCube');
+    case 'INVALID_CUBE_TYPE': return t('errInvalidCubeType');
+    case 'BUILD_ISLAND_BUSY': return t('errIslandBusy');
+    case 'SAFE_ZONE_UPGRADE_FORBIDDEN': return t('errSafeZoneUpgrade');
 
-    case 'RAID_NOT_FOUND': return 'Рейд не найден';
-    case 'RAID_ALREADY_FINISHED': return 'Рейд уже завершён';
-    case 'RAID_FORBIDDEN_TARGET': return 'По этому острову рейд невозможен';
-    case 'TARGET_SHIELDED': return d.seconds_left ? `Цель под щитом ещё ${fmtTime(d.seconds_left)}` : 'У защитника активен щит';
-    case 'TARGET_IS_SELF': return 'Это твой остров';
-    case 'COOLDOWN_ACTIVE': return d.seconds_left ? `Кулдаун ещё ${fmtTime(d.seconds_left)}` : 'Этот игрок недавно подвергался атаке';
-    case 'CUBE_IN_SAFE_ZONE': return 'Внутри безопасной зоны Флага атака запрещена';
-    case 'FLAG_PROTECTED': return 'Флаг пока закрыт';
-    case 'FLAG_ALREADY_DESTROYED': return 'Флаг уже разрушен';
+    case 'RAID_NOT_FOUND': return t('errRaidNotFound');
+    case 'RAID_ALREADY_FINISHED': return t('errRaidFinished');
+    case 'RAID_FORBIDDEN_TARGET': return t('errRaidForbiddenTarget');
+    case 'TARGET_SHIELDED':
+      return d.seconds_left
+        ? t('errTargetShieldedTime', { time: fmtTime(d.seconds_left) })
+        : t('errTargetShielded');
+    case 'TARGET_IS_SELF': return t('errTargetIsSelf');
+    case 'COOLDOWN_ACTIVE':
+      return d.seconds_left
+        ? t('errCooldownTime', { time: fmtTime(d.seconds_left) })
+        : t('errCooldown');
+    case 'CUBE_IN_SAFE_ZONE': return t('errCubeInSafeZone');
+    case 'FLAG_PROTECTED': return t('errFlagProtected');
+    case 'FLAG_ALREADY_DESTROYED': return t('errFlagAlreadyDestroyed');
 
-    case 'CLAIM_TOO_EARLY': return 'Эфир ещё не накопился';
-    case 'IDEMPOTENCY_KEY_REUSED': return 'Повторный запрос, уже обработано';
+    case 'CLAIM_TOO_EARLY': return t('errClaimTooEarly');
+    case 'IDEMPOTENCY_KEY_REUSED': return t('errIdempotency');
   }
-  return srv || 'Ошибка';
+  // Неизвестный код: пробуем то, что прислал сервер, иначе общий fallback.
+  return srv || t('error');
 }
 
 // ---------- СОСТОЯНИЕ ----------
@@ -548,7 +627,11 @@ async function signIn() {
     headers: { 'Content-Type':'application/json', 'apikey':SUPABASE_ANON_KEY, 'Authorization':`Bearer ${SUPABASE_ANON_KEY}` },
     body: '{}',
   });
-  if (!res.ok) throw new Error('Auth: ' + res.status);
+  if (!res.ok) {
+    const err = new Error(t('errAuth', { status: res.status }));
+    err.code = 'AUTH_HTTP_' + res.status;
+    throw err;
+  }
   const data = await res.json();
   token = data.access_token; myId = data.user.id;
   localStorage.setItem('adrift_token', token);
@@ -563,9 +646,6 @@ async function api(path, options = {}) {
   });
   const text = await res.text();
   let body = null;
-  // Сервер может отдать HTML (например, 502 от Render) — тогда JSON.parse
-  // упадёт и игрок увидит «SyntaxError» вместо внятной ошибки. Ловим и
-  // превращаем в пустое тело: код всё равно возьмём из res.status.
   if (text) {
     try { body = JSON.parse(text); } catch (e) { body = null; }
   }
