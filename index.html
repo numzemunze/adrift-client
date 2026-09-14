@@ -43,11 +43,6 @@
   #shop-mini svg { display:block; width:100%; height:100%; }
 
   /* ---------- ГЛАВНОЕ МЕНЮ ---------- */
-  /* Оверлей на весь экран. Фон полупрозрачный — остров виден за меню.
-     ВАЖНО ПРО ПРОИЗВОДИТЕЛЬНОСТЬ: никакой анимации text-shadow, никаких
-     анимированных blur — они пересчитываются каждый кадр и топят FPS на
-     телефоне. Свечение — статичное, эффект «дыхания» даёт opacity-пульс
-     на псевдо-подложке (это GPU-only). */
   #menu-screen {
     position: fixed; inset: 0; z-index: 90;
     display: flex; flex-direction: column; align-items: center; justify-content: center;
@@ -74,13 +69,10 @@
     color: #fff;
     line-height: 1;
     user-select: none;
-    /* Статичное свечение без анимации. */
     text-shadow: 0 0 24px rgba(125,211,252,0.7), 0 6px 24px rgba(0,0,0,0.95);
     margin-left: 0.16em;
     will-change: opacity;
   }
-  /* Мягкая пульсация делается через opacity подложки, а не через text-shadow:
-     одна анимируемая opacity вместо четырёх blur-радиусов. */
   .menu-title::before {
     content: 'ADRIFT';
     position: absolute; inset: 0;
@@ -97,7 +89,6 @@
     50%      { opacity: 0.75; }
   }
 
-  /* Строка «сейчас играет». Мелкая, внизу, над кнопкой. */
   .menu-now-playing {
     margin-top: 24px;
     font-size: 11px;
@@ -225,7 +216,6 @@
 <body>
 <div id="app"></div>
 
-<!-- Главное меню. Фон полупрозрачный — 3D-сцена за ним видна. -->
 <div id="menu-screen">
   <div class="menu-title">ADRIFT</div>
   <div class="menu-now-playing" id="menu-now-playing">
@@ -250,7 +240,7 @@
   <button id="btn-rotate" class="hidden icon" title="Rotate">↔️</button>
   <button id="btn-vertical" class="hidden icon" title="Rotate V">↕️</button>
   <button id="btn-block-color" class="hidden icon" title="Block color"><span class="swatch" id="swatch-block"></span></button>
-  <button id="btn-palette" class="hidden icon" title="Flag color">🎨</button>
+  <button id="btn-palette" class="hidden icon" title="Flag color"><span class="swatch" id="swatch-flag"></span></button>
   <button id="btn-demolish" class="hidden icon" title="Demolish">🗑</button>
   <button id="btn-shop" class="hidden" title="Shop"><span class="shop-ico">🛒</span><span id="shop-mini"></span></button>
   <button id="btn-world" class="icon" title="World">🌍</button>
@@ -612,7 +602,7 @@ let audioReady = false;
 let audioMuted = false;
 const AUDIO_MUTED_KEY = 'adrift_audio_muted';
 const MASTER_VOLUME = 1.7;
-const MUSIC_VOLUME = 0.22;
+const MUSIC_VOLUME = 0.3;
 
 function ensureAudio() {
   if (audioCtx) return audioCtx;
@@ -621,13 +611,17 @@ function ensureAudio() {
     if (!Ctx) return null;
     audioCtx = new Ctx();
   } catch (e) { return null; }
-  return audioCtx;
 }
-function unlockAudio() {
+
+// Единая попытка «разбудить» аудио. Вызывается на КАЖДОМ жесте пользователя
+// (pointerdown / click / touchstart / keydown), без { once: true } — если
+// первый play() браузер отклонил, следующий жест попробует снова.
+function tryUnlockAudio() {
   const ctx = ensureAudio();
   if (ctx && ctx.state === 'suspended') ctx.resume().catch(() => {});
   audioReady = true;
-  if (musicWantKey && !musicEl && !audioMuted) _startMusic(musicWantKey);
+  // Если запрошена музыка, но сейчас ничего не играет — пробуем запустить.
+  if (musicWantKey && !musicPlaying && !audioMuted) _startMusic(musicWantKey);
 }
 
 function tone({ freq, dur = 0.12, type = 'sine', vol = 0.15, slideTo = null, delay = 0 }) {
@@ -691,6 +685,7 @@ const SFX = {
 let musicWantKey = null;
 let musicKey = null;
 let musicEl = null;
+let musicPlaying = false;
 let musicToken = 0;
 
 function fadeTo(el, target, ms, onDone) {
@@ -711,38 +706,49 @@ function fadeTo(el, target, ms, onDone) {
 function _startMusic(key) {
   const url = MUSIC_URLS[key];
   if (!url) return;
+  if (musicPlaying && musicKey === key) return;  // уже играет этот трек
   const myToken = ++musicToken;
+  // Гасим предыдущий.
   if (musicEl) {
     const old = musicEl;
     musicEl = null;
+    musicPlaying = false;
     fadeTo(old, 0, 500, () => { try { old.pause(); old.src = ''; } catch (e) {} });
   }
-  const el = new Audio(url);
+  const el = new Audio();
+  el.crossOrigin = 'anonymous';
+  el.preload = 'auto';
   el.loop = true;
   el.volume = 0;
+  el.src = url;
   el.play().then(() => {
     if (myToken !== musicToken) { try { el.pause(); el.src = ''; } catch (e) {} return; }
     musicEl = el;
     musicKey = key;
+    musicPlaying = true;
     fadeTo(el, MUSIC_VOLUME, 1800);
-  }).catch(() => {
-    if (myToken === musicToken) { musicEl = null; musicKey = null; }
+  }).catch((err) => {
+    // Типичные причины: автоплей заблокирован, 404 на URL, битый Content-Type.
+    // Строчка видна в DevTools → Console, полезна при отладке.
+    console.warn('[music] play failed:', key, err && err.name, err && err.message);
+    if (myToken === musicToken) { musicEl = null; musicKey = null; musicPlaying = false; }
     try { el.pause(); } catch (e) {}
   });
 }
 function playMusic(key) {
   musicWantKey = key;
   if (audioMuted) return;
-  if (musicKey === key && musicEl) return;
+  if (musicPlaying && musicKey === key) return;
   _startMusic(key);
 }
 function stopMusic(fadeMs = 1500) {
   musicWantKey = null;
   musicToken++;
-  if (!musicEl) { musicKey = null; return; }
+  if (!musicEl) { musicKey = null; musicPlaying = false; return; }
   const el = musicEl;
   musicEl = null;
   musicKey = null;
+  musicPlaying = false;
   fadeTo(el, 0, fadeMs, () => { try { el.pause(); el.src = ''; } catch (e) {} });
 }
 
@@ -764,10 +770,11 @@ function toggleAudio() {
       const el = musicEl;
       musicEl = null;
       musicKey = null;
+      musicPlaying = false;
       fadeTo(el, 0, 300, () => { try { el.pause(); el.src = ''; } catch (e) {} });
     }
   } else {
-    unlockAudio();
+    tryUnlockAudio();
     SFX.build();
     if (musicWantKey) _startMusic(musicWantKey);
   }
@@ -933,9 +940,6 @@ scene.fog = new THREE.Fog(0x0b1020, 60, 140);
 const camera = new THREE.PerspectiveCamera(55, innerWidth/innerHeight, 0.1, 500);
 camera.position.set(26, 44, 26);
 const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
-// В меню рендерим в пониженном разрешении — 1x вместо 2x.
-// Это самая большая оптимизация на телефоне: пикселей вчетверо меньше,
-// а за оверлеем разницу не видно. При старте игры вернём нормальный.
 renderer.setPixelRatio(1);
 renderer.setSize(innerWidth, innerHeight);
 $('app').appendChild(renderer.domElement);
@@ -1393,7 +1397,6 @@ function idleMinion(now, dt) {
 
 function updateMinion(dt) {
   const now = performance.now() / 1000;
-  // Голос Буя. В меню он молчит — там своя музыка, чирики неуместны.
   if (!menuMode && !minion.frozen && !minion.thinking && now > minion.nextChirp) {
     if (minion.mood === 'panic') {
       SFX.buoyPanic();
@@ -1606,6 +1609,11 @@ function updateRotateButton() {
   btnV.classList.toggle('rot-on', vertical);
 }
 function updateBlockSwatch() { $('swatch-block').style.background = BLOCK_COLORS_CSS[selectedBlockColor] || '#c9a06a'; }
+// Обновление свотча флага: тот же стиль, что у блока, но цвет — myFlagColor.
+function updateFlagSwatch() {
+  const el = $('swatch-flag');
+  if (el) el.style.background = FLAG_COLORS_CSS[myFlagColor] || '#ef4444';
+}
 
 const raycaster = new THREE.Raycaster();
 const plane = new THREE.Plane(new THREE.Vector3(0,1,0), 0);
@@ -1735,6 +1743,7 @@ function updatePanel() {
   $('target-pill').classList.toggle('hidden', mode === 'own');
   updateRotateButton();
   updateShopMini();
+  updateFlagSwatch();
   applyTab('bottom', mode === 'own');
   applyTab('bottom-visit', mode === 'visit');
   applyTab('bottom-raid', mode === 'raid');
@@ -1756,7 +1765,6 @@ function closeOnboard() {
   setTimeout(() => { el.classList.remove('closing'); el.classList.add('hidden'); }, 300);
 }
 
-// ---------- ГЛАВНОЕ МЕНЮ ----------
 function showMenu(on) {
   menuMode = on;
   const ms = $('menu-screen');
@@ -1784,7 +1792,6 @@ function startGame() {
   ms.classList.add('fading');
   setTimeout(() => { ms.classList.add('hidden'); ms.classList.remove('fading'); }, 700);
 
-  // В меню играли в 1x ради FPS. Теперь возвращаем нормальную чёткость.
   renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
 
   animateCamera(
@@ -1812,6 +1819,7 @@ async function loadMe() {
   $('ether').textContent = me.ether_balance; econ.ether_balance = me.ether_balance;
   myFlagColor = me.flag_color || 'red'; displayFlagColor = myFlagColor;
   setMinionFlagColor(myFlagColor);
+  updateFlagSwatch();
 }
 async function returnHome() {
   targetUser = null; raidId = null; raidFlagState = null; flagWasOpen = false; hideScreens();
@@ -1919,6 +1927,7 @@ async function pickFlagColor(key) {
   try {
     const res = await api('/api/v1/me/flag-color', { method:'POST', body: JSON.stringify({ color:key }) });
     myFlagColor = res.flag_color;
+    updateFlagSwatch();
     if (mode !== 'raid') setFlagVisual(currentFlagHp, currentFlagMax, myFlagColor);
     closeAllPalettes(); toast(t('flagColorChanged'), 'tip');
   } catch (e) { toast(humanError(e), 'error'); }
@@ -2223,6 +2232,15 @@ $('onboard-ok').addEventListener('click', () => { localStorage.setItem('adrift_o
 $('sound-btn').addEventListener('click', toggleAudio);
 $('menu-play').addEventListener('click', startGame);
 
+// Разблокировка звука/музыки на каждом жесте. Раньше стояло { once: true },
+// из-за чего повторные попытки не делались: если первый play() отклонён —
+// музыка так и не заиграет. Теперь tryUnlockAudio вызывается каждый раз,
+// но внутри проверка: если уже играет — выходим.
+window.addEventListener('pointerdown', tryUnlockAudio, true);
+window.addEventListener('click',       tryUnlockAudio, true);
+window.addEventListener('touchstart',  tryUnlockAudio, true);
+window.addEventListener('keydown',     tryUnlockAudio, true);
+
 addEventListener('resize', () => { camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); renderer.setSize(innerWidth, innerHeight); });
 let lastFrame = performance.now();
 function animate() {
@@ -2255,11 +2273,20 @@ animate();
 
 (async () => {
   try {
-    applyI18n(); loadBuildPrefs(); loadAudioPref(); updateSizeLabel(); updateGhostGeometry(); updateRotateButton(); updateBlockSwatch();
+    applyI18n(); loadBuildPrefs(); loadAudioPref(); updateSizeLabel(); updateGhostGeometry(); updateRotateButton(); updateBlockSwatch(); updateFlagSwatch();
 
     showMenu(true);
     playMusic('nowhereland');
-    window.addEventListener('pointerdown', unlockAudio, { once: true });
+
+    // Диагностика URL (для консоли). Если файл в bucket'е недоступен,
+    // увидишь предупреждение и поймёшь, где копать.
+    Object.entries(MUSIC_URLS).forEach(([k, u]) => {
+      fetch(u, { method: 'HEAD' }).then(r => {
+        if (!r.ok) console.warn('[music] HEAD', k, u, r.status);
+        const ct = r.headers.get('content-type');
+        if (ct && !ct.startsWith('audio/')) console.warn('[music] content-type', k, ct);
+      }).catch(() => console.warn('[music] HEAD failed', k, u));
+    });
 
     await auth(); fail(t('loading'));
     await loadCatalog();
