@@ -22,6 +22,7 @@
   .pill-btn.ready b { color:#fff; }
   #claim-hint { font-size:12px; opacity:.8; }
   #target-pill b { color:#fca5a5; }
+  #sound-btn { padding:6px 10px; font-size:16px; line-height:1; }
   button { background:linear-gradient(180deg, rgba(255,255,255,.14), rgba(255,255,255,.06)); border:1px solid rgba(255,255,255,.16); color:#fff; padding:11px 14px; border-radius:12px; font-size:14px; font-weight:500; font-family:inherit; cursor:pointer; box-shadow:0 2px 8px rgba(0,0,0,.25); transition:transform .1s ease, background .15s ease, box-shadow .15s ease; }
   button:active { transform:scale(.94); background:rgba(255,255,255,.22); }
   button.on { background:linear-gradient(180deg,#3b82f6,#2563eb); border-color:#60a5fa; }
@@ -127,6 +128,7 @@
   <div class="pill">🧱 <b id="cubes">—</b></div>
   <div class="pill">🚩 <b id="flag">—</b></div>
   <div class="pill hidden" id="target-pill">👁 <b id="target-name">—</b></div>
+  <button class="pill pill-btn" id="sound-btn" title="Sound">🔊</button>
 </div>
 <div id="price-tag" class="hidden">10⚡</div>
 <div class="bar" id="bottom">
@@ -245,7 +247,6 @@ const FALLBACK_PRICES = {
 
 const I18N = {
   ru: {
-    // --- общие ---
     flagColor: 'Цвет флага', blockColor: 'Цвет блока', sizeTitle: 'Размер блока',
     worldTitle: '🌍 Мир', back: 'Назад', raid: 'Рейд', flag: 'Флаг', leave: 'Выйти',
     lootTitle: 'Флаг разрушен!', lootStolen: 'Украдено:', lootBalance: 'Баланс:',
@@ -275,7 +276,6 @@ const I18N = {
     noEther: 'Не хватает Эфира', outOfBounds: 'За границей острова',
     shopTitle: '🛒 Магазин', shopShape: '1. Форма', shopMaterial: '2. Материал', shopBuild: 'Строить',
 
-    // --- тексты ошибок (humanError) ---
     errNetTimeout: 'Сервер не отвечает, попробуй ещё раз',
     errNetDown: 'Нет соединения с сервером',
     errNotReady: 'Сервер перегружен, попробуй ещё раз',
@@ -349,7 +349,6 @@ const I18N = {
     ],
   },
   en: {
-    // --- general ---
     flagColor: 'Flag color', blockColor: 'Block color', sizeTitle: 'Block size',
     worldTitle: '🌍 World', back: 'Back', raid: 'Raid', flag: 'Flag', leave: 'Leave',
     lootTitle: 'Flag destroyed!', lootStolen: 'Stolen:', lootBalance: 'Balance:',
@@ -377,7 +376,6 @@ const I18N = {
     noEther: 'Not enough Ether', outOfBounds: 'Out of bounds',
     shopTitle: '🛒 Shop', shopShape: '1. Shape', shopMaterial: '2. Material', shopBuild: 'Build',
 
-    // --- error texts (humanError) ---
     errNetTimeout: 'The server is not responding, try again',
     errNetDown: 'No connection to the server',
     errNotReady: 'Server is overloaded, try again',
@@ -485,6 +483,11 @@ function toast(msg, kind = 'info') {
   clearTimeout(toastTimer);
   const dur = kind === 'error' ? 2600 : (kind === 'warn' ? 3200 : (kind === 'tip' ? 3000 : 1600));
   toastTimer = setTimeout(() => { toastEl.classList.remove('show'); setTimeout(() => toastEl.classList.add('hidden'), 220); }, dur);
+  // Звук ошибки / предупреждения — до автоматического закрытия тоста. `tip`
+  // (успех, claim, «флаг открыт») озвучиваем отдельными SFX в местах вызова,
+  // чтобы не дублировать: не каждый «tip» — это звук победы.
+  if (kind === 'error') SFX.error();
+  else if (kind === 'warn') SFX.warn();
 }
 
 const uid = () => (crypto.randomUUID ? crypto.randomUUID() : String(Date.now()) + Math.random().toString(16).slice(2));
@@ -495,6 +498,90 @@ const fmtTime = (s) => {
   if (m > 0) return m + ':' + String(sec).padStart(2, '0');
   return '0:' + String(sec).padStart(2, '0');
 };
+
+// ---------- ЗВУКИ (WebAudio, без ассетов) ----------
+// Всё синтезируется из осцилляторов с гейн-огибающей. Файлы не нужны:
+// нечего качать, нечего кэшировать, работает офлайн.
+//
+// Разблокировка: Chrome и Safari не дают стартовать AudioContext до жеста
+// пользователя. Первое же касание экрана вызывает unlockAudio(), и все
+// последующие SFX проходят. Если звук так и не разблокировался — просто
+// молчим, игра не ломается.
+let audioCtx = null;
+let audioReady = false;
+let audioMuted = false;
+const AUDIO_MUTED_KEY = 'adrift_audio_muted';
+
+function ensureAudio() {
+  if (audioCtx) return audioCtx;
+  try {
+    const Ctx = window.AudioContext || window.webkitAudioContext;
+    if (!Ctx) return null;
+    audioCtx = new Ctx();
+  } catch (e) { return null; }
+  return audioCtx;
+}
+function unlockAudio() {
+  const ctx = ensureAudio();
+  if (!ctx) return;
+  if (ctx.state === 'suspended') ctx.resume().catch(() => {});
+  audioReady = true;
+}
+
+// Один тон: осциллятор + гейн-конверт. `slideTo` даёт «whoosh» при заданной
+// частоте, `delay` позволяет строить арпеджио (для win/claim).
+function tone({ freq, dur = 0.12, type = 'sine', vol = 0.15, slideTo = null, delay = 0 }) {
+  if (audioMuted || !audioReady) return;
+  const ctx = audioCtx;
+  if (!ctx) return;
+  const t0 = ctx.currentTime + delay;
+  const osc = ctx.createOscillator();
+  const gain = ctx.createGain();
+  osc.type = type;
+  osc.frequency.setValueAtTime(freq, t0);
+  if (slideTo != null) osc.frequency.exponentialRampToValueAtTime(Math.max(1, slideTo), t0 + dur);
+  gain.gain.setValueAtTime(0, t0);
+  gain.gain.linearRampToValueAtTime(vol, t0 + 0.012);
+  gain.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+  osc.connect(gain).connect(ctx.destination);
+  osc.start(t0);
+  osc.stop(t0 + dur + 0.02);
+}
+
+const SFX = {
+  build:    () => { tone({ freq: 220, slideTo: 440, dur: 0.10, type: 'triangle', vol: 0.13 }); },
+  demolish: () => { tone({ freq: 320, slideTo: 120, dur: 0.16, type: 'sawtooth', vol: 0.10 }); },
+  hit:      () => { tone({ freq: 180, slideTo: 90,  dur: 0.09, type: 'square',   vol: 0.08 }); },
+  collapse: () => { tone({ freq: 140, slideTo: 60,  dur: 0.22, type: 'sawtooth', vol: 0.11 }); },
+  claim:    () => {
+    tone({ freq: 660, dur: 0.08, type: 'sine', vol: 0.11 });
+    tone({ freq: 990, dur: 0.10, type: 'sine', vol: 0.09, delay: 0.06 });
+  },
+  error:    () => { tone({ freq: 240, slideTo: 170, dur: 0.16, type: 'square', vol: 0.09 }); },
+  warn:     () => { tone({ freq: 440, dur: 0.10, type: 'triangle', vol: 0.09 }); },
+  win:      () => {
+    tone({ freq: 523, dur: 0.10, type: 'sine', vol: 0.12 });
+    tone({ freq: 659, dur: 0.10, type: 'sine', vol: 0.12, delay: 0.09 });
+    tone({ freq: 784, dur: 0.16, type: 'sine', vol: 0.12, delay: 0.18 });
+  },
+};
+
+function updateSoundIcon() {
+  const btn = $('sound-btn'); if (!btn) return;
+  btn.textContent = audioMuted ? '🔇' : '🔊';
+  btn.style.opacity = audioMuted ? 0.55 : 1;
+}
+function loadAudioPref() {
+  try { audioMuted = localStorage.getItem(AUDIO_MUTED_KEY) === '1'; } catch (e) {}
+  updateSoundIcon();
+}
+function toggleAudio() {
+  audioMuted = !audioMuted;
+  try { localStorage.setItem(AUDIO_MUTED_KEY, audioMuted ? '1' : '0'); } catch (e) {}
+  updateSoundIcon();
+  // Небольшой отклик, только когда включаем обратно (мьют — тишина).
+  if (!audioMuted) { unlockAudio(); SFX.build(); }
+}
 
 // ---------- СЕТЬ: ТАЙМАУТ + БАННЕР «НЕТ СОЕДИНЕНИЯ» ----------
 const NET_TIMEOUT_MS = 15000;
@@ -528,16 +615,12 @@ async function fetchT(url, opts = {}, ms = NET_TIMEOUT_MS) {
   }
 }
 
-// ---------- ЧЕЛОВЕЧЕСКИЕ СООБЩЕНИЯ ОБ ОШИБКАХ (через I18N) ----------
-// Единственная точка перевода ErrorCode -> текст игроку. Все тексты живут
-// в I18N[lang].err*, а не хардкодом: иначе интерфейс переключается, а
-// ошибки остаются на русском.
+// ---------- ЧЕЛОВЕЧЕСКИЕ СООБЩЕНИЯ ОБ ОШИБКАХ ----------
 function humanError(e) {
   const code = e && e.code;
   const srv = (e && e.message) || '';
   const d = (e && e.details) || {};
 
-  // Сетевые сбои приходят без .code: AbortError = таймаут, TypeError = нет связи.
   if (!code && e) {
     if (e.name === 'AbortError') return t('errNetTimeout');
     if (e instanceof TypeError)   return t('errNetDown');
@@ -549,9 +632,7 @@ function humanError(e) {
     case 'VALIDATION_ERROR':
     case 'BAD_REQUEST': return t('errValidation');
     case 'RATE_LIMITED':
-      return d.retry_after
-        ? t('errRateLimitedWait', { s: d.retry_after })
-        : t('errRateLimited');
+      return d.retry_after ? t('errRateLimitedWait', { s: d.retry_after }) : t('errRateLimited');
     case 'INTERNAL_ERROR': return t('errInternal');
 
     case 'TOKEN_EXPIRED': return t('errTokenExpired');
@@ -578,14 +659,10 @@ function humanError(e) {
     case 'RAID_ALREADY_FINISHED': return t('errRaidFinished');
     case 'RAID_FORBIDDEN_TARGET': return t('errRaidForbiddenTarget');
     case 'TARGET_SHIELDED':
-      return d.seconds_left
-        ? t('errTargetShieldedTime', { time: fmtTime(d.seconds_left) })
-        : t('errTargetShielded');
+      return d.seconds_left ? t('errTargetShieldedTime', { time: fmtTime(d.seconds_left) }) : t('errTargetShielded');
     case 'TARGET_IS_SELF': return t('errTargetIsSelf');
     case 'COOLDOWN_ACTIVE':
-      return d.seconds_left
-        ? t('errCooldownTime', { time: fmtTime(d.seconds_left) })
-        : t('errCooldown');
+      return d.seconds_left ? t('errCooldownTime', { time: fmtTime(d.seconds_left) }) : t('errCooldown');
     case 'CUBE_IN_SAFE_ZONE': return t('errCubeInSafeZone');
     case 'FLAG_PROTECTED': return t('errFlagProtected');
     case 'FLAG_ALREADY_DESTROYED': return t('errFlagAlreadyDestroyed');
@@ -593,7 +670,6 @@ function humanError(e) {
     case 'CLAIM_TOO_EARLY': return t('errClaimTooEarly');
     case 'IDEMPOTENCY_KEY_REUSED': return t('errIdempotency');
   }
-  // Неизвестный код: пробуем то, что прислал сервер, иначе общий fallback.
   return srv || t('error');
 }
 
@@ -1523,6 +1599,7 @@ async function claimEther() {
     const res = await api('/api/v1/economy/claim', { method: 'POST' });
     $('ether').textContent = res.ether_balance;
     toast('+' + res.claimed + ' ' + t('ether'), 'tip');
+    SFX.claim();
     await loadEconomy();
   } catch (e) {
     if (e.code === 'CLAIM_TOO_EARLY') { await loadEconomy(); return; }
@@ -1752,8 +1829,15 @@ async function attackCube(cube) {
   try {
     const res = await api(`/api/v1/raids/${raidId}/attack-cube`, { method:'POST', headers:{ 'Idempotency-Key': uid() }, body: JSON.stringify({ cube_id: cube.id, charge }) });
     $('ether').textContent = res.ether_balance; econ.ether_balance = res.ether_balance;
-    if (res.cube.destroyed) { removeCube(res.cube.id); minion.panicBoost = 3; minion.path = []; }
-    else updateCubeHp(res.cube.id, res.cube.hp);
+    SFX.hit();
+    if (res.cube.destroyed) {
+      removeCube(res.cube.id);
+      minion.panicBoost = 3;
+      minion.path = [];
+      SFX.collapse();
+    } else {
+      updateCubeHp(res.cube.id, res.cube.hp);
+    }
     for (const c of res.collapsed) removeCube(c.id);
     refreshCounters();
     if (res.flag_state) applyFlagState(res.flag_state);
@@ -1774,7 +1858,11 @@ async function attackFlag() {
       $('loot-stolen').textContent = res.loot.stolen_ether;
       $('loot-balance').textContent = res.loot.attacker_balance;
       showScreen('loot-screen');
-    } else toast('−' + res.damage + ' ' + t('dmgyou'), 'tip');
+      SFX.win();
+    } else {
+      SFX.hit();
+      toast('−' + res.damage + ' ' + t('dmgyou'), 'tip');
+    }
   } catch (e) {
     if (!raidGone(e)) {
       if (e.code === 'FLAG_PROTECTED' && e.details) applyFlagState(e.details);
@@ -1833,6 +1921,7 @@ async function handleBuildTap() {
     addCube(res.cube);
     $('ether').textContent = res.ether_balance; econ.ether_balance = res.ether_balance;
     $('cubes').textContent = res.island_cube_count;
+    SFX.build();
   } catch (e) { toast(humanError(e), 'error'); }
 }
 async function handleDemolishTap(ndcX, ndcY) {
@@ -1846,6 +1935,7 @@ async function handleDemolishTap(ndcX, ndcY) {
     refreshCounters();
     $('ether').textContent = res.ether_balance; econ.ether_balance = res.ether_balance;
     toast('+' + res.ether_refunded + ' ' + t('refund'), 'tip');
+    SFX.demolish();
   } catch (e) { toast(humanError(e), 'error'); }
 }
 async function handleRaidTap(ndcX, ndcY) {
@@ -1888,6 +1978,7 @@ $('btn-leave').addEventListener('click', leaveRaid);
 $('loot-ok').addEventListener('click', returnHome);
 $('tip-ok').addEventListener('click', closeTip);
 $('onboard-ok').addEventListener('click', () => { localStorage.setItem('adrift_onboarded', '1'); closeOnboard(); });
+$('sound-btn').addEventListener('click', toggleAudio);
 
 // ---------- ЦИКЛ ----------
 addEventListener('resize', () => { camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); renderer.setSize(innerWidth, innerHeight); });
@@ -1911,7 +2002,11 @@ animate();
 // ---------- СТАРТ ----------
 (async () => {
   try {
-    applyI18n(); loadBuildPrefs(); updateSizeLabel(); updateGhostGeometry(); updateRotateButton(); updateBlockSwatch();
+    applyI18n(); loadBuildPrefs(); loadAudioPref(); updateSizeLabel(); updateGhostGeometry(); updateRotateButton(); updateBlockSwatch();
+    // Разблокировка звука — на первом касании. Если игрок успел зайти без
+    // него — AudioContext просто останется suspended, игра работает как
+    // раньше, только без звука.
+    window.addEventListener('pointerdown', unlockAudio, { once: true });
     await auth(); fail(t('loading'));
     await loadCatalog();
     await loadMe();
