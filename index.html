@@ -41,6 +41,99 @@
   #btn-shop .shop-ico { font-size:16px; line-height:1; display:inline-block; vertical-align:middle; }
   #shop-mini { position:absolute; right:-2px; bottom:-2px; width:16px; height:16px; border-radius:4px; border:1.5px solid rgba(255,255,255,.7); box-shadow:0 1px 4px rgba(0,0,0,.5); background:#c9a06a; transition: background .15s ease; overflow:hidden; }
   #shop-mini svg { display:block; width:100%; height:100%; }
+
+  /* ---------- ГЛАВНОЕ МЕНЮ ---------- */
+  /* Оверлей на весь экран. Фон полупрозрачный — остров виден за меню. */
+  #menu-screen {
+    position: fixed; inset: 0; z-index: 90;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    /* Виньетка: прозрачно в центре, темнее к углам. Создаёт «рамку» вокруг
+       сцены, но не мешает разглядывать остров. */
+    background:
+      radial-gradient(ellipse at center,
+        rgba(11,16,32,0)    0%,
+        rgba(11,16,32,0.05) 35%,
+        rgba(11,16,32,0.45) 70%,
+        rgba(11,16,32,0.92) 100%),
+      linear-gradient(180deg, rgba(11,16,32,0.55) 0%, rgba(11,16,32,0) 25%, rgba(11,16,32,0) 70%, rgba(11,16,32,0.75) 100%);
+    transition: opacity 0.6s ease;
+    padding: 24px;
+    text-align: center;
+  }
+  #menu-screen.hidden { display: none; }
+  #menu-screen.fading { opacity: 0; pointer-events: none; }
+
+  .menu-title {
+    font-size: clamp(64px, 18vw, 140px);
+    font-weight: 900;
+    letter-spacing: 0.16em;
+    color: #fff;
+    line-height: 1;
+    user-select: none;
+    text-shadow:
+      0 0 24px rgba(125,211,252,0.65),
+      0 0 64px rgba(125,211,252,0.35),
+      0 6px 24px rgba(0,0,0,0.95);
+    animation: titlePulse 4s ease-in-out infinite;
+    margin-left: 0.16em; /* компенсируем letter-spacing справа */
+  }
+  @keyframes titlePulse {
+    0%, 100% {
+      text-shadow:
+        0 0 24px rgba(125,211,252,0.65),
+        0 0 64px rgba(125,211,252,0.35),
+        0 6px 24px rgba(0,0,0,0.95);
+    }
+    50% {
+      text-shadow:
+        0 0 44px rgba(125,211,252,0.95),
+        0 0 110px rgba(125,211,252,0.55),
+        0 6px 24px rgba(0,0,0,0.95);
+    }
+  }
+  .menu-subtitle {
+    margin-top: 14px;
+    font-size: 12px;
+    letter-spacing: 0.44em;
+    color: rgba(255,255,255,0.55);
+    text-transform: uppercase;
+    user-select: none;
+  }
+  .menu-play {
+    margin-top: 72px;
+    padding: 16px 52px;
+    font-size: 17px;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    background: linear-gradient(180deg, #22c55e, #15803d);
+    border: 1px solid #4ade80;
+    border-radius: 999px;
+    color: #fff;
+    cursor: pointer;
+    box-shadow: 0 8px 32px rgba(34,197,94,0.45), 0 0 60px rgba(34,197,94,0.15);
+    transition: transform 0.15s ease, box-shadow 0.2s ease, opacity 0.2s ease;
+  }
+  .menu-play:not(:disabled):hover {
+    transform: scale(1.05);
+    box-shadow: 0 10px 40px rgba(34,197,94,0.65), 0 0 90px rgba(34,197,94,0.3);
+  }
+  .menu-play:not(:disabled):active { transform: scale(0.96); }
+  .menu-play:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+    box-shadow: 0 4px 16px rgba(34,197,94,0.15);
+  }
+  .menu-credit {
+    position: absolute; bottom: 14px; left: 0; right: 0;
+    font-size: 10px;
+    letter-spacing: 0.15em;
+    color: rgba(255,255,255,0.32);
+    text-transform: uppercase;
+    user-select: none;
+    pointer-events: none;
+  }
+
   #net-banner { position:fixed; top:0; left:0; right:0; background:rgba(120,53,15,.96); border-bottom:1px solid rgba(245,158,11,.55); color:#fde68a; padding:6px 12px; font-size:13px; font-weight:600; text-align:center; z-index:150; transform: translateY(-100%); transition: transform .25s ease; pointer-events:none; }
   #net-banner.show { transform: translateY(0); }
   #toast { position:fixed; top:64px; left:50%; transform:translateX(-50%) translateY(-8px); background:rgba(30,41,59,.96); backdrop-filter:blur(10px); border:1px solid rgba(255,255,255,.14); border-radius:14px; padding:12px 20px; font-size:14px; font-weight:500; max-width:88vw; text-align:center; pointer-events:none; z-index:200; box-shadow:0 8px 24px rgba(0,0,0,.4); opacity:0; transition:opacity .2s ease, transform .2s ease; }
@@ -122,6 +215,15 @@
 </head>
 <body>
 <div id="app"></div>
+
+<!-- Главное меню. Фон полупрозрачный — 3D-сцена за ним видна. -->
+<div id="menu-screen">
+  <div class="menu-title">ADRIFT</div>
+  <div class="menu-subtitle" data-i18n="menuSubtitle">cubic sandbox</div>
+  <button id="menu-play" class="menu-play" disabled>▶ Play</button>
+  <div class="menu-credit">Music: Kevin MacLeod — incompetech.com · CC BY 4.0</div>
+</div>
+
 <div id="net-banner" data-i18n="netDown">📡 Нет соединения с сервером…</div>
 <div class="bar" id="top">
   <button class="pill pill-btn" id="claim-btn" title="Claim">⚡ <b id="ether">—</b><span id="claim-hint">…</span></button>
@@ -131,7 +233,7 @@
   <button class="pill pill-btn" id="sound-btn" title="Sound">🔊</button>
 </div>
 <div id="price-tag" class="hidden">10⚡</div>
-<div class="bar" id="bottom">
+<div class="bar hidden" id="bottom">
   <button id="btn-build" class="primary icon" title="Build">🔨</button>
   <button id="btn-size" class="hidden">📐 <span id="size-label">1×1</span></button>
   <button id="btn-rotate" class="hidden icon" title="Rotate">↔️</button>
@@ -209,20 +311,16 @@ const SUPABASE_ANON_KEY = 'sb_publishable_pT2H1bpnu_fcBbevfvfOoQ_AhzZLQjH';
 const API_URL = 'https://adrift-backend-ys3i.onrender.com';
 
 // =====================================================================
-// МУЗЫКА. Ссылки на mp3 вставляются вручную (Kevin MacLeod, CC-BY —
-// нужна атрибуция в README или подвале сайта).
-// Если строка пустая — трек не играет, всё остальное работает.
-// Рекомендую хостить файлы в Supabase Storage (public bucket).
+// МУЗЫКА (Kevin MacLeod, CC BY 4.0, incompetech.com)
 // =====================================================================
 const MUSIC_URLS = {
-  // «Nowhereland» — медитативно-приветственный фон для онбординга.
   nowhereland: 'https://suaitzmqulcziefyryvf.supabase.co/storage/v1/object/public/Nowhere%20Land%20by%20Kevin%20MacLeod/Nowhere%20Land.mp3',
-  // «Club Diver» — быстрый техно-бит для рейда.
-  clubDiver: 'https://suaitzmqulcziefyryvf.supabase.co/storage/v1/object/public/Nowhere%20Land%20by%20Kevin%20MacLeod/Club%20Diver.mp3',
+  clubDiver:   'https://suaitzmqulcziefyryvf.supabase.co/storage/v1/object/public/Nowhere%20Land%20by%20Kevin%20MacLeod/Club%20Diver.mp3',
 };
 
 const I18N = {
   ru: {
+    menuSubtitle: 'кубическая песочница',
     flagColor: 'Цвет флага', blockColor: 'Цвет блока', sizeTitle: 'Размер блока',
     worldTitle: '🌍 Мир', back: 'Назад', raid: 'Рейд', flag: 'Флаг', leave: 'Выйти',
     lootTitle: 'Флаг разрушен!', lootStolen: 'Украдено:', lootBalance: 'Баланс:',
@@ -323,6 +421,7 @@ const I18N = {
     ],
   },
   en: {
+    menuSubtitle: 'cubic sandbox',
     flagColor: 'Flag color', blockColor: 'Block color', sizeTitle: 'Block size',
     worldTitle: '🌍 World', back: 'Back', raid: 'Raid', flag: 'Flag', leave: 'Leave',
     lootTitle: 'Flag destroyed!', lootStolen: 'Stolen:', lootBalance: 'Balance:',
@@ -500,19 +599,13 @@ const fmtTime = (s) => {
 };
 
 // ===========================================================================
-// ЗВУКИ (WebAudio) + МУЗЫКА (HTMLAudioElement с фейдом)
+// ЗВУКИ + МУЗЫКА
 // ===========================================================================
-// Эффекты синтезируются из осцилляторов — файлов не нужно.
-// Музыка — mp3 по URL, чтобы не встраивать чужой контент в репозиторий.
 let audioCtx = null;
 let audioReady = false;
 let audioMuted = false;
 const AUDIO_MUTED_KEY = 'adrift_audio_muted';
-
-// Общий множитель громкости эффектов. 1.7 — заметно громче дефолта,
-// но с клампом в tone() чтобы не перегружать динамик.
 const MASTER_VOLUME = 1.7;
-// Музыка тише эффектов: она фон, не должна забивать «тык» и «дзынь».
 const MUSIC_VOLUME = 0.22;
 
 function ensureAudio() {
@@ -528,12 +621,9 @@ function unlockAudio() {
   const ctx = ensureAudio();
   if (ctx && ctx.state === 'suspended') ctx.resume().catch(() => {});
   audioReady = true;
-  // Если музыка была «заказана», но не смогла заиграть из-за блокировки
-  // автоплея — догоняем её сейчас, на первом касании.
   if (musicWantKey && !musicEl && !audioMuted) _startMusic(musicWantKey);
 }
 
-// Один тон: осциллятор + гейн-конверт. slideTo даёт «whoosh», delay — арпеджио.
 function tone({ freq, dur = 0.12, type = 'sine', vol = 0.15, slideTo = null, delay = 0 }) {
   if (audioMuted || !audioReady) return;
   const ctx = audioCtx;
@@ -569,12 +659,8 @@ const SFX = {
     tone({ freq: 659, dur: 0.10, type: 'sine', vol: 0.12, delay: 0.09 });
     tone({ freq: 784, dur: 0.16, type: 'sine', vol: 0.12, delay: 0.18 });
   },
-
-  // ---- Голос Буя ----
-  // Чирик — короткий «блуп» со случайным питчем и направлением слайда.
-  // Иногда с эхом-догоном, чтобы звучало «болтливо» и по-дурацки.
   buoyChirp: () => {
-    const base = 420 + Math.random() * 480;      // 420..900 Гц
+    const base = 420 + Math.random() * 480;
     const up = Math.random() < 0.5;
     const target = up ? base * 1.35 : base * 0.72;
     tone({ freq: base, slideTo: target, dur: 0.08 + Math.random() * 0.06, type: 'triangle', vol: 0.075 });
@@ -582,13 +668,10 @@ const SFX = {
       tone({ freq: target, slideTo: base * (0.9 + Math.random() * 0.2), dur: 0.07, type: 'triangle', vol: 0.06, delay: 0.10 });
     }
   },
-  // «Хм?» — когда игрок тыкает в Буя. Восходящий любопытный тон.
   buoyQuestion: () => {
     tone({ freq: 620, slideTo: 880, dur: 0.10, type: 'sine', vol: 0.11 });
     tone({ freq: 880, slideTo: 1040, dur: 0.09, type: 'sine', vol: 0.09, delay: 0.10 });
   },
-  // Паника — быстрый взвизг вниз, случайный питч. Похоже на «ай-ай-ай»,
-  // но без слов: серия коротких square-тонов.
   buoyPanic: () => {
     const base = 820 + Math.random() * 380;
     tone({ freq: base, slideTo: base * 0.45, dur: 0.06, type: 'square', vol: 0.085 });
@@ -599,17 +682,16 @@ const SFX = {
 };
 
 // ---------- МУЗЫКА ----------
-// musicWantKey — что ХОЧЕТ играть игровое состояние ('nowhereland' / 'clubDiver' / null).
-// musicKey     — что ИГРАЕТ прямо сейчас (или null).
-// musicEl      — текущий HTMLAudioElement, если что-то играет.
 let musicWantKey = null;
 let musicKey = null;
 let musicEl = null;
+// Токен инвалидирует незавершённые play() — если stopMusic успел раньше,
+// чем .play() резолвнулся, трек не запустится.
+let musicToken = 0;
 
 function fadeTo(el, target, ms, onDone) {
   const start = el.volume;
   const t0 = performance.now();
-  // Токен: если тот же el вызван с другим fade — старый цикл сам себя отменит.
   const token = Symbol();
   el._fadeToken = token;
   const step = () => {
@@ -624,8 +706,8 @@ function fadeTo(el, target, ms, onDone) {
 
 function _startMusic(key) {
   const url = MUSIC_URLS[key];
-  if (!url) return;  // URL не задан — тихо выходим, музыка просто не играет
-  // Мгновенно гасим предыдущий трек, если был.
+  if (!url) return;
+  const myToken = ++musicToken;
   if (musicEl) {
     const old = musicEl;
     musicEl = null;
@@ -635,24 +717,25 @@ function _startMusic(key) {
   el.loop = true;
   el.volume = 0;
   el.play().then(() => {
+    // Если за время await пришёл stopMusic / другой play — отказываемся.
+    if (myToken !== musicToken) { try { el.pause(); el.src = ''; } catch (e) {} return; }
     musicEl = el;
     musicKey = key;
     fadeTo(el, MUSIC_VOLUME, 1800);
   }).catch(() => {
-    // Автоплей заблокирован — попробуем на первом касании (см. unlockAudio).
+    if (myToken === musicToken) { musicEl = null; musicKey = null; }
     try { el.pause(); } catch (e) {}
-    musicEl = null;
-    musicKey = null;
   });
 }
 function playMusic(key) {
   musicWantKey = key;
   if (audioMuted) return;
-  if (musicKey === key && musicEl) return;  // уже играет нужное
+  if (musicKey === key && musicEl) return;
   _startMusic(key);
 }
 function stopMusic(fadeMs = 1500) {
   musicWantKey = null;
+  musicToken++;  // инвалидируем любой незавершённый .play()
   if (!musicEl) { musicKey = null; return; }
   const el = musicEl;
   musicEl = null;
@@ -674,7 +757,6 @@ function toggleAudio() {
   try { localStorage.setItem(AUDIO_MUTED_KEY, audioMuted ? '1' : '0'); } catch (e) {}
   updateSoundIcon();
   if (audioMuted) {
-    // Мгновенно гасим музыку, но запоминаем, что она «заказана».
     if (musicEl) {
       const el = musicEl;
       musicEl = null;
@@ -688,7 +770,7 @@ function toggleAudio() {
   }
 }
 
-// ---------- СЕТЬ: ТАЙМАУТ + БАННЕР «НЕТ СОЕДИНЕНИЯ» ----------
+// ---------- СЕТЬ ----------
 const NET_TIMEOUT_MS = 15000;
 let netDownTimer = null;
 let netDownShown = false;
@@ -719,7 +801,6 @@ async function fetchT(url, opts = {}, ms = NET_TIMEOUT_MS) {
   }
 }
 
-// ---------- ЧЕЛОВЕЧЕСКИЕ СООБЩЕНИЯ ОБ ОШИБКАХ ----------
 function humanError(e) {
   const code = e && e.code;
   const srv = (e && e.message) || '';
@@ -794,6 +875,9 @@ let displayFlagColor = 'red';
 let currentFlagHp = 0, currentFlagMax = 0;
 let myRaidAlert = false;
 
+// Меню: пока true, камера сама крутится вокруг острова, бары скрыты.
+let menuMode = true;
+
 // ---------- АВТОРИЗАЦИЯ ----------
 async function signIn() {
   const res = await fetchT(`${SUPABASE_URL}/auth/v1/signup`, {
@@ -857,6 +941,18 @@ controls.enableDamping = true;
 controls.maxPolarAngle = Math.PI / 2.6;
 controls.minDistance = 10;
 controls.maxDistance = 90;
+// Пока идёт меню, орбит-контролы отключены, камера вращается вручную.
+controls.enabled = false;
+
+// Параметры авто-орбиты меню: сохраняем текущий радиус и высоту относительно
+// цели, чтобы вращение шло по той же «дорожке», что игровой ракурс.
+const menuOrbit = {
+  radius: Math.hypot(camera.position.x - controls.target.x, camera.position.z - controls.target.z),
+  y: camera.position.y,
+  angle: Math.atan2(camera.position.z - controls.target.z, camera.position.x - controls.target.x),
+  speed: 0.12,  // рад/сек — полный круг ≈ 52 сек
+};
+
 scene.add(new THREE.AmbientLight(0xffffff, 0.75));
 const sun = new THREE.DirectionalLight(0xffffff, 1.0);
 sun.position.set(30, 50, 20); scene.add(sun);
@@ -864,8 +960,10 @@ const ground = new THREE.Mesh(new THREE.BoxGeometry(66,1,66), new THREE.MeshLamb
 ground.position.y = -0.5; scene.add(ground);
 const grid = new THREE.GridHelper(64, 64, 0x3b82f6, 0x1e293b);
 grid.position.y = 0.01; scene.add(grid);
+
+const FLAG_CLEAR_RADIUS = 1;
 const noBuildRing = new THREE.Mesh(
-  new THREE.RingGeometry(1 * Math.SQRT2, 1 * Math.SQRT2 + 0.08, 48),
+  new THREE.RingGeometry(FLAG_CLEAR_RADIUS * Math.SQRT2, FLAG_CLEAR_RADIUS * Math.SQRT2 + 0.08, 48),
   new THREE.MeshBasicMaterial({ color: 0xef4444, transparent: true, opacity: 0.45, side: THREE.DoubleSide, depthWrite: false })
 );
 noBuildRing.rotation.x = -Math.PI / 2;
@@ -878,8 +976,6 @@ pole.position.y = 2;
 const banner = new THREE.Mesh(new THREE.BoxGeometry(1.6,1,0.1), new THREE.MeshLambertMaterial({ color:0xef4444 }));
 banner.position.set(0.8, 3.3, 0);
 flagGroup.add(pole, banner); scene.add(flagGroup);
-
-const FLAG_CLEAR_RADIUS = 1;
 
 // ---------- ТЕКСТУРЫ ----------
 function makeWoodTexture() {
@@ -952,7 +1048,6 @@ function makeIronTexture() {
 }
 const IRON_TEXTURE = makeIronTexture();
 
-// ---------- ФОРМА / МАТЕРИАЛ ----------
 function effectiveShape(c) {
   const ct = (c && c.cube_type) || '';
   if (ct.endsWith('_half'))     return 'half';
@@ -967,7 +1062,6 @@ function effectiveMaterial(c) {
 }
 function isFlatHalf(shape, sy) { return shape === 'half' && sy <= 1; }
 
-// ---------- ГЕОМЕТРИЯ ПО ФОРМЕ ----------
 function shapeGeometry(shape, sx, sy, sz) {
   if (shape === 'triangle') {
     const hx = sx / 2, hy = sy / 2, hz = sz / 2;
@@ -1303,9 +1397,7 @@ function idleMinion(now, dt) {
 
 function updateMinion(dt) {
   const now = performance.now() / 1000;
-
-  // Голос Буя: спокойный — редкие чирики, alert — чуть чаще, panic — частые взвизги.
-  // Не звучит, пока Буй заморожен (открыт совет) или думает — там свои звуки.
+  // Голос Буя.
   if (!minion.frozen && !minion.thinking && now > minion.nextChirp) {
     if (minion.mood === 'panic') {
       SFX.buoyPanic();
@@ -1318,7 +1410,6 @@ function updateMinion(dt) {
       minion.nextChirp = now + 5 + Math.random() * 8;
     }
   }
-
   if (!minion.frozen && !cellFree(minion.x, minion.z)) placeMinionInitial();
   if (minion.idleAct && now >= minion.idleActUntil) minion.idleAct = null;
   if (minion.thinking) {
@@ -1404,7 +1495,6 @@ function updateMinion(dt) {
   }
 }
 
-// ---------- КАМЕРА: АНИМАЦИЯ ФОКУСА ----------
 const camAnim = { active: false, t: 0, dur: 1, fromPos: new THREE.Vector3(), toPos: new THREE.Vector3(), fromTgt: new THREE.Vector3(), toTgt: new THREE.Vector3(), onDone: null };
 const savedCam = { pos: new THREE.Vector3(), tgt: new THREE.Vector3() };
 function animateCamera(toPos, toTgt, dur, onDone) {
@@ -1424,7 +1514,6 @@ function updateCameraAnim(dt) {
   return true;
 }
 
-// ---------- СОВЕТ БУЯ ----------
 function pickTip() {
   const bundle = I18N[lang];
   if (mode === 'visit') {
@@ -1461,7 +1550,6 @@ function openTip() {
   const text = pickTip();
   minion.pendingTip = text; minion.frozen = true; minion.thinking = true;
   minion.thinkUntil = performance.now() / 1000 + THINK_TIME; minion.path = []; minion.idleAct = null;
-  // Любопытное «хм?» — Буй отзывается на тычок.
   SFX.buoyQuestion();
   const mp = minionGroup.position;
   const toCam = new THREE.Vector3().subVectors(camera.position, mp).setY(0);
@@ -1486,7 +1574,6 @@ function closeTip() {
   animateCamera(savedCam.pos, savedCam.tgt, 0.45, () => { controls.enabled = true; });
 }
 
-// ---------- ПРИЗРАК БЛОКА ----------
 const ghostMat = new THREE.MeshBasicMaterial({ color: 0x22c55e, transparent: true, opacity: 0.4, depthWrite: false });
 const ghost = new THREE.Mesh(new THREE.BoxGeometry(1,1,1), ghostMat);
 ghost.visible = false; scene.add(ghost);
@@ -1515,7 +1602,7 @@ function updateGhostGeometry() {
 }
 function updateRotateButton() {
   const btnH = $('btn-rotate'), btnV = $('btn-vertical');
-  const on = buildMode && mode === 'own';
+  const on = buildMode && mode === 'own' && !menuMode;
   btnH.textContent = '↔️'; btnV.textContent = '↕️';
   btnH.classList.toggle('hidden', !canRotate() || !on);
   btnV.classList.toggle('hidden', !canVertical() || !on);
@@ -1589,7 +1676,10 @@ function computePlacement(ndcX, ndcY) {
 }
 
 function updateGhost() {
-  if (!buildMode || mode !== 'own' || demolishMode) { ghost.visible = false; priceEl.classList.add('hidden'); noBuildRing.visible = false; return; }
+  // В меню призрак не нужен — там нет игрока «в режиме стройки».
+  if (menuMode || !buildMode || mode !== 'own' || demolishMode) {
+    ghost.visible = false; priceEl.classList.add('hidden'); noBuildRing.visible = false; return;
+  }
   noBuildRing.visible = true;
   const p = computePlacement(aimPoint.x, aimPoint.y);
   if (!p) { ghost.visible = false; priceEl.classList.add('hidden'); return; }
@@ -1608,7 +1698,6 @@ function updateGhost() {
   priceEl.classList.remove('hidden');
 }
 
-// ---------- КНОПКА ФЛАГА ----------
 function flagLockedMessage(st) {
   if (!st) return t('flagProtected');
   if (st.percent < st.min_percent) return t('flagNeedPercent', { need: st.cubes_left_to_min, percent: st.percent, min: st.min_percent });
@@ -1638,7 +1727,11 @@ function applyTab(id, visible) {
   } else el.classList.add('hidden');
 }
 function updatePanel() {
+  // Во время меню панели управляются showMenu() — здесь не трогаем, иначе
+  // они мигнут поверх оверлея.
+  if (menuMode) return;
   const on = buildMode && mode === 'own';
+  $('top').classList.remove('hidden');
   $('btn-build').classList.toggle('on', on);
   $('btn-size').classList.toggle('hidden', !on);
   $('btn-block-color').classList.toggle('hidden', !on);
@@ -1655,7 +1748,6 @@ function updatePanel() {
   applyTab('bottom-raid', mode === 'raid');
 }
 function setMode(next) {
-  // Музыка рейда: включаем при входе, гасим при выходе.
   if (next === 'raid' && mode !== 'raid') playMusic('clubDiver');
   else if (next !== 'raid' && mode === 'raid') stopMusic(1800);
   mode = next;
@@ -1670,6 +1762,53 @@ function hideScreens() { ['world-screen','loot-screen','onboard-screen','tip-scr
 function closeOnboard() {
   const el = $('onboard-screen'); el.classList.add('closing');
   setTimeout(() => { el.classList.remove('closing'); el.classList.add('hidden'); }, 300);
+}
+
+// ---------- ГЛАВНОЕ МЕНЮ ----------
+function showMenu(on) {
+  menuMode = on;
+  const ms = $('menu-screen');
+  if (on) {
+    ms.classList.remove('hidden');
+    ms.classList.remove('fading');
+    // Прячем игровые панели, чтобы они не мигали поверх меню.
+    $('top').classList.add('hidden');
+    $('bottom').classList.add('hidden');
+    $('bottom-visit').classList.add('hidden');
+    $('bottom-raid').classList.add('hidden');
+    priceEl.classList.add('hidden');
+    noBuildRing.visible = false;
+    ghost.visible = false;
+    controls.enabled = false;
+  }
+}
+function startGame() {
+  if (!menuMode) return;
+  menuMode = false;
+  $('menu-play').disabled = true;
+
+  // Гасим Nowhereland, пока камера уезжает в игровой ракурс.
+  stopMusic(2200);
+
+  // Оверлей плавно уходит в прозрачность, затем скрывается.
+  const ms = $('menu-screen');
+  ms.classList.add('fading');
+  setTimeout(() => { ms.classList.add('hidden'); ms.classList.remove('fading'); }, 700);
+
+  // Возвращаем камеру в каноническую позицию (26, 44, 26) → цель (0, 0, 3).
+  animateCamera(
+    new THREE.Vector3(26, 44, 26),
+    new THREE.Vector3(0, 0, 3),
+    1.2,
+    () => {
+      controls.enabled = true;
+      updatePanel();  // возвращаем панели
+      // Онбординг показываем после того, как камера успокоилась.
+      if (!localStorage.getItem('adrift_onboarded')) {
+        setTimeout(() => showScreen('onboard-screen'), 200);
+      }
+    }
+  );
 }
 
 // ---------- ОСТРОВ ----------
@@ -1693,19 +1832,17 @@ async function returnHome() {
   try { await loadOwnIsland(); await loadMe(); await loadEconomy(); pollRaidAlert(); } finally { ok(); }
 }
 
-// ---------- ОПОВЕЩЕНИЕ О РЕЙДЕ ----------
 async function pollRaidAlert() {
   try {
     const data = await api('/api/v1/raids/history?limit=8');
     const wasAlert = myRaidAlert;
     myRaidAlert = (data.raids || []).some(r => r.role === 'defender' && r.status === 'active');
     refreshMinionMood();
-    if (myRaidAlert && !wasAlert && mode === 'own') toast(t('raidAlertToast'), 'warn');
+    if (myRaidAlert && !wasAlert && mode === 'own' && !menuMode) toast(t('raidAlertToast'), 'warn');
   } catch (e) {}
 }
 setInterval(() => { if (token) pollRaidAlert(); }, 25000);
 
-// ---------- ЭКОНОМИКА ----------
 function renderEconomy() {
   const btn = $('claim-btn'), hint = $('claim-hint');
   if (econ.accrued_now >= 1) { btn.classList.add('ready'); hint.textContent = '+' + econ.accrued_now; }
@@ -1728,7 +1865,6 @@ async function claimEther() {
 setInterval(() => { if (econ.accrued_now >= 1) return; if (econ.seconds_to_next > 0) { econ.seconds_to_next -= 1; renderEconomy(); } else loadEconomy(); }, 1000);
 setInterval(loadEconomy, 30000);
 
-// ---------- ПАЛИТРЫ ----------
 function closeAllPalettes() { ['palette','block-palette','size-palette'].forEach(id => $(id).classList.add('hidden')); }
 function buildFlagPalette() {
   const grid = $('palette-grid'); grid.innerHTML = '';
@@ -1799,7 +1935,6 @@ async function pickFlagColor(key) {
   } catch (e) { toast(humanError(e), 'error'); }
 }
 
-// ---------- МАГАЗИН ----------
 function cubeTypeInfo(material, shape) {
   const key = `${material}_${shape}`;
   const fromServer = catalog[key];
@@ -1863,7 +1998,6 @@ function renderShopSummary() {
 }
 function openShop() { buildShop(); showScreen('shop-screen'); }
 
-// ---------- МИР ----------
 function blockLabel(isl) {
   switch (isl.raid_block_reason) {
     case 'TARGET_SHIELDED': return '🛡 ' + fmtTime(isl.shield_seconds_left);
@@ -1912,7 +2046,6 @@ async function visitIsland(userId, username) {
   } catch (e) { ok(); toast(humanError(e), 'error'); }
 }
 
-// ---------- РЕЙД ----------
 function pickCharge(cube) {
   const hp = Math.max(0, cube.hp | 0);
   const bal = econ.ether_balance | 0;
@@ -1934,7 +2067,7 @@ async function startRaid() {
     resetCubes(); detail.cubes.forEach(addCube); refreshCounters();
     setFlagVisual(detail.flag.hp, detail.flag.max_hp, detail.flag.color);
     placeMinionInitial();
-    setMode('raid');  // здесь включается Club Diver
+    setMode('raid');
     updateFlagButton(); ok(); toast(t('raidStartOk'), 'tip');
   } catch (e) { ok(); toast(humanError(e), 'error'); }
 }
@@ -1976,7 +2109,6 @@ async function attackFlag() {
     if (res.flag_state) applyFlagState(res.flag_state);
     if (res.flag_destroyed && res.loot) {
       raidId = null;
-      // Гасим музыку рейда, чтобы win-джингл звучал чисто.
       stopMusic(700);
       $('loot-stolen').textContent = res.loot.stolen_ether;
       $('loot-balance').textContent = res.loot.attacker_balance;
@@ -1998,7 +2130,6 @@ async function leaveRaid() {
   await returnHome();
 }
 
-// ---------- ТАПЫ ----------
 let pointerStart = null;
 const TAP_MAX_MOVE = 8, TAP_MAX_TIME = 400;
 renderer.domElement.addEventListener('pointerdown', (ev) => {
@@ -2013,7 +2144,7 @@ renderer.domElement.addEventListener('pointerup', async (ev) => {
   const elapsed = performance.now() - pointerStart.t;
   pointerStart = null;
   if (moved > TAP_MAX_MOVE || elapsed > TAP_MAX_TIME) return;
-  if (loading) return;
+  if (loading || menuMode) return;   // в меню тап по сцене ничего не делает
   if (camAnim.active) return;
   if (!$('tip-screen').classList.contains('hidden')) return;
   const ndcX = (ev.clientX / innerWidth) * 2 - 1;
@@ -2071,7 +2202,6 @@ async function handleRaidTap(ndcX, ndcY) {
   await attackCube(obj.userData.cube);
 }
 
-// ---------- КНОПКИ ----------
 $('claim-btn').addEventListener('click', claimEther);
 $('reload').addEventListener('click', () => loadOwnIsland().catch(e => toast(humanError(e), 'error')));
 $('btn-build').addEventListener('click', () => setBuildMode(!buildMode));
@@ -2102,8 +2232,8 @@ $('loot-ok').addEventListener('click', returnHome);
 $('tip-ok').addEventListener('click', closeTip);
 $('onboard-ok').addEventListener('click', () => { localStorage.setItem('adrift_onboarded', '1'); closeOnboard(); });
 $('sound-btn').addEventListener('click', toggleAudio);
+$('menu-play').addEventListener('click', startGame);
 
-// ---------- ЦИКЛ ----------
 addEventListener('resize', () => { camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); renderer.setSize(innerWidth, innerHeight); });
 let lastFrame = performance.now();
 function animate() {
@@ -2112,7 +2242,20 @@ function animate() {
   const dt = Math.min((now - lastFrame) / 1000, 0.1);
   lastFrame = now;
   const nowSec = now / 1000;
-  if (updateCameraAnim(dt)) camera.lookAt(controls.target); else controls.update();
+
+  if (menuMode) {
+    // Камера крутится по кругу, сохраняя радиус и высоту относительно цели.
+    menuOrbit.angle += dt * menuOrbit.speed;
+    camera.position.x = controls.target.x + Math.cos(menuOrbit.angle) * menuOrbit.radius;
+    camera.position.z = controls.target.z + Math.sin(menuOrbit.angle) * menuOrbit.radius;
+    camera.position.y = menuOrbit.y;
+    camera.lookAt(controls.target);
+  } else if (updateCameraAnim(dt)) {
+    camera.lookAt(controls.target);
+  } else {
+    controls.update();
+  }
+
   flagGroup.rotation.y += 0.005;
   if (minion.thinking && nowSec >= minion.thinkUntil) finishThinking();
   updateMinion(dt);
@@ -2127,11 +2270,12 @@ animate();
   try {
     applyI18n(); loadBuildPrefs(); loadAudioPref(); updateSizeLabel(); updateGhostGeometry(); updateRotateButton(); updateBlockSwatch();
 
-    // Nowhereland стартует сразу. Если автоплей заблокирован — попробуем
-    // ещё раз на первом касании (см. unlockAudio).
-    playMusic('nowhereland');
+    // Меню — первым делом. Пока грузятся данные, камера уже начинает орбиту.
+    showMenu(true);
 
-    // Разблокировка звука — на первом касании экрана.
+    // Nowhereland стартует немедленно. Если автоплей заблокирован — догоним
+    // на первом касании, кнопка Play тоже сработает как разблокировка.
+    playMusic('nowhereland');
     window.addEventListener('pointerdown', unlockAudio, { once: true });
 
     await auth(); fail(t('loading'));
@@ -2141,13 +2285,13 @@ animate();
     await loadEconomy();
     setMode('own'); buildMode = true; updatePanel(); ok();
 
-    // Мягко гасим Nowhereland — игрок влился в режим стройки.
-    stopMusic(2500);
+    // Кнопка Play активируется, когда данные загружены.
+    // (Онбординг покажем после нажатия Play — в startGame.)
+    $('menu-play').disabled = false;
 
     pollRaidAlert();
-    if (!localStorage.getItem('adrift_onboarded')) showScreen('onboard-screen');
   } catch (e) { fail(t('error') + ': ' + humanError(e)); }
 })();
 </script>
 </body>
-                                                                                   </html>
+ </html>
