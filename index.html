@@ -40,6 +40,18 @@
   #btn-shop .shop-ico { font-size:16px; line-height:1; display:inline-block; vertical-align:middle; }
   #shop-mini { position:absolute; right:-2px; bottom:-2px; width:16px; height:16px; border-radius:4px; border:1.5px solid rgba(255,255,255,.7); box-shadow:0 1px 4px rgba(0,0,0,.5); background:#c9a06a; transition: background .15s ease; overflow:hidden; }
   #shop-mini svg { display:block; width:100%; height:100%; }
+  /* Баннер «нет соединения». Едет сверху вниз, сидит над всеми барами,
+     но под тостами и #status: если сервер спит, первым видно его. */
+  #net-banner {
+    position:fixed; top:0; left:0; right:0;
+    background:rgba(120,53,15,.96);
+    border-bottom:1px solid rgba(245,158,11,.55);
+    color:#fde68a; padding:6px 12px; font-size:13px; font-weight:600;
+    text-align:center; z-index:150;
+    transform: translateY(-100%); transition: transform .25s ease;
+    pointer-events:none;
+  }
+  #net-banner.show { transform: translateY(0); }
   #toast { position:fixed; top:64px; left:50%; transform:translateX(-50%) translateY(-8px); background:rgba(30,41,59,.96); backdrop-filter:blur(10px); border:1px solid rgba(255,255,255,.14); border-radius:14px; padding:12px 20px; font-size:14px; font-weight:500; max-width:88vw; text-align:center; pointer-events:none; z-index:200; box-shadow:0 8px 24px rgba(0,0,0,.4); opacity:0; transition:opacity .2s ease, transform .2s ease; }
   #toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
   #toast.error { background:rgba(127,29,29,.96); border-color:rgba(239,68,68,.5); }
@@ -119,6 +131,7 @@
 </head>
 <body>
 <div id="app"></div>
+<div id="net-banner">📡 Нет соединения с сервером…</div>
 <div class="bar" id="top">
   <button class="pill pill-btn" id="claim-btn" title="Claim">⚡ <b id="ether">—</b><span id="claim-hint">…</span></button>
   <div class="pill">🧱 <b id="cubes">—</b></div>
@@ -411,94 +424,97 @@ const fmtTime = (s) => {
   return '0:' + String(sec).padStart(2, '0');
 };
 
+// ---------- СЕТЬ: ТАЙМАУТ + БАННЕР «НЕТ СОЕДИНЕНИЯ» ----------
+// fetch без таймаута на мобильном может висеть минутами: клиент показывает
+// вечный спиннер, а игрок не понимает, что сервер недоступен. Оборачиваем
+// с AbortController: если за 15 секунд ответа нет — рвём и показываем баннер.
+const NET_TIMEOUT_MS = 15000;
+let netDownTimer = null;
+let netDownShown = false;
+
+function showNetDown() {
+  if (netDownShown) return;
+  netDownShown = true;
+  const el = $('net-banner'); if (el) el.classList.add('show');
+}
+function hideNetDown() {
+  // Небольшая задержка: если упал один запрос, но следующий прошёл — не мигаем.
+  clearTimeout(netDownTimer);
+  netDownTimer = setTimeout(() => {
+    netDownShown = false;
+    const el = $('net-banner'); if (el) el.classList.remove('show');
+  }, 300);
+}
+
+async function fetchT(url, opts = {}, ms = NET_TIMEOUT_MS) {
+  const ac = new AbortController();
+  const timer = setTimeout(() => ac.abort(), ms);
+  try {
+    const res = await fetch(url, { ...opts, signal: ac.signal });
+    // Даже если сервер вернул 500 — сеть жива. Баннер не показываем.
+    hideNetDown();
+    return res;
+  } catch (e) {
+    // AbortError — таймаут; TypeError — «Failed to fetch» (нет интернета,
+    // DNS, CORS, оффлайн). В обоих случаях игрок должен видеть, что связи нет.
+    if (e && (e.name === 'AbortError' || e instanceof TypeError)) showNetDown();
+    throw e;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 // ---------- ЧЕЛОВЕЧЕСКИЕ СООБЩЕНИЯ ОБ ОШИБКАХ ----------
-// Единый маппинг ErrorCode -> понятный игроку текст. Если код неизвестен —
-// отдаём то, что прислал сервер (`e.message`). Спец-случаи вроде
-// FLAG_PROTECTED с процентами сноса обрабатываются ОТДЕЛЬНО в местах вызова,
-// потому что там нужны цифры из details, а не общая фраза.
-//
-// Тексты пока русские: серверные DEFAULT_MESSAGES в errors.py тоже русские,
-// полноценная локализация будет позже.
 function humanError(e) {
   const code = e && e.code;
   const srv = (e && e.message) || '';
   const d = (e && e.details) || {};
 
-  switch (code) {
-    // --- инфраструктура ---
-    case 'NOT_READY':
-      return 'Сервер перегружен, попробуй ещё раз';
-    case 'CONFLICT':
-      return 'Конфликт одновременных действий, повтори';
-    case 'VALIDATION_ERROR':
-    case 'BAD_REQUEST':
-      return 'Некорректные данные запроса';
-    case 'RATE_LIMITED':
-      return d.retry_after ? `Слишком часто, подожди ${d.retry_after} с` : 'Слишком часто, сбавь темп';
-    case 'INTERNAL_ERROR':
-      return 'Внутренняя ошибка сервера, попробуй позже';
-
-    // --- auth ---
-    case 'TOKEN_EXPIRED':
-      return 'Сессия истекла, перезайди в игру';
-    case 'TOKEN_INVALID':
-    case 'TOKEN_MISSING':
-    case 'UNAUTHORIZED':
-      return 'Нужно переавторизоваться';
-    case 'PROFILE_MISSING':
-      return 'Профиль не найден';
-
-    // --- строительство ---
-    case 'CELL_OCCUPIED':
-      return 'Здесь уже стоит блок';
-    case 'OUT_OF_BOUNDS':
-      return 'За границей острова или слишком близко к Флагу';
-    case 'NO_SUPPORT':
-      return 'Нужна опора снизу';
-    case 'CUBE_LIMIT_REACHED':
-      return d.limit ? `Достигнут лимит кубов (${d.limit})` : 'Достигнут лимит кубов';
-    case 'NOT_ENOUGH_ETHER':
-      if (d.required != null && d.available != null) {
-        return `Не хватает Эфира: нужно ${d.required}, есть ${d.available}`;
-      }
-      return 'Не хватает Эфира';
-    case 'NOT_YOUR_CUBE':
-      return 'Это не твой куб';
-    case 'INVALID_CUBE_TYPE':
-      return 'Эта форма или материал недоступны';
-    case 'BUILD_ISLAND_BUSY':
-      return 'Остров занят: постройка идёт, попробуй ещё раз';
-    case 'SAFE_ZONE_UPGRADE_FORBIDDEN':
-      return 'Кубы в безопасной зоне нельзя улучшать';
-
-    // --- рейды ---
-    case 'RAID_NOT_FOUND':
-      return 'Рейд не найден';
-    case 'RAID_ALREADY_FINISHED':
-      return 'Рейд уже завершён';
-    case 'RAID_FORBIDDEN_TARGET':
-      return 'По этому острову рейд невозможен';
-    case 'TARGET_SHIELDED':
-      return d.seconds_left ? `Цель под щитом ещё ${fmtTime(d.seconds_left)}` : 'У защитника активен щит';
-    case 'TARGET_IS_SELF':
-      return 'Это твой остров';
-    case 'COOLDOWN_ACTIVE':
-      return d.seconds_left ? `Кулдаун ещё ${fmtTime(d.seconds_left)}` : 'Этот игрок недавно подвергался атаке';
-    case 'CUBE_IN_SAFE_ZONE':
-      return 'Внутри безопасной зоны Флага атака запрещена';
-    case 'FLAG_PROTECTED':
-      return 'Флаг пока закрыт';
-    case 'FLAG_ALREADY_DESTROYED':
-      return 'Флаг уже разрушен';
-
-    // --- экономика ---
-    case 'CLAIM_TOO_EARLY':
-      return 'Эфир ещё не накопился';
-    case 'IDEMPOTENCY_KEY_REUSED':
-      return 'Повторный запрос, уже обработано';
+  // Сетевые сбои fetchT приходят без .code: AbortError = таймаут, TypeError = нет связи.
+  if (!code && e) {
+    if (e.name === 'AbortError') return 'Сервер не отвечает, попробуй ещё раз';
+    if (e instanceof TypeError)   return 'Нет соединения с сервером';
   }
 
-  // Неизвестный код — показываем то, что прислал сервер
+  switch (code) {
+    case 'NOT_READY': return 'Сервер перегружен, попробуй ещё раз';
+    case 'CONFLICT': return 'Конфликт одновременных действий, повтори';
+    case 'VALIDATION_ERROR':
+    case 'BAD_REQUEST': return 'Некорректные данные запроса';
+    case 'RATE_LIMITED': return d.retry_after ? `Слишком часто, подожди ${d.retry_after} с` : 'Слишком часто, сбавь темп';
+    case 'INTERNAL_ERROR': return 'Внутренняя ошибка сервера, попробуй позже';
+
+    case 'TOKEN_EXPIRED': return 'Сессия истекла, перезайди в игру';
+    case 'TOKEN_INVALID':
+    case 'TOKEN_MISSING':
+    case 'UNAUTHORIZED': return 'Нужно переавторизоваться';
+    case 'PROFILE_MISSING': return 'Профиль не найден';
+
+    case 'CELL_OCCUPIED': return 'Здесь уже стоит блок';
+    case 'OUT_OF_BOUNDS': return 'За границей острова или слишком близко к Флагу';
+    case 'NO_SUPPORT': return 'Нужна опора снизу';
+    case 'CUBE_LIMIT_REACHED': return d.limit ? `Достигнут лимит кубов (${d.limit})` : 'Достигнут лимит кубов';
+    case 'NOT_ENOUGH_ETHER':
+      if (d.required != null && d.available != null) return `Не хватает Эфира: нужно ${d.required}, есть ${d.available}`;
+      return 'Не хватает Эфира';
+    case 'NOT_YOUR_CUBE': return 'Это не твой куб';
+    case 'INVALID_CUBE_TYPE': return 'Эта форма или материал недоступны';
+    case 'BUILD_ISLAND_BUSY': return 'Остров занят: постройка идёт, попробуй ещё раз';
+    case 'SAFE_ZONE_UPGRADE_FORBIDDEN': return 'Кубы в безопасной зоне нельзя улучшать';
+
+    case 'RAID_NOT_FOUND': return 'Рейд не найден';
+    case 'RAID_ALREADY_FINISHED': return 'Рейд уже завершён';
+    case 'RAID_FORBIDDEN_TARGET': return 'По этому острову рейд невозможен';
+    case 'TARGET_SHIELDED': return d.seconds_left ? `Цель под щитом ещё ${fmtTime(d.seconds_left)}` : 'У защитника активен щит';
+    case 'TARGET_IS_SELF': return 'Это твой остров';
+    case 'COOLDOWN_ACTIVE': return d.seconds_left ? `Кулдаун ещё ${fmtTime(d.seconds_left)}` : 'Этот игрок недавно подвергался атаке';
+    case 'CUBE_IN_SAFE_ZONE': return 'Внутри безопасной зоны Флага атака запрещена';
+    case 'FLAG_PROTECTED': return 'Флаг пока закрыт';
+    case 'FLAG_ALREADY_DESTROYED': return 'Флаг уже разрушен';
+
+    case 'CLAIM_TOO_EARLY': return 'Эфир ещё не накопился';
+    case 'IDEMPOTENCY_KEY_REUSED': return 'Повторный запрос, уже обработано';
+  }
   return srv || 'Ошибка';
 }
 
@@ -527,7 +543,7 @@ let myRaidAlert = false;
 
 // ---------- АВТОРИЗАЦИЯ ----------
 async function signIn() {
-  const res = await fetch(`${SUPABASE_URL}/auth/v1/signup`, {
+  const res = await fetchT(`${SUPABASE_URL}/auth/v1/signup`, {
     method: 'POST',
     headers: { 'Content-Type':'application/json', 'apikey':SUPABASE_ANON_KEY, 'Authorization':`Bearer ${SUPABASE_ANON_KEY}` },
     body: '{}',
@@ -541,12 +557,18 @@ async function signIn() {
 function clearSession() { token = null; myId = null; localStorage.removeItem('adrift_token'); localStorage.removeItem('adrift_id'); }
 
 async function api(path, options = {}) {
-  const res = await fetch(API_URL + path, {
+  const res = await fetchT(API_URL + path, {
     ...options,
     headers: { 'Authorization':`Bearer ${token}`, 'Content-Type':'application/json', ...(options.headers||{}) },
   });
   const text = await res.text();
-  const body = text ? JSON.parse(text) : null;
+  let body = null;
+  // Сервер может отдать HTML (например, 502 от Render) — тогда JSON.parse
+  // упадёт и игрок увидит «SyntaxError» вместо внятной ошибки. Ловим и
+  // превращаем в пустое тело: код всё равно возьмём из res.status.
+  if (text) {
+    try { body = JSON.parse(text); } catch (e) { body = null; }
+  }
   if (!res.ok) {
     const err = new Error(body?.error?.message || res.statusText);
     err.code = body?.error?.code || ('HTTP_' + res.status);
@@ -689,9 +711,7 @@ function effectiveMaterial(c) {
   if (ct.startsWith('iron_')) return 'iron';
   return (c && c.material) || 'wood';
 }
-function isFlatHalf(shape, sy) {
-  return shape === 'half' && sy <= 1;
-}
+function isFlatHalf(shape, sy) { return shape === 'half' && sy <= 1; }
 
 // ---------- ГЕОМЕТРИЯ ПО ФОРМЕ ----------
 function shapeGeometry(shape, sx, sy, sz) {
@@ -703,9 +723,7 @@ function shapeGeometry(shape, sx, sy, sz) {
     const A2 = [-hx,  hy, -hz];
     const B2 = [ hx,  hy, -hz];
     const C2 = [-hx,  hy,  hz];
-
-    const pos = [];
-    const uvs = [];
+    const pos = [], uvs = [];
     function tri(p1, p2, p3, u1, u2, u3) {
       pos.push(p1[0], p1[1], p1[2], p2[0], p2[1], p2[2], p3[0], p3[1], p3[2]);
       uvs.push(u1[0], u1[1], u2[0], u2[1], u3[0], u3[1]);
@@ -715,7 +733,6 @@ function shapeGeometry(shape, sx, sy, sz) {
     tri(A,  A2, B2, [0,0], [0,1], [1,1]); tri(A,  B2, B,  [0,0], [1,1], [1,0]);
     tri(A,  C,  C2, [0,0], [1,0], [1,1]); tri(A,  C2, A2, [0,0], [1,1], [0,1]);
     tri(B,  B2, C2, [0,0], [0,1], [1,1]); tri(B,  C2, C,  [0,0], [1,1], [1,0]);
-
     const g = new THREE.BufferGeometry();
     g.setAttribute('position', new THREE.BufferAttribute(new Float32Array(pos), 3));
     g.setAttribute('uv', new THREE.BufferAttribute(new Float32Array(uvs), 2));
@@ -733,7 +750,6 @@ function shapeGeometry(shape, sx, sy, sz) {
   }
   return new THREE.BoxGeometry(sx, sy, sz);
 }
-
 function localDims(size_x, size_y, size_z, rotation) {
   if (rotation % 2 === 1) return { sx: size_z, sy: size_y, sz: size_x };
   return { sx: size_x, sy: size_y, sz: size_z };
@@ -1682,8 +1698,6 @@ async function attackFlag() {
   } catch (e) {
     if (!raidGone(e)) {
       if (e.code === 'FLAG_PROTECTED' && e.details) applyFlagState(e.details);
-      // FLAG_PROTECTED — особый случай: там текст с процентами сноса и шириной
-      // коридора, а не общая фраза. Остальное — через humanError.
       toast(e.code === 'FLAG_PROTECTED' ? flagLockedMessage(e.details) : humanError(e), 'error');
     }
   } finally { attacking = false; }
