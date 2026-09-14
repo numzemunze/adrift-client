@@ -630,6 +630,8 @@ const SFX = {
 let musicWantKey = null;
 let currentMusicKey = null;
 let currentAudio = null;
+let musicStopTimer = null;
+let musicFadeTimer = null;
 
 function playMusic(key) {
   musicWantKey = key;
@@ -637,11 +639,16 @@ function playMusic(key) {
   _startOrResumeMusic();
 }
 function _startOrResumeMusic() {
+  clearTimeout(musicStopTimer);
+  clearInterval(musicFadeTimer);
+  musicStopTimer = null;
+  musicFadeTimer = null;
   const key = musicWantKey;
   if (!key) return;
   const url = MUSIC_URLS[key];
   if (!url) return;
   if (currentAudio && currentMusicKey === key) {
+    currentAudio.volume = MUSIC_VOLUME;
     if (currentAudio.paused) currentAudio.play().catch(() => {});
     return;
   }
@@ -658,12 +665,36 @@ function _startOrResumeMusic() {
   currentMusicKey = key;
 }
 function stopMusic() {
+  clearTimeout(musicStopTimer);
+  clearInterval(musicFadeTimer);
+  musicStopTimer = null;
+  musicFadeTimer = null;
   musicWantKey = null;
   if (currentAudio) {
     try { currentAudio.pause(); currentAudio.src = ''; } catch (e) {}
     currentAudio = null;
   }
   currentMusicKey = null;
+}
+function fadeMusicOut(ms) {
+  if (!currentAudio) return;
+  clearInterval(musicFadeTimer);
+  const startVol = currentAudio.volume;
+  const t0 = performance.now();
+  musicFadeTimer = setInterval(function () {
+    if (!currentAudio) { clearInterval(musicFadeTimer); return; }
+    const k = Math.min(1, (performance.now() - t0) / ms);
+    currentAudio.volume = startVol * (1 - k);
+    if (k >= 1) {
+      clearInterval(musicFadeTimer);
+      stopMusic();
+    }
+  }, 50);
+}
+function scheduleMusicStop(delayMs, fadeMs) {
+  clearTimeout(musicStopTimer);
+  clearInterval(musicFadeTimer);
+  musicStopTimer = setTimeout(function () { fadeMusicOut(fadeMs); }, delayMs);
 }
 function pauseMusic() {
   if (currentAudio && !currentAudio.paused) currentAudio.pause();
@@ -1706,7 +1737,7 @@ function startGame() {
   if (!menuMode) return;
   menuMode = false;
   $('menu-play').disabled = true;
-  stopMusic();
+  scheduleMusicStop(25000, 5000);
   const ms = $('menu-screen');
   ms.classList.add('fading');
   setTimeout(() => { ms.classList.add('hidden'); ms.classList.remove('fading'); }, 700);
