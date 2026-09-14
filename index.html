@@ -82,15 +82,8 @@
     pointer-events: none;
   }
   @keyframes glowBreath { 0%, 100% { opacity: 0.35; } 50% { opacity: 0.75; } }
-  .menu-now-playing {
-    margin-top: 24px; font-size: 11px; letter-spacing: 0.28em;
-    color: rgba(125,211,252,0.62); text-transform: uppercase; user-select: none;
-    display: flex; align-items: center; gap: 8px; transition: opacity 0.4s ease;
-  }
-  .menu-now-playing .dot { width: 6px; height: 6px; border-radius: 50%; background: #7dd3fc; box-shadow: 0 0 8px #7dd3fc; animation: nowPlayingDot 1.4s ease-in-out infinite; }
-  @keyframes nowPlayingDot { 0%, 100% { opacity: 0.45; } 50% { opacity: 1; } }
   .menu-play {
-    margin-top: 32px; padding: 16px 52px; font-size: 17px; font-weight: 700;
+    margin-top: 56px; padding: 16px 52px; font-size: 17px; font-weight: 700;
     letter-spacing: 0.16em; text-transform: uppercase;
     background: linear-gradient(180deg, #22c55e, #15803d);
     border: 1px solid #4ade80; border-radius: 999px; color: #fff; cursor: pointer;
@@ -184,10 +177,6 @@
 
 <div id="menu-screen">
   <div class="menu-title">ADRIFT</div>
-  <div class="menu-now-playing" id="menu-now-playing">
-    <span class="dot"></span>
-    <span>♫ Nowhere Land — Kevin MacLeod</span>
-  </div>
   <button id="menu-play" class="menu-play" disabled>▶ Play</button>
 </div>
 
@@ -643,11 +632,19 @@ let currentMusicKey = null;
 let currentAudio = null;
 
 function playMusic(key) {
-  if (audioMuted) { musicWantKey = key; return; }
+  musicWantKey = key;
+  if (audioMuted) return;
+  _startOrResumeMusic();
+}
+function _startOrResumeMusic() {
+  const key = musicWantKey;
+  if (!key) return;
   const url = MUSIC_URLS[key];
   if (!url) return;
-  musicWantKey = key;
-  if (currentMusicKey === key && currentAudio && !currentAudio.paused) return;
+  if (currentAudio && currentMusicKey === key) {
+    if (currentAudio.paused) currentAudio.play().catch(() => {});
+    return;
+  }
   if (currentAudio) {
     try { currentAudio.pause(); currentAudio.src = ''; } catch (e) {}
     currentAudio = null;
@@ -668,11 +665,19 @@ function stopMusic() {
   }
   currentMusicKey = null;
 }
+function pauseMusic() {
+  if (currentAudio && !currentAudio.paused) currentAudio.pause();
+}
+function resumeMusic() {
+  if (audioMuted) return;
+  if (!musicWantKey) return;
+  _startOrResumeMusic();
+}
 function retryMusic() {
   if (audioMuted) return;
   if (!musicWantKey) return;
   if (currentAudio && !currentAudio.paused) return;
-  playMusic(musicWantKey);
+  _startOrResumeMusic();
 }
 
 function updateSoundIcon() {
@@ -2144,7 +2149,12 @@ $('onboard-ok').addEventListener('click', () => { localStorage.setItem('adrift_o
 $('sound-btn').addEventListener('click', toggleAudio);
 $('menu-play').addEventListener('click', startGame);
 
-window.addEventListener('pointerdown', () => { tryUnlockAudio(); retryMusic(); }, true);
+['pointerdown', 'touchstart', 'click', 'keydown'].forEach(function (evt) {
+  window.addEventListener(evt, function () {
+    tryUnlockAudio();
+    retryMusic();
+  }, true);
+});
 
 addEventListener('resize', () => { camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); renderer.setSize(innerWidth, innerHeight); });
 let lastFrame = performance.now();
