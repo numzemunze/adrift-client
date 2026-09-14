@@ -481,15 +481,23 @@ const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x0b1020);
 scene.fog = new THREE.Fog(0x0b1020, 60, 140);
 const camera = new THREE.PerspectiveCamera(55, innerWidth/innerHeight, 0.1, 500);
-camera.position.set(28, 32, 28);
+// Ракурс подобран так, чтобы вся сетка 64×64 умещалась ВЫШЕ нижней панели
+// кнопок (высота ~92px). Из-за наклона в 39° нижние ряды уходили под кнопки —
+// теперь камера смотрит более вертикально и сетка «уезжает» вверх по экрану.
+camera.position.set(26, 44, 26);
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
 renderer.setSize(innerWidth, innerHeight);
 $('app').appendChild(renderer.domElement);
 const controls = new OrbitControls(camera, renderer.domElement);
-controls.target.set(0, 0, 0);
+// Смотрим чуть вперёд по Z: центр обзора смещается на +3, сетка поднимается,
+// внизу освобождается полоса под панель кнопок.
+controls.target.set(0, 0, 3);
 controls.enableDamping = true;
-controls.maxPolarAngle = Math.PI / 2.2;
+// Жёсткий потолок наклона камеры: при 2.2 (≈82°) игрок мог опустить взгляд
+// почти к горизонту, и нижние ряды клеток скрывались под кнопками. 2.6 (≈69°)
+// оставляет обзор достаточно вертикальным, чтобы вся сетка была на виду.
+controls.maxPolarAngle = Math.PI / 2.6;
 controls.minDistance = 10;
 controls.maxDistance = 90;
 scene.add(new THREE.AmbientLight(0xffffff, 0.75));
@@ -600,25 +608,18 @@ function effectiveMaterial(c) {
 }
 
 // Полублок «горизонтальный» (плашмя) — тонкий по Y. Если sy > 1, значит
-// игрок поставил его вертикально: тонкая сторона теперь по X, а по Y он
-// занимает весь размер клетки. Логика используется и в geometry, и в центре.
+// игрок поставил его вертикально: тонкая сторона теперь по X.
 function isFlatHalf(shape, sy) {
   return shape === 'half' && sy <= 1;
 }
 
 // ---------- ГЕОМЕТРИЯ ПО ФОРМЕ ----------
-// ВАЖНО: localDims() ниже возвращает "до-поворотные" размеры. Меш вращается
-// через rotation.y, и его мировой AABB становится (sx_world, sy, sz_world).
 function shapeGeometry(shape, sx, sy, sz) {
   if (shape === 'triangle') {
-    // Прямоугольный клин, вписанный в ЦЕНТРИРОВАННЫЙ AABB:
-    // x ∈ [-sx/2, sx/2], y ∈ [-sy/2, sy/2], z ∈ [-sz/2, sz/2].
-    //
-    // Две критичных детали:
-    //   1. Вершины центрированы по 0. Раньше они были в (0..sx, 0..sy, 0..sz),
-    //      а mesh.position = центр клетки — из-за этого клин торчал наполовину.
-    //   2. Геометрия non-indexed и с ЯВНЫМИ UV на каждую грань. Без UV все
-    //      вершины смотрят в (0,0) — текстура залипает в один пиксель.
+    // Прямоугольный клин, вписанный в ЦЕНТРИРОВАННЫЙ AABB.
+    // Вершины центрированы по 0, чтобы mesh.position = центр клетки работал.
+    // Геометрия non-indexed с явными UV на каждую грань — без UV текстура
+    // залипает в один пиксель.
     const hx = sx / 2, hy = sy / 2, hz = sz / 2;
     const A  = [-hx, -hy, -hz];
     const B  = [ hx, -hy, -hz];
@@ -633,20 +634,11 @@ function shapeGeometry(shape, sx, sy, sz) {
       pos.push(p1[0], p1[1], p1[2], p2[0], p2[1], p2[2], p3[0], p3[1], p3[2]);
       uvs.push(u1[0], u1[1], u2[0], u2[1], u3[0], u3[1]);
     }
-
-    // низ (нормаль -Y)
     tri(A,  B,  C,  [0,0], [1,0], [0,1]);
-    // верх (нормаль +Y)
     tri(A2, C2, B2, [0,0], [0,1], [1,0]);
-    // бок AB (z=-hz, нормаль -Z)
-    tri(A,  A2, B2, [0,0], [0,1], [1,1]);
-    tri(A,  B2, B,  [0,0], [1,1], [1,0]);
-    // бок CA (x=-hx, нормаль -X)
-    tri(A,  C,  C2, [0,0], [1,0], [1,1]);
-    tri(A,  C2, A2, [0,0], [1,1], [0,1]);
-    // бок BC (гипотенуза, наружу +X+Z)
-    tri(B,  B2, C2, [0,0], [0,1], [1,1]);
-    tri(B,  C2, C,  [0,0], [1,1], [1,0]);
+    tri(A,  A2, B2, [0,0], [0,1], [1,1]); tri(A,  B2, B,  [0,0], [1,1], [1,0]);
+    tri(A,  C,  C2, [0,0], [1,0], [1,1]); tri(A,  C2, A2, [0,0], [1,1], [0,1]);
+    tri(B,  B2, C2, [0,0], [0,1], [1,1]); tri(B,  C2, C,  [0,0], [1,1], [1,0]);
 
     const g = new THREE.BufferGeometry();
     g.setAttribute('position', new THREE.BufferAttribute(new Float32Array(pos), 3));
@@ -662,8 +654,7 @@ function shapeGeometry(shape, sx, sy, sz) {
   if (shape === 'half') {
     // Режем ту ось, по которой блок «тонкий».
     // Горизонтально (sy = 1): тонкий по Y, режем Y.
-    // Вертикально (sy > 1): тонкий по X, режем X — получаем стоящую плиту,
-    // а не куб, как раньше.
+    // Вертикально (sy > 1): тонкий по X, режем X — стоящая плита, не куб.
     if (isFlatHalf('half', sy)) return new THREE.BoxGeometry(sx, sy * 0.5, sz);
     return new THREE.BoxGeometry(sx * 0.5, sy, sz);
   }
@@ -692,8 +683,6 @@ let blockedGround = new Set();
 function cubeCenter(c) {
   const sx = c.size_x||1, sy = c.size_y||1, sz = c.size_z||1;
   const shape = c.shape || effectiveShape(c);
-  // Для плоской плиты центр смещён вниз на четверть высоты (плита прижата к полу).
-  // Для вертикальной плиты — центр по центру, потому что по Y она полного размера.
   const yOffset = isFlatHalf(shape, sy) ? sy * 0.25 : sy / 2;
   return { x: c.x + sx / 2, y: c.y + yOffset, z: c.z + sz / 2 };
 }
@@ -758,7 +747,7 @@ function setFlagVisual(hp, maxHp, color) {
 }
 
 // ===========================================================================
-// ЭМОДЗИ СПРАЙТЫ + МИНЬОН (без изменений)
+// ЭМОДЗИ СПРАЙТЫ + МИНЬОН
 // ===========================================================================
 const emojiTexCache = new Map();
 function emojiTexture(char) {
@@ -1243,7 +1232,6 @@ function updateGhost() {
   noBuildRing.visible = true;
   const p = computePlacement(aimPoint.x, aimPoint.y);
   if (!p) { ghost.visible = false; priceEl.classList.add('hidden'); return; }
-  // Тот же расчёт центра, что и у настоящего блока (учитывает вертикальную плиту).
   const flat = isFlatHalf(selectedShape, p.sy);
   const cy = p.y + (flat ? p.sy * 0.25 : p.sy / 2);
   ghost.position.set(p.x + p.sx / 2, cy, p.z + p.sz / 2);
@@ -1647,6 +1635,10 @@ renderer.domElement.addEventListener('pointerup', async (ev) => {
   if (!$('tip-screen').classList.contains('hidden')) return;
   const ndcX = (ev.clientX / innerWidth) * 2 - 1;
   const ndcY = -(ev.clientY / innerHeight) * 2 + 1;
+  // Нижние 12% экрана — под панелью кнопок. Даже если какой-то тап
+  // случайно пройдёт мимо кнопки (в промежутке между ними), не строим:
+  // игрок не видит, что там за клетка, значит не может её осознанно выбрать.
+  if (ndcY < -0.76) return;
   raycaster.setFromCamera({ x:ndcX, y:ndcY }, camera);
   const minionHits = raycaster.intersectObjects(minionHitMeshes, false);
   if (minionHits.length) { if (minion.mood === 'panic') { toast(t('minionPanic'), 'warn'); return; } openTip(); return; }
