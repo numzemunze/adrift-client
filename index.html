@@ -884,7 +884,6 @@ ground.position.y = -0.5; scene.add(ground);
 const grid = new THREE.GridHelper(64, 64, 0x3b82f6, 0x1e293b);
 grid.position.y = 0.01; scene.add(grid);
 
-const FLAG_CLEAR_RADIUS = 1;
 const noBuildRing = new THREE.Mesh(
   new THREE.RingGeometry(FLAG_CLEAR_RADIUS * Math.SQRT2, FLAG_CLEAR_RADIUS * Math.SQRT2 + 0.08, 48),
   new THREE.MeshBasicMaterial({ color: 0xef4444, transparent: true, opacity: 0.45, side: THREE.DoubleSide, depthWrite: false })
