@@ -266,6 +266,32 @@
   <div class="shop-summary" id="shop-summary"></div>
   <button class="go big" id="shop-confirm" style="width:100%;justify-content:center;"><span class="ico">🔨</span><span data-i18n="shopBuild">Строить</span></button>
 </div>
+ <div class="screen hidden" id="profile-screen">
+  <div class="screen-head">
+    <div class="screen-title" data-i18n="profileTitle">Профиль</div>
+    <button id="profile-close">✕</button>
+  </div>
+  <div class="profile-card">
+    <div class="profile-head">
+      <div class="profile-avatar" id="profile-avatar">?</div>
+      <div class="profile-meta">
+        <div class="profile-name" id="profile-name">—</div>
+        <div class="profile-id" id="profile-id">#—</div>
+      </div>
+    </div>
+    <div class="profile-bio empty" id="profile-bio"></div>
+    <div class="profile-stats">
+      <div class="profile-stat"><span class="ico">🧱</span><b id="profile-cubes">0</b>кубов</div>
+      <div class="profile-stat"><span class="ico">⚡</span><b id="profile-loot">0</b>лута</div>
+      <div class="profile-stat"><span class="ico">🚩</span><b id="profile-flag">0</b>HP</div>
+    </div>
+    <div class="profile-note hidden" id="profile-note"></div>
+    <div class="profile-actions">
+      <button id="profile-visit" class="primary big"><span class="ico">🏝️</span><span data-i18n="visit">Посетить</span></button>
+      <button id="profile-raid" class="danger big"><span class="ico">⚔️</span><span data-i18n="raid">Рейд</span></button>
+    </div>
+  </div>
+ </div>
 <div id="toast" class="hidden"></div>
 <div id="status">Loading...<br><span id="err"></span></div>
 <script type="importmap">
