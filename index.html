@@ -1583,6 +1583,22 @@ $('btn-shop').addEventListener('click', openShop);
 $('shop-close').addEventListener('click', hideScreens);
 $('shop-confirm').addEventListener('click', hideScreens);
 $('btn-world').addEventListener('click', openWorld);
+ // Профиль закрывается БЕЗ hideScreens: если игрок пришёл сюда из списка
+// соседей, он должен вернуться обратно в список, а не на пустой экран.
+$('profile-close').addEventListener('click', () => $('profile-screen').classList.add('hidden'));
+$('profile-visit').addEventListener('click', () => {
+  if (!profileTarget) return;
+  const { user_id, username } = profileTarget;
+  hideScreens();
+  visitIsland(user_id, username);
+});
+$('profile-raid').addEventListener('click', () => {
+  if (!profileTarget || !profileTarget.can_raid) return;
+  const { user_id, username } = profileTarget;
+  hideScreens();
+  targetUser = { user_id, username };
+  startRaid();
+});
 $('world-close').addEventListener('click', hideScreens);
 $('btn-back').addEventListener('click', returnHome);
 $('btn-raid').addEventListener('click', startRaid);
