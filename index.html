@@ -1305,6 +1305,94 @@ async function openWorld() {
     list.appendChild(err);
   }
 }
+ const AVATAR_PRESETS = {
+  cat: '🐱', dog: '🐶', fox: '🦊', bear: '🐻',
+  panda: '🐼', frog: '🐸', lion: '🦁', tiger: '🐯',
+};
+let profileTarget = null;
+
+function renderAvatar(el, avatar) {
+  el.innerHTML = '';
+  if (!avatar) { el.textContent = '🙂'; return; }
+  if (avatar.startsWith('preset:')) {
+    const key = avatar.slice(7);
+    el.textContent = AVATAR_PRESETS[key] || '🙂';
+    return;
+  }
+  if (avatar.startsWith('url:')) {
+    const img = document.createElement('img');
+    img.alt = '';
+    img.src = avatar.slice(4);
+    // Если ссылка битая — не оставляем пустой квадрат, показываем заглушку.
+    img.onerror = () => { el.innerHTML = ''; el.textContent = '🖼'; };
+    el.appendChild(img);
+    return;
+  }
+  el.textContent = '🙂';
+}
+
+function paintProfile(isl) {
+  profileTarget = isl;
+  renderAvatar($('profile-avatar'), isl.avatar);
+  $('profile-name').textContent = isl.username;
+  $('profile-id').textContent = '#' + String(isl.user_id).slice(0, 8);
+
+  const bio = (isl.bio || '').trim();
+  const bioEl = $('profile-bio');
+  if (bio) { bioEl.textContent = bio; bioEl.classList.remove('empty'); }
+  else { bioEl.textContent = t('profileNoBio'); bioEl.classList.add('empty'); }
+
+  $('profile-cubes').textContent = isl.cube_count;
+  $('profile-loot').textContent = isl.potential_loot;
+  $('profile-flag').textContent = isl.flag_hp;
+
+  // Причина блокировки рейда (щит / кулдаун / свой остров).
+  const note = $('profile-note');
+  const raidBtn = $('profile-raid');
+  switch (isl.raid_block_reason) {
+    case 'TARGET_IS_SELF':
+      note.textContent = t('yourIsland');
+      note.classList.remove('hidden');
+      raidBtn.disabled = true;
+      break;
+    case 'TARGET_SHIELDED':
+      note.textContent = t('errTargetShieldedTime', { time: fmtTime(isl.shield_seconds_left) });
+      note.classList.remove('hidden');
+      raidBtn.disabled = true;
+      break;
+    case 'COOLDOWN_ACTIVE':
+      note.textContent = t('errCooldownTime', { time: fmtTime(isl.cooldown_seconds_left) });
+      note.classList.remove('hidden');
+      raidBtn.disabled = true;
+      break;
+    default:
+      note.classList.add('hidden');
+      raidBtn.disabled = false;
+  }
+}
+
+async function openProfile(userId, fallbackUsername) {
+  // Пока грузим — рисуем карточку из того, что уже есть в списке: ник и
+  // «—» вместо bio. Так игрок видит мгновенный отклик, а не пустой экран.
+  paintProfile({
+    user_id: userId,
+    username: fallbackUsername || '—',
+    bio: null, avatar: null,
+    cube_count: 0, potential_loot: 0, flag_hp: 0,
+    shield_seconds_left: 0, cooldown_seconds_left: 0,
+    can_raid: false, raid_block_reason: null,
+  });
+  showScreen('profile-screen');
+
+  try {
+    const isl = await api(`/api/v1/islands/${userId}/profile`);
+    // Пока мы грузили, игрок мог уже закрыть карточку — не перерисовываем.
+    if (!$('profile-screen').classList.contains('hidden')) paintProfile(isl);
+  } catch (e) {
+    toast(humanError(e), 'error');
+  }
+}
+
 async function visitIsland(userId, username) {
   hideScreens(); fail(t('islandLoading') + ' ' + username + '...');
   try {
