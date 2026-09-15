@@ -403,6 +403,7 @@ pole.position.y = 2;
 const banner = new THREE.Mesh(new THREE.BoxGeometry(1.6,1,0.1), new THREE.MeshLambertMaterial({ color:0xef4444 }));
 banner.position.set(0.8, 3.3, 0);
 flagGroup.add(pole, banner); scene.add(flagGroup);
+initBlocks(scene);
 
 function makeWoodTexture() {
   const size = 128;
