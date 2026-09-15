@@ -1,0 +1,72 @@
+// src/config.jc
+
+export const SUPABASE_URL = 'https://suaitzmqulcziefyryvf.supabase.co';
+export const SUPABASE_ANON_KEY = 'sb_publishable_pT2H1bpnu_fcBbevfvfOoQ_AhzZLQjH';
+export const API_URL = 'https://adrift-backend-ys3i.onrender.com';
+
+export const NET_TIMEOUT_MS = 15000;
+
+export const MUSIC_URLS = {
+  nowhereland:
+    'https://suaitzmqulcziefyryvf.supabase.co/storage/v1/object/public/Nowhere%20Land%20by%20Kevin%20MacLeod/Nowhere%20Land.mp3',
+  clubDiver:
+    'https://suaitzmqulcziefyryvf.supabase.co/storage/v1/object/public/Nowhere%20Land%20by%20Kevin%20MacLeod/Club%20Diver.mp3',
+};
+
+export const FLAG_CLEAR_RADIUS = 1;
+
+export const FLAG_COLORS_HEX = {
+  red: 0xef4444, orange: 0xf97316, yellow: 0xeab308, green: 0x22c55e,
+  teal: 0x14b8a6, blue: 0x3b82f6, purple: 0xa855f7, pink: 0xec4899,
+  white: 0xf1f5f9, black: 0x334155,
+};
+export const FLAG_COLORS_CSS = {
+  red: '#ef4444', orange: '#f97316', yellow: '#eab308', green: '#22c55e',
+  teal: '#14b8a6', blue: '#3b82f6', purple: '#a855f7', pink: '#ec4899',
+  white: '#f1f5f9', black: '#334155',
+};
+
+export const BLOCK_COLORS_HEX = {
+  wood: 0xc9a06a, red: 0xd94a4a, blue: 0x4a7fd9, green: 0x4ad96b,
+  yellow: 0xd9c94a, purple: 0x9b4ad9, dark: 0x6b6b6b, light: 0xd9d9d9,
+};
+export const BLOCK_COLORS_CSS = {
+  wood: '#c9a06a', red: '#d94a4a', blue: '#4a7fd9', green: '#4ad96b',
+  yellow: '#d9c94a', purple: '#9b4ad9', dark: '#6b6b6b', light: '#d9d9d9',
+};
+
+export const CHARGE_COST = { 1: 10, 2: 25, 3: 60 };
+
+export const BLOCK_SIZES = [
+  { key: '1x1x1', sx: 1, sy: 1, sz: 1, label: '1×1' },
+  { key: '2x1x1', sx: 2, sy: 1, sz: 1, label: '2×1' },
+  { key: '2x1x2', sx: 2, sy: 1, sz: 2, label: '2×2' },
+  { key: '3x1x3', sx: 3, sy: 1, sz: 3, label: '3×3' },
+];
+
+export const SHOP_SHAPES = [
+  { key: 'block',    name: 'Куб',     nameEn: 'Block',    info: 'Базовая форма',     infoEn: 'Base shape' },
+  { key: 'half',     name: 'Плита',   nameEn: 'Half',     info: 'Дешевле, хрупкая',  infoEn: 'Cheaper, fragile' },
+  { key: 'triangle', name: 'Клин',    nameEn: 'Wedge',    info: '4 стороны, дёшево', infoEn: '4-way, cheap' },
+  { key: 'circle',   name: 'Цилиндр', nameEn: 'Cylinder', info: 'Дороже, крепче',    infoEn: 'Pricier, tougher' },
+];
+export const SHOP_MATERIALS = [
+  { key: 'wood', name: 'Дерево', nameEn: 'Wood', info: 'Дёшево и сердито',             infoEn: 'Cheap and simple' },
+  { key: 'iron', name: 'Железо', nameEn: 'Iron', info: 'Втрое крепче, вчетверо дороже', infoEn: '3× tougher, 4× costlier' },
+];
+
+export const MATERIAL_PALETTE = {
+  wood: { light: '#e0b183', mid: '#c08e5e', dark: '#a87d54' },
+  iron: { light: '#c9d2da', mid: '#8e99a3', dark: '#5c666e' },
+};
+
+export const FALLBACK_PRICES = {
+  wood_block:    { cost: 10, hp: 100 },
+  wood_half:     { cost: 5,  hp: 30  },
+  wood_triangle: { cost: 5,  hp: 40  },
+  wood_circle:   { cost: 12, hp: 70  },
+  iron_block:    { cost: 40, hp: 300 },
+  iron_half:     { cost: 20, hp: 90  },
+  iron_triangle: { cost: 20, hp: 120 },
+  iron_circle:   { cost: 48, hp: 210 },
+};
