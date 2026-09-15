@@ -405,33 +405,7 @@ banner.position.set(0.8, 3.3, 0);
 flagGroup.add(pole, banner); scene.add(flagGroup);
 initBlocks(scene);
 
-function makeWoodTexture() {
-  const size = 128;
-  const canvas = document.createElement('canvas');
-  canvas.width = canvas.height = size;
-  const ctx = canvas.getContext('2d');
-  ctx.fillStyle = '#ffffff'; ctx.fillRect(0,0,size,size);
-  for (let i = 0; i < 22; i++) {
-    const y = Math.random() * size;
-    ctx.strokeStyle = `rgba(0,0,0,${0.04 + Math.random()*0.06})`;
-    ctx.lineWidth = 1 + Math.random() * 2;
-    ctx.beginPath(); ctx.moveTo(0, y);
-    for (let x = 0; x <= size; x += 8) ctx.lineTo(x, y + Math.sin(x/14+i)*2.5);
-    ctx.stroke();
-  }
-  for (let i = 0; i < 2; i++) {
-    const cx = Math.random()*size, cy = Math.random()*size;
-    for (let r = 2; r < 8; r += 2) {
-      ctx.strokeStyle = `rgba(0,0,0,${0.08 - r*0.008})`;
-      ctx.lineWidth = 1.2;
-      ctx.beginPath(); ctx.ellipse(cx, cy, r*1.6, r, 0, 0, Math.PI*2); ctx.stroke();
-    }
-  }
-  const tex = new THREE.CanvasTexture(canvas);
-  tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
-  tex.colorSpace = THREE.SRGBColorSpace;
-  return tex;
-}
+
 
 function setFlagVisual(hp, maxHp, color) {
   currentFlagHp = hp; currentFlagMax = maxHp;
