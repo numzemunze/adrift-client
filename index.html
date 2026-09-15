@@ -1286,7 +1286,7 @@ function makeIslandRow(isl) {
   meta.textContent = `🧱 ${isl.cube_count} · ⚡ ${isl.potential_loot} · 🚩 ${isl.flag_hp}`;
   row.append(name, meta);
   if (!isl.can_raid) { const badge = document.createElement('div'); badge.className = 'island-badge'; badge.textContent = blockLabel(isl); row.appendChild(badge); }
-  row.addEventListener('click', () => visitIsland(isl.user_id, isl.username));
+  row.addEventListener('click', () => openProfile(isl.user_id, isl.username));
   return row;
 }
 async function openWorld() {
