@@ -279,6 +279,14 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
   $, toast, uid, fmtTime, fail, ok, loading,
   fetchT, humanError, priceEl,
 } from './src/utils.js';
+ import {
+  initBlocks, setOnCubesChanged,
+  cubeMeshes, blockedGround,
+  addCube, removeCube, updateCubeHp, resetCubes, refreshCounters,
+  shapeGeometry, localDims, cubeCenter,
+  effectiveShape, effectiveMaterial, isFlatHalf,
+  effectiveColorHex, makeCubeMaterial,
+} from './src/blocks.js';
 
 
 
