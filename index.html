@@ -270,6 +270,11 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
   MATERIAL_PALETTE, FALLBACK_PRICES,
 } from './src/config.js';
  import { I18N, lang, t, applyI18n } from './src/i18n.js';
+ import {
+  SFX, playMusic, stopMusic, scheduleMusicStop,
+  pauseMusic, resumeMusic, retryMusic,
+  tryUnlockAudio, loadAudioPref, toggleAudio,
+} from './src/audio.js';
 
 
 
