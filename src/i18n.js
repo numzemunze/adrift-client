@@ -41,6 +41,10 @@ export const I18N = {
     noSupport: 'Нужна опора снизу', occupied: 'Здесь уже стоит блок',
     noEther: 'Не хватает Эфира', outOfBounds: 'За границей острова',
     shopTitle: '🛒 Магазин', shopShape: '1. Форма', shopMaterial: '2. Материал', shopBuild: 'Строить',
+    profileTitle: 'Профиль',
+    profileNoBio: 'Игрок не рассказал о себе.',
+    profileIdLabel: 'ID игрока',
+    visit: 'Посетить',
     errNetTimeout: 'Сервер не отвечает, попробуй ещё раз',
     errNetDown: 'Нет соединения с сервером',
     errNotReady: 'Сервер перегружен, попробуй ещё раз',
@@ -139,6 +143,10 @@ export const I18N = {
     noSupport: 'Needs support below', occupied: 'Already occupied',
     noEther: 'Not enough Ether', outOfBounds: 'Out of bounds',
     shopTitle: '🛒 Shop', shopShape: '1. Shape', shopMaterial: '2. Material', shopBuild: 'Build',
+    profileTitle: 'Profile',
+    profileNoBio: "This player hasn't written a bio yet.",
+    profileIdLabel: 'Player ID',
+    visit: 'Visit',
     errNetTimeout: 'The server is not responding, try again',
     errNetDown: 'No connection to the server',
     errNotReady: 'Server is overloaded, try again',
@@ -233,4 +241,4 @@ export function applyI18n() {
   document.querySelectorAll('[data-i18n]').forEach(el => { el.textContent = t(el.dataset.i18n); });
   document.querySelectorAll('[data-i18n-html]').forEach(el => { el.innerHTML = t(el.dataset.i18nHtml); });
   document.documentElement.lang = lang;
-      }
+}
