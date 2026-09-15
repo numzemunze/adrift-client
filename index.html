@@ -1037,7 +1037,7 @@ function setMode(next) {
 function setBuildMode(on) { buildMode = on; if (!on) setDemolish(false); closeAllPalettes(); updatePanel(); }
 function setDemolish(on) { demolishMode = on; $('btn-demolish').classList.toggle('demolish-on', on); updatePanel(); }
 function showScreen(id) { $(id).classList.remove('hidden'); }
-function hideScreens() { ['world-screen','loot-screen','onboard-screen','tip-screen','shop-screen'].forEach(id => $(id).classList.add('hidden')); closeAllPalettes(); }
+function hideScreens() { ['world-screen','loot-screen','onboard-screen','tip-screen','shop-screen','profile-screen'].forEach(id => $(id).classList.add('hidden')); closeAllPalettes(); }
 function closeOnboard() {
   const el = $('onboard-screen'); el.classList.add('closing');
   setTimeout(() => { el.classList.remove('closing'); el.classList.add('hidden'); }, 300);
