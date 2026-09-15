@@ -568,6 +568,7 @@ function bfsPath(sx, sz, tx, tz) {
   return null;
 }
 function resetMinionPath() { minion.path = []; }
+setOnCubesChanged(resetMinionPath);
 function pickMinionTarget() {
   const panic = minion.mood === 'panic';
   const rMin = panic ? PANIC_RADIUS_MIN : MINION_RADIUS_MIN;
