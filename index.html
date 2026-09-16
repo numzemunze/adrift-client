@@ -1720,16 +1720,26 @@ animate();
     showMenu(true);
     playMusic('nowhereland');
 
-    await auth(); fail(t('loading'));
-    await loadCatalog();
-    await loadMe();
-    await loadOwnIsland();
-    await loadEconomy();
-    setMode('own'); buildMode = true; updatePanel(); ok();
+    await auth();
+fail(t('loading'));
+await loadCatalog();
+await loadMe();
+await loadOwnIsland();
+await loadEconomy();
+setMode('own'); buildMode = true; updatePanel(); ok();
 
     $('menu-play').disabled = false;
     pollRaidAlert();
-  } catch (e) { fail(t('error') + ': ' + humanError(e)); }
+  } catch (e) {
+  if (e.message === 'AUTH_REQUIRED') {
+    // Показываем меню с кнопкой Google, ничего не грузим.
+    // Как только игрок войдёт через Google — handleOAuthCallback
+    // сохранит токен, страница перезагрузится, и boot пойдёт с нуля.
+    ok();
+    return;
+  }
+  fail(t('error') + ': ' + humanError(e));
+  }
 })();
 </script>
 </body>
