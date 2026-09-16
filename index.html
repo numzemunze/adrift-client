@@ -1723,6 +1723,10 @@ async function handleRaidTap(ndcX, ndcY) {
 }
 
 $('claim-btn').addEventListener('click', claimEther);
+$('profile-btn').addEventListener('click', openEditProfile);
+$('edit-profile-close').addEventListener('click', hideScreens);
+$('edit-save').addEventListener('click', saveEditProfile);
+$('edit-bio').addEventListener('input', updateBioCounter);
 $('reload').addEventListener('click', () => loadOwnIsland().catch(e => toast(humanError(e), 'error')));
 $('btn-build').addEventListener('click', () => setBuildMode(!buildMode));
 $('btn-demolish').addEventListener('click', () => setDemolish(!demolishMode));
