@@ -1084,6 +1084,29 @@ function closeOnboard() {
 }
 
 function showMenu(on) {
+ // Показываем кнопку «Войти через Google» на экране меню.
+// Вызывается, когда auth() не нашла токена — то есть при первом заходе
+// или после того, как игрок вышел из аккаунта.
+function showGoogleLogin() {
+  const menu = $('menu-screen');
+  menu.classList.remove('hidden');
+  menu.classList.remove('fading');
+
+  // Если кнопка уже есть — не дублируем.
+  if ($('google-login-btn')) return;
+
+  const btn = document.createElement('button');
+  btn.id = 'google-login-btn';
+  btn.className = 'menu-play';
+  btn.style.marginTop = '16px';
+  btn.innerHTML = '<span style="margin-right:8px">🔵</span>Войти через Google';
+  btn.addEventListener('click', signInWithGoogle);
+  menu.appendChild(btn);
+
+  // Play-кнопку временно выключаем: играть без авторизации нельзя.
+  const play = $('menu-play');
+  if (play) play.disabled = true;
+}
   menuMode = on;
   const ms = $('menu-screen');
   if (on) {
