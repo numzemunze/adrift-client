@@ -352,21 +352,49 @@ let currentFlagHp = 0, currentFlagMax = 0;
 let myRaidAlert = false;
 let menuMode = true;
 
+// Анонимный Supabase-signup больше не используем: единственный вход —
+// Google через redirect-flow. Функция оставлена как заглушка, чтобы
+// старые вызовы (если где-то остались) не падали с «not defined».
 async function signIn() {
-  const res = await fetchT(`${SUPABASE_URL}/auth/v1/signup`, {
-    method: 'POST',
-    headers: { 'Content-Type':'application/json', 'apikey':SUPABASE_ANON_KEY, 'Authorization':`Bearer ${SUPABASE_ANON_KEY}` },
-    body: '{}',
-  });
-  if (!res.ok) {
-    const err = new Error(t('errAuth', { status: res.status }));
-    err.code = 'AUTH_HTTP_' + res.status;
-    throw err;
+  throw new Error('Use signInWithGoogle()');
+}
+
+// Запускает Google-логин. Браузер уйдёт на Google, потом вернётся
+// обратно в игру с токеном в URL — его поймает handleOAuthCallback.
+function signInWithGoogle() {
+  const redirectTo = encodeURIComponent(window.location.origin + window.location.pathname);
+  const url = `${SUPABASE_URL}/auth/v1/authorize?provider=google&redirect_to=${redirectTo}`;
+  window.location.href = url;
+}
+
+// Разбирает токен из URL после возврата с Google.
+// Supabase кладёт его в hash: #access_token=...&refresh_token=...&expires_in=...
+// Возвращает true, если токен был найден и сохранён.
+function handleOAuthCallback() {
+  const hash = window.location.hash;
+  if (!hash || hash.length < 2) return false;
+
+  const params = new URLSearchParams(hash.slice(1));
+  const accessToken = params.get('access_token');
+  if (!accessToken) return false;
+
+  token = accessToken;
+  // myId достаём из JWT: payload — вторая часть токена, base64url.
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1]));
+    myId = payload.sub;
+  } catch (e) { myId = null; }
+
+  if (myId) {
+    localStorage.setItem('adrift_token', token);
+    localStorage.setItem('adrift_id', myId);
   }
-  const data = await res.json();
-  token = data.access_token; myId = data.user.id;
-  localStorage.setItem('adrift_token', token);
-  localStorage.setItem('adrift_id', myId);
+
+  // Чистим URL, чтобы токен не висел в адресной строке и не попал в
+  // историю браузера / скриншоты. history.replaceState не перезагружает
+  // страницу, поэтому game-state не теряется.
+  history.replaceState(null, '', window.location.pathname + window.location.search);
+  return true;
 }
 function clearSession() { token = null; myId = null; localStorage.removeItem('adrift_token'); localStorage.removeItem('adrift_id'); }
 
