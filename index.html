@@ -1591,12 +1591,12 @@ $('profile-copy').addEventListener('click', async () => {
   const btn = $('profile-copy');
   try {
     await navigator.clipboard.writeText(String(profileTarget.user_id));
-    btn.classList.add('copied');
-    btn.textContent = t('copied');
-    setTimeout(() => {
-      btn.classList.remove('copied');
-      btn.textContent = t('copy');
-    }, 1500);
+btn.classList.add('copied');
+btn.textContent = t('copied');
+setTimeout(() => {
+  btn.classList.remove('copied');
+  btn.textContent = t('copy');
+}, 1500);
   } catch (e) {
     toast(t('copyFailed'), 'error');
   }
