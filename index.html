@@ -1207,8 +1207,8 @@ async function claimEther() {
     toast(humanError(e), 'error');
   }
 }
-setInterval(() => { if (econ.accrued_now >= 1) return; if (econ.seconds_to_next > 0) { econ.seconds_to_next -= 1; renderEconomy(); } else loadEconomy(); }, 1000);
-setInterval(loadEconomy, 30000);
+setInterval(() => { if (!token) return; if (econ.accrued_now >= 1) return; if (econ.seconds_to_next > 0) { econ.seconds_to_next -= 1; renderEconomy(); } else loadEconomy(); }, 1000);
+setInterval(() => { if (token) loadEconomy(); }, 30000);
 
 function closeAllPalettes() { ['palette','block-palette','size-palette'].forEach(id => $(id).classList.add('hidden')); }
 function buildFlagPalette() {
