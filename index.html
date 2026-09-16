@@ -1560,8 +1560,6 @@ $('profile-copy').addEventListener('click', async () => {
       btn.textContent = t('copy');
     }, 1500);
   } catch (e) {
-    // На http-сайтах clipboard API не работает. Мы на https (Pages), но
-    // на всякий случай — показываем ошибку в тост, не падаем.
     toast(t('copyFailed'), 'error');
   }
 });
