@@ -1175,7 +1175,10 @@ async function loadMe() {
   myFlagColor = me.flag_color || 'red'; displayFlagColor = myFlagColor;
   setMinionFlagColor(myFlagColor);
   updateFlagSwatch();
-}
+  currentUsername = me.username || '';
+  currentBio = me.bio || null;
+  currentAvatar = me.avatar || null;
+ }
 async function returnHome() {
   targetUser = null; raidId = null; raidFlagState = null; flagWasOpen = false; hideScreens();
   setDemolish(false); setMode('own'); buildMode = true; updatePanel();
@@ -1183,7 +1186,6 @@ async function returnHome() {
   fail(t('returning'));
   try { await loadOwnIsland(); await loadMe(); await loadEconomy(); pollRaidAlert(); } finally { ok(); }
 }
-
 async function pollRaidAlert() {
   try {
     const data = await api('/api/v1/raids/history?limit=8');
