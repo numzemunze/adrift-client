@@ -1574,13 +1574,6 @@ $('profile-visit').addEventListener('click', () => {
   hideScreens();
   visitIsland(user_id, username);
 });
-$('profile-raid').addEventListener('click', () => {
-  if (!profileTarget || !profileTarget.can_raid) return;
-  const { user_id, username } = profileTarget;
-  hideScreens();
-  targetUser = { user_id, username };
-  startRaid();
-});
 $('world-close').addEventListener('click', hideScreens);
 $('btn-back').addEventListener('click', returnHome);
 $('btn-raid').addEventListener('click', startRaid);
