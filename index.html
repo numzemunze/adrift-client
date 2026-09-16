@@ -427,6 +427,10 @@ async function api(path, options = {}) {
 }
 const AUTH_ERRORS = ['TOKEN_EXPIRED','TOKEN_INVALID','TOKEN_MISSING','UNAUTHORIZED'];
 async function auth() {
+  // 1. Только что вернулись от Google? Токен в URL.
+  if (handleOAuthCallback()) return;
+
+  // 2. Токен уже есть в localStorage с прошлого визита.
   const saved = localStorage.getItem('adrift_token');
   const savedId = localStorage.getItem('adrift_id');
   if (saved && savedId) {
@@ -434,9 +438,11 @@ async function auth() {
     try { await api('/api/v1/build/catalog'); return; }
     catch (e) { if (!AUTH_ERRORS.includes(e.code)) throw e; clearSession(); }
   }
-  fail(t('login')); await signIn();
-}
 
+  // 3. Токена нет. Показываем кнопку Google на экране меню.
+  //    signInWithGoogle() уведёт браузер, после возврата сработает пункт 1.
+  showGoogleLogin();
+}
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x0b1020);
 scene.fog = new THREE.Fog(0x0b1020, 60, 140);
