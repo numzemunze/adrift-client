@@ -1551,6 +1551,23 @@ $('btn-world').addEventListener('click', openWorld);
  // Профиль закрывается БЕЗ hideScreens: если игрок пришёл сюда из списка
 // соседей, он должен вернуться обратно в список, а не на пустой экран.
 $('profile-close').addEventListener('click', () => $('profile-screen').classList.add('hidden'));
+$('profile-copy').addEventListener('click', async () => {
+  if (!profileTarget) return;
+  const btn = $('profile-copy');
+  try {
+    await navigator.clipboard.writeText(String(profileTarget.user_id));
+    btn.classList.add('copied');
+    btn.textContent = t('copied');
+    setTimeout(() => {
+      btn.classList.remove('copied');
+      btn.textContent = t('copy');
+    }, 1500);
+  } catch (e) {
+    // На http-сайтах clipboard API не работает. Мы на https (Pages), но
+    // на всякий случай — показываем ошибку в тост, не падаем.
+    toast(t('copyFailed'), 'error');
+  }
+});
 $('profile-visit').addEventListener('click', () => {
   if (!profileTarget) return;
   const { user_id, username } = profileTarget;
