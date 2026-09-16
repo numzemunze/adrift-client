@@ -149,6 +149,7 @@ export const I18N = {
     copy: 'Копировать',
 copied: 'Скопировано',
 copyFailed: 'Не удалось скопировать',
+    googleLogin: 'Войти через Google',
     visit: 'Visit',
     errNetTimeout: 'The server is not responding, try again',
     errNetDown: 'No connection to the server',
