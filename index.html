@@ -1321,40 +1321,19 @@ function paintProfile(isl) {
   profileTarget = isl;
   renderAvatar($('profile-avatar'), isl.avatar);
   $('profile-name').textContent = isl.username;
-  $('profile-id').textContent = '#' + String(isl.user_id).slice(0, 8);
+  // Полный UUID, не обрезанный: игрок может захотеть скопировать целиком.
+  $('profile-id').textContent = String(isl.user_id);
 
   const bio = (isl.bio || '').trim();
   const bioEl = $('profile-bio');
   if (bio) { bioEl.textContent = bio; bioEl.classList.remove('empty'); }
   else { bioEl.textContent = t('profileNoBio'); bioEl.classList.add('empty'); }
 
-  $('profile-cubes').textContent = isl.cube_count;
-  $('profile-loot').textContent = isl.potential_loot;
-  $('profile-flag').textContent = isl.flag_hp;
-
-  // Причина блокировки рейда (щит / кулдаун / свой остров).
-  const note = $('profile-note');
-  const raidBtn = $('profile-raid');
-  switch (isl.raid_block_reason) {
-    case 'TARGET_IS_SELF':
-      note.textContent = t('yourIsland');
-      note.classList.remove('hidden');
-      raidBtn.disabled = true;
-      break;
-    case 'TARGET_SHIELDED':
-      note.textContent = t('errTargetShieldedTime', { time: fmtTime(isl.shield_seconds_left) });
-      note.classList.remove('hidden');
-      raidBtn.disabled = true;
-      break;
-    case 'COOLDOWN_ACTIVE':
-      note.textContent = t('errCooldownTime', { time: fmtTime(isl.cooldown_seconds_left) });
-      note.classList.remove('hidden');
-      raidBtn.disabled = true;
-      break;
-    default:
-      note.classList.add('hidden');
-      raidBtn.disabled = false;
-  }
+  // Кнопка «Копировать» — визуально сбрасываем «copied» при открытии новой
+  // карточки, чтобы состояние не переезжало между игроками.
+  const copyBtn = $('profile-copy');
+  copyBtn.classList.remove('copied');
+  copyBtn.textContent = t('copy');
 }
 
 async function openProfile(userId, fallbackUsername) {
