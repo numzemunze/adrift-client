@@ -227,45 +227,7 @@
 <div id="palette" class="hidden"><div class="palette-title" data-i18n="flagColor">Цвет флага</div><div class="palette-grid" id="palette-grid"></div></div>
 <div id="block-palette" class="hidden"><div class="palette-title" data-i18n="blockColor">Цвет блока</div><div class="palette-grid" id="block-palette-grid"></div></div>
 <div id="size-palette" class="hidden"><div class="palette-title" data-i18n="sizeTitle">Размер блока</div><div class="size-grid" id="size-grid"></div></div>
-<div class="screen hidden" id="world-screen">
-  <div class="screen-head"><div class="screen-title" data-i18n="worldTitle">🌍 Мир</div><button id="world-close">✕</button></div>
-  <div id="world-list"></div>
-</div>
-<div class="screen hidden" id="loot-screen">
-  <div class="loot-card">
-    <div class="loot-emoji">🏆</div>
-    <div class="loot-title" data-i18n="lootTitle">Флаг разрушен!</div>
-    <div class="loot-row"><span data-i18n="lootStolen">Украдено:</span> <b id="loot-stolen">0</b></div>
-    <div class="loot-row"><span data-i18n="lootBalance">Баланс:</span> <b id="loot-balance">0</b></div>
-    <button id="loot-ok" class="go" data-i18n="returnHome">Вернуться</button>
-  </div>
-</div>
-<div class="screen hidden" id="tip-screen">
-  <div class="tip-card">
-    <div class="tip-head"><div class="tip-dot"></div><div class="tip-title" id="tip-title" data-i18n="tipTitle">Буй говорит</div></div>
-    <div class="tip-text" id="tip-text"></div>
-    <button id="tip-ok" class="go" data-i18n="tipOk">Ок</button>
-  </div>
-</div>
-<div class="screen hidden" id="onboard-screen">
-  <div class="onboard-card">
-    <div class="onboard-emoji">🏝️</div>
-    <div class="onboard-title" data-i18n="onboardTitle">Добро пожаловать в ADRIFT</div>
-    <div class="onboard-step" data-i18n-html="onboard1"></div>
-    <div class="onboard-step" data-i18n-html="onboard2"></div>
-    <div class="onboard-step" data-i18n-html="onboard3"></div>
-    <div class="onboard-step" data-i18n-html="onboard4"></div>
-    <button id="onboard-ok" class="go" data-i18n="onboardOk">Понятно, играем</button>
-  </div>
-</div>
-<div class="screen hidden" id="shop-screen">
-  <div class="screen-head"><div class="screen-title" data-i18n="shopTitle">🛒 Магазин</div><button id="shop-close">✕</button></div>
-  <div class="shop-section"><div class="shop-label" data-i18n="shopShape">1. Форма</div><div class="shop-grid" id="shop-shapes"></div></div>
-  <div class="shop-section"><div class="shop-label" data-i18n="shopMaterial">2. Материал</div><div class="shop-grid" id="shop-materials"></div></div>
-  <div class="shop-summary" id="shop-summary"></div>
-  <button class="go big" id="shop-confirm" style="width:100%;justify-content:center;"><span class="ico">🔨</span><span data-i18n="shopBuild">Строить</span></button>
-</div>
- <div class="screen hidden" id="profile-screen">
+<div class="screen hidden" id="profile-screen">
   <div class="screen-head">
     <div class="screen-title" data-i18n="profileTitle">Профиль</div>
     <button id="profile-close">✕</button>
@@ -275,22 +237,18 @@
       <div class="profile-avatar" id="profile-avatar">?</div>
       <div class="profile-meta">
         <div class="profile-name" id="profile-name">—</div>
-        <div class="profile-id" id="profile-id">#—</div>
+        <div class="profile-id-row">
+          <span class="profile-id" id="profile-id">#—</span>
+          <button class="profile-copy" id="profile-copy">Копировать</button>
+        </div>
       </div>
     </div>
     <div class="profile-bio empty" id="profile-bio"></div>
-    <div class="profile-stats">
-      <div class="profile-stat"><span class="ico">🧱</span><b id="profile-cubes">0</b>кубов</div>
-      <div class="profile-stat"><span class="ico">⚡</span><b id="profile-loot">0</b>лута</div>
-      <div class="profile-stat"><span class="ico">🚩</span><b id="profile-flag">0</b>HP</div>
-    </div>
-    <div class="profile-note hidden" id="profile-note"></div>
     <div class="profile-actions">
       <button id="profile-visit" class="primary big"><span class="ico">🏝️</span><span data-i18n="visit">Посетить</span></button>
-      <button id="profile-raid" class="danger big"><span class="ico">⚔️</span><span data-i18n="raid">Рейд</span></button>
     </div>
   </div>
- </div>
+</div>
 <div id="toast" class="hidden"></div>
 <div id="status">Loading...<br><span id="err"></span></div>
 <script type="importmap">
