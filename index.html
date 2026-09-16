@@ -899,7 +899,7 @@ function finishThinking() {
   setTimeout(() => { $('tip-ok').disabled = false; }, ms);
 }
 function closeTip() {
-  hideScreens(); minion.frozen = false; minion.thinking = false;
+  function hideScreens() { ['world-screen','loot-screen','onboard-screen','tip-screen','shop-screen','profile-screen','edit-profile-screen'].forEach(id => $(id).classList.add('hidden')); closeAllPalettes(); }
   animateCamera(savedCam.pos, savedCam.tgt, 0.45, () => { controls.enabled = true; });
 }
 
