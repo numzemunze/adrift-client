@@ -1340,13 +1340,10 @@ async function openProfile(userId, fallbackUsername) {
   // Пока грузим — рисуем карточку из того, что уже есть в списке: ник и
   // «—» вместо bio. Так игрок видит мгновенный отклик, а не пустой экран.
   paintProfile({
-    user_id: userId,
-    username: fallbackUsername || '—',
-    bio: null, avatar: null,
-    cube_count: 0, potential_loot: 0, flag_hp: 0,
-    shield_seconds_left: 0, cooldown_seconds_left: 0,
-    can_raid: false, raid_block_reason: null,
-  });
+  user_id: userId,
+  username: fallbackUsername || '—',
+  bio: null, avatar: null,
+});
   showScreen('profile-screen');
 
   try {
