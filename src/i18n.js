@@ -1,15 +1,15 @@
 // src/i18n.js
-// Двуязычные строки и функции перевода.
+// Bilingual strings and translation helpers.
 //
-// Язык определяется один раз при загрузке модуля — по navigator.language.
-// Смена языка "на лету" не предусмотрена: если игрок сменит язык в системе,
-// потребуется перезагрузка страницы. Это осознанно — иначе пришлось бы
-// перерисовывать весь UI, включая уже отрисованные кнопки магазина.
+// Language is resolved once at module load time, based on navigator.language.
+// No runtime language switching — if the user changes OS language, the page
+// must be reloaded. This is intentional: otherwise we would need to repaint
+// the whole UI, including already-rendered shop cards.
 //
-// Ключ t(): сначала ищем в текущем языке, потом в ru (фолбэк), потом
-// возвращаем сам ключ. Так игра не сломается, если в новом языке забыли строку.
+// t() lookup order: current language → ru (fallback) → the key itself.
+// This keeps the game working if a translation is missing in en.
 //
-// Формат подстановки: 'Снеси ещё {need} блоков' → t('key', { need: 5 }).
+// Placeholder format: 'Destroy {need} more blocks' → t('key', { need: 5 }).
 
 export const I18N = {
   ru: {
@@ -45,6 +45,15 @@ export const I18N = {
     profileNoBio: 'Игрок не рассказал о себе.',
     profileIdLabel: 'ID игрока',
     visit: 'Посетить',
+    copy: 'Копировать',
+    copied: 'Скопировано',
+    copyFailed: 'Не удалось скопировать',
+    googleLogin: 'Войти через Google',
+    editProfileTitle: 'Редактировать профиль',
+    avatarLabel: 'Аватар',
+    bioLabel: 'О себе',
+    save: 'Сохранить',
+    profileSaved: 'Профиль сохранён',
     errNetTimeout: 'Сервер не отвечает, попробуй ещё раз',
     errNetDown: 'Нет соединения с сервером',
     errNotReady: 'Сервер перегружен, попробуй ещё раз',
@@ -146,11 +155,16 @@ export const I18N = {
     profileTitle: 'Profile',
     profileNoBio: "This player hasn't written a bio yet.",
     profileIdLabel: 'Player ID',
-    copy: 'Copy',
-copied: 'Copied',
-copyFailed: 'Cannot copy',
-    googleLogin: 'Sign in with Google',
     visit: 'Visit',
+    copy: 'Copy',
+    copied: 'Copied',
+    copyFailed: 'Copy failed',
+    googleLogin: 'Sign in with Google',
+    editProfileTitle: 'Edit profile',
+    avatarLabel: 'Avatar',
+    bioLabel: 'About',
+    save: 'Save',
+    profileSaved: 'Profile saved',
     errNetTimeout: 'The server is not responding, try again',
     errNetDown: 'No connection to the server',
     errNotReady: 'Server is overloaded, try again',
@@ -225,24 +239,26 @@ copyFailed: 'Cannot copy',
   },
 };
 
-// Язык определяется один раз на всю сессию. 'ru' — если navigator.language
-// начинается с 'ru' (ru, ru-RU, ru-BY), иначе 'en'.
+// Language is resolved once per session. 'ru' only when navigator.language
+// starts with 'ru' (ru, ru-RU, ru-BY). Everything else falls back to 'en'.
+// English-first: players worldwide see English unless their browser is
+// explicitly Russian.
 export const lang = (navigator.language || 'en').toLowerCase().startsWith('ru') ? 'ru' : 'en';
 
-//: Перевод по ключу. Порядок поиска:
-//: текущий язык → ru (фолбэк) → сам ключ (чтобы UI не показывал 'undefined').
+// Translate by key. Lookup order:
+// current language → ru (fallback) → the key itself (so the UI never shows 'undefined').
 export function t(key, vars) {
   let s = (I18N[lang] && I18N[lang][key]) || I18N.ru[key] || key;
   if (vars) for (const [k, v] of Object.entries(vars)) s = s.replace('{' + k + '}', v);
   return s;
 }
 
-//: Применяет переводы к статичной разметке страницы.
-//: data-i18n → textContent (безопасно, теги вырезаются).
-//: data-i18n-html → innerHTML (для строк с <b>, <br> и т.п.).
-//: Вызывается один раз при старте, до showMenu().
+// Applies translations to the static page markup.
+// data-i18n → textContent (safe, tags are stripped).
+// data-i18n-html → innerHTML (for strings containing <b>, <br>, etc.).
+// Called once at boot, before showMenu().
 export function applyI18n() {
   document.querySelectorAll('[data-i18n]').forEach(el => { el.textContent = t(el.dataset.i18n); });
   document.querySelectorAll('[data-i18n-html]').forEach(el => { el.innerHTML = t(el.dataset.i18nHtml); });
   document.documentElement.lang = lang;
-}
+    }
