@@ -297,6 +297,28 @@
     </div>
   </div>
 </div>
+<div class="screen hidden" id="edit-profile-screen">
+  <div class="screen-head">
+    <div class="screen-title" data-i18n="editProfileTitle">Edit profile</div>
+    <button id="edit-profile-close">✕</button>
+  </div>
+  <div class="profile-card">
+    <div class="profile-head">
+      <div class="profile-avatar" id="edit-profile-avatar">?</div>
+      <div class="profile-meta">
+        <div class="profile-name" id="edit-profile-name">—</div>
+      </div>
+    </div>
+    <div class="edit-label" data-i18n="avatarLabel">Avatar</div>
+    <div class="avatar-grid" id="avatar-grid"></div>
+    <div class="edit-label" style="margin-top:18px" data-i18n="bioLabel">About</div>
+    <textarea class="edit-bio" id="edit-bio" maxlength="280" rows="4" placeholder="Tell others about you..."></textarea>
+    <div class="edit-bio-counter" id="edit-bio-counter">0 / 280</div>
+    <button class="go big" id="edit-save" style="width:100%;justify-content:center;margin-top:16px;">
+      <span class="ico">✓</span><span data-i18n="save">Save</span>
+    </button>
+  </div>
+</div>
 <div id="toast" class="hidden"></div>
 <div id="status">Loading...<br><span id="err"></span></div>
 <script type="importmap">
