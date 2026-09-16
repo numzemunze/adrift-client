@@ -227,7 +227,7 @@ copyFailed: 'Cannot copy',
 
 // Язык определяется один раз на всю сессию. 'ru' — если navigator.language
 // начинается с 'ru' (ru, ru-RU, ru-BY), иначе 'en'.
-export const lang = (navigator.language || 'ru').toLowerCase().startsWith('ru') ? 'ru' : 'en';
+export const lang = (navigator.language || 'en').toLowerCase().startsWith('ru') ? 'ru' : 'en';
 
 //: Перевод по ключу. Порядок поиска:
 //: текущий язык → ru (фолбэк) → сам ключ (чтобы UI не показывал 'undefined').
