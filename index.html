@@ -1087,7 +1087,18 @@ function renderEconomy() {
   if (econ.accrued_now >= 1) { btn.classList.add('ready'); hint.textContent = '+' + econ.accrued_now; }
   else { btn.classList.remove('ready'); hint.textContent = fmtTime(econ.seconds_to_next); }
 }
-async function loadEconomy() { try { econ = await api('/api/v1/economy/rates'); $('ether').textContent = econ.ether_balance; renderEconomy(); } catch (e) {} }
+async function loadEconomy() {
+  try {
+    econ = await api('/api/v1/economy/rates');
+    $('ether').textContent = econ.ether_balance;
+    renderEconomy();
+  } catch (e) {
+    if (econ.seconds_to_next <= 0) {
+      econ.seconds_to_next = 30;
+      renderEconomy();
+    }
+  }
+}
 async function claimEther() {
   if (econ.accrued_now < 1) return;
   try {
