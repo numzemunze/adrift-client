@@ -1290,24 +1290,31 @@ async function openWorld() {
 };
 let profileTarget = null;
 
+//: Путь к дефолтному аватару. Лежит в репо клиента, не в БД: менять его —
+//: значит менять всех, кто не задал свой. Файл должен существовать, иначе
+//: сработает onerror и покажется emoji-заглушка.
+const DEFAULT_AVATAR_URL = './assets/avatar-default.png';
+
 function renderAvatar(el, avatar) {
   el.innerHTML = '';
-  if (!avatar) { el.textContent = '🙂'; return; }
-  if (avatar.startsWith('preset:')) {
+  const img = document.createElement('img');
+  img.alt = '';
+  // null — дефолтный Буй; url:<href> — ссылка игрока;
+  // preset:<key> — пока не используется, но оставляем для совместимости.
+  if (!avatar) {
+    img.src = DEFAULT_AVATAR_URL;
+  } else if (avatar.startsWith('url:')) {
+    img.src = avatar.slice(4);
+  } else if (avatar.startsWith('preset:')) {
     const key = avatar.slice(7);
     el.textContent = AVATAR_PRESETS[key] || '🙂';
     return;
+  } else {
+    img.src = DEFAULT_AVATAR_URL;
   }
-  if (avatar.startsWith('url:')) {
-    const img = document.createElement('img');
-    img.alt = '';
-    img.src = avatar.slice(4);
-    // Если ссылка битая — не оставляем пустой квадрат, показываем заглушку.
-    img.onerror = () => { el.innerHTML = ''; el.textContent = '🖼'; };
-    el.appendChild(img);
-    return;
-  }
-  el.textContent = '🙂';
+  // Если ссылка битая — не оставляем пустой квадрат, показываем emoji.
+  img.onerror = () => { el.innerHTML = ''; el.textContent = '🙂'; };
+  el.appendChild(img);
 }
 
 function paintProfile(isl) {
