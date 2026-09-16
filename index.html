@@ -1370,8 +1370,8 @@ function paintProfile(isl) {
   // Кнопка «Копировать» — визуально сбрасываем «copied» при открытии новой
   // карточки, чтобы состояние не переезжало между игроками.
   const copyBtn = $('profile-copy');
-  copyBtn.classList.remove('copied');
-  copyBtn.textContent = t('copy');
+copyBtn.classList.remove('copied');
+copyBtn.textContent = '📎';
 }
 
 async function openProfile(userId, fallbackUsername) {
