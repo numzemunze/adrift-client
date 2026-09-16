@@ -1082,9 +1082,8 @@ function closeOnboard() {
   const el = $('onboard-screen'); el.classList.add('closing');
   setTimeout(() => { el.classList.remove('closing'); el.classList.add('hidden'); }, 300);
 }
-
-function showMenu(on) {
- // Показываем кнопку «Войти через Google» на экране меню.
+ 
+// Показываем кнопку «Войти через Google» на экране меню.
 // Вызывается, когда auth() не нашла токена — то есть при первом заходе
 // или после того, как игрок вышел из аккаунта.
 function showGoogleLogin() {
@@ -1107,6 +1106,7 @@ function showGoogleLogin() {
   const play = $('menu-play');
   if (play) play.disabled = true;
 }
+function showMenu(on) {
   menuMode = on;
   const ms = $('menu-screen');
   if (on) {
