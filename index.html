@@ -1397,6 +1397,13 @@ async function openWorld() {
     list.appendChild(err);
   }
 }
+ // Current user's own profile fields, kept in memory so the edit screen
+// can prefill without an extra API round-trip. Refreshed by loadMe().
+let currentUsername = '';
+let currentBio = null;
+let currentAvatar = null;
+// undefined = no change, null = default Buoy, 'preset:key' = chosen preset.
+let pendingAvatar = undefined;
  const AVATAR_PRESETS = {
   cat: '🐱', dog: '🐶', fox: '🦊', bear: '🐻',
   panda: '🐼', frog: '🐸', lion: '🦁', tiger: '🐯',
