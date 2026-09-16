@@ -344,6 +344,17 @@ async function api(path, options = {}) {
     const err = new Error(body?.error?.message || res.statusText);
     err.code = body?.error?.code || ('HTTP_' + res.status);
     err.details = body?.error?.details;
+
+   
+    if (AUTH_ERRORS.includes(err.code) && !options.__retried) {
+      clearSession();
+      try {
+        await signIn();
+        return api(path, { ...options, __retried: true });
+      } catch (reauthErr) {
+        throw err;   // не смогли — отдаём исходную 401-ошибку, не циклимся
+      }
+    }
     throw err;
   }
   return body;
