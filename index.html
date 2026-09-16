@@ -442,6 +442,7 @@ async function auth() {
   // 3. Токена нет. Показываем кнопку Google на экране меню.
   //    signInWithGoogle() уведёт браузер, после возврата сработает пункт 1.
   showGoogleLogin();
+throw new Error('AUTH_REQUIRED');
 }
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x0b1020);
