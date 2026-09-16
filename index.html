@@ -1477,6 +1477,82 @@ async function openProfile(userId, fallbackUsername) {
   }
 }
 
+// --- Edit own profile -------------------------------------------------
+
+function updateBioCounter() {
+  const bio = $('edit-bio');
+  $('edit-bio-counter').textContent = bio.value.length + ' / 280';
+}
+
+function buildAvatarPicker() {
+  const grid = $('avatar-grid');
+  grid.innerHTML = '';
+  const current = pendingAvatar !== undefined ? pendingAvatar : currentAvatar;
+
+  // Default option — the Buoy image.
+  const def = document.createElement('button');
+  def.className = 'avatar-option' + (current === null ? ' selected' : '');
+  def.innerHTML = '<img src="' + DEFAULT_AVATAR_URL + '" alt="">';
+  def.addEventListener('click', () => {
+    pendingAvatar = null;
+    renderAvatar($('edit-profile-avatar'), null);
+    buildAvatarPicker();
+  });
+  grid.appendChild(def);
+
+  // Preset emojis.
+  for (const [key, emoji] of Object.entries(AVATAR_PRESETS)) {
+    const isSel = current === 'preset:' + key;
+    const btn = document.createElement('button');
+    btn.className = 'avatar-option' + (isSel ? ' selected' : '');
+    btn.textContent = emoji;
+    btn.addEventListener('click', () => {
+      pendingAvatar = 'preset:' + key;
+      renderAvatar($('edit-profile-avatar'), 'preset:' + key);
+      buildAvatarPicker();
+    });
+    grid.appendChild(btn);
+  }
+}
+
+function openEditProfile() {
+  $('edit-profile-name').textContent = currentUsername || '—';
+  renderAvatar($('edit-profile-avatar'), currentAvatar);
+  $('edit-bio').value = currentBio || '';
+  updateBioCounter();
+  pendingAvatar = undefined;
+  buildAvatarPicker();
+  showScreen('edit-profile-screen');
+}
+
+async function saveEditProfile() {
+  const bioVal = $('edit-bio').value.trim() || null;
+  const btn = $('edit-save');
+  btn.disabled = true;
+  try {
+    const bioRes = await api('/api/v1/me/bio', {
+      method: 'POST',
+      body: JSON.stringify({ bio: bioVal }),
+    });
+    currentBio = bioRes.bio;
+
+    if (pendingAvatar !== undefined) {
+      const avRes = await api('/api/v1/me/avatar', {
+        method: 'POST',
+        body: JSON.stringify({ avatar: pendingAvatar }),
+      });
+      currentAvatar = avRes.avatar;
+      pendingAvatar = undefined;
+    }
+
+    hideScreens();
+    toast(t('profileSaved'), 'tip');
+  } catch (e) {
+    toast(humanError(e), 'error');
+  } finally {
+    btn.disabled = false;
+  }
+} 
 async function visitIsland(userId, username) {
   hideScreens(); fail(t('islandLoading') + ' ' + username + '...');
   try {
