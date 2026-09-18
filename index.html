@@ -1558,8 +1558,87 @@ function openEditProfile() {
   updateBioCounter();
   pendingAvatar = undefined;
   buildAvatarPicker();
+  function openEditProfile() {
+  $('edit-profile-name').textContent = currentUsername || '—';
+  renderAvatar($('edit-profile-avatar'), currentAvatar);
+  $('edit-bio').value = currentBio || '';
+  updateBioCounter();
+  pendingAvatar = undefined;
+  buildAvatarPicker();
+  loadMyStats();               // <-- новое
+  showScreen('edit-profile-screen');
+  }
   showScreen('edit-profile-screen');
 }
+ async function loadMyStats() {
+  const grid = $('stats-grid');
+  if (!grid) return;
+  grid.innerHTML = '<div class="stats-loading">…</div>';
+  try {
+    const s = await api('/api/v1/me/stats');
+    renderStats(s);
+  } catch (e) {
+    grid.innerHTML = '<div class="stats-loading">' + humanError(e) + '</div>';
+  }
+}
+
+function statsPercent(part, total) {
+  if (!total) return '—';
+  return Math.round((part / total) * 100) + '%';
+}
+
+function renderStats(s) {
+  const grid = $('stats-grid');
+  if (!grid) return;
+  grid.innerHTML = '';
+
+  const makeGroup = (titleKey, rows) => {
+    const g = document.createElement('div');
+    g.className = 'stats-group';
+    const title = document.createElement('div');
+    title.className = 'stats-group-title';
+    title.textContent = t(titleKey);
+    g.appendChild(title);
+
+    for (const [labelKey, value, cls] of rows) {
+      const row = document.createElement('div');
+      row.className = 'stats-row';
+      const label = document.createElement('span');
+      label.textContent = t(labelKey);
+      const val = document.createElement('b');
+      val.textContent = value;
+      if (cls) val.classList.add(cls);
+      row.append(label, val);
+      g.appendChild(row);
+    }
+    return g;
+  };
+
+  // Отбитых = все обороне минус те, где флаг пал.
+  const defendedWon = Math.max(0, s.raids_defended - s.raids_lost);
+
+  grid.appendChild(makeGroup('statsCubes', [
+    ['statsCubesTotal', s.cubes_total],
+    ['statsCubesSafe', s.cubes_in_safe_zone],
+  ]));
+
+  grid.appendChild(makeGroup('statsAttacks', [
+    ['statsAttacksTotal', s.raids_attacked],
+    ['statsAttacksWon', s.raids_won, 'gold'],
+    ['statsAttacksWinrate', statsPercent(s.raids_won, s.raids_attacked)],
+  ]));
+
+  grid.appendChild(makeGroup('statsDefenses', [
+    ['statsDefensesTotal', s.raids_defended],
+    ['statsDefensesWon', defendedWon],
+    ['statsDefensesLost', s.raids_lost, 'danger'],
+  ]));
+
+  grid.appendChild(makeGroup('statsLoot', [
+    ['statsLootStolen', '⚡ ' + s.ether_stolen_total, 'gold'],
+    ['statsLootLost', '⚡ ' + s.ether_lost_total, 'danger'],
+  ]));
+ }
 
 async function saveEditProfile() {
   const bioVal = $('edit-bio').value.trim() || null;
