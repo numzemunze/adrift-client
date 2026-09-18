@@ -178,16 +178,6 @@
 .edit-bio:focus { outline:none; border-color:#3b82f6; }
 .edit-bio-counter { font-size:11px; color:rgba(255,255,255,.45); text-align:right; margin-top:4px; }
 .edit-label { font-size:12px; color:rgba(255,255,255,.55); text-transform:uppercase; letter-spacing:.9px; margin-bottom:8px; margin-top:4px; }
-.stats-block { background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.08); border-radius:12px; padding:14px 16px; margin-bottom:16px; }
-.stats-group { margin-bottom:14px; }
-.stats-group:last-child { margin-bottom:0; }
-.stats-group-title { font-size:11px; color:rgba(255,255,255,.55); text-transform:uppercase; letter-spacing:.9px; margin-bottom:6px; }
-.stats-row { display:flex; justify-content:space-between; align-items:baseline; font-size:14px; padding:4px 0; }
-.stats-row span { color:rgba(255,255,255,.72); }
-.stats-row b { color:#7dd3fc; font-variant-numeric:tabular-nums; font-weight:600; }
-.stats-row b.gold { color:#fde68a; }
-.stats-row b.danger { color:#fca5a5; }
-.stats-loading { color:rgba(255,255,255,.45); font-size:13px; text-align:center; padding:10px 0; }
   .hidden { display:none !important; }
   .profile-card { background:#111a33; border:1px solid rgba(255,255,255,.15); border-radius:18px; padding:20px; margin-top:12px; max-width:440px; width:100%; align-self:center; }
  .profile-head { display:flex; gap:14px; align-items:center; margin-bottom:16px; }
@@ -204,6 +194,18 @@
 .profile-bio.empty { color:rgba(255,255,255,.35); font-style:italic; }
 .profile-actions { display:grid; grid-template-columns:1fr; gap:10px; }
 .profile-actions button { justify-content:center; width:100%; }
+
+/* --- Stats block: карточка статистики в чужом профиле ------------------- */
+.stats-block { background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.08); border-radius:12px; padding:14px 16px; margin-bottom:14px; }
+.stats-group { margin-bottom:14px; }
+.stats-group:last-child { margin-bottom:0; }
+.stats-group-title { font-size:11px; color:rgba(255,255,255,.55); text-transform:uppercase; letter-spacing:.9px; margin-bottom:6px; }
+.stats-row { display:flex; justify-content:space-between; align-items:baseline; font-size:14px; padding:4px 0; }
+.stats-row span { color:rgba(255,255,255,.72); }
+.stats-row b { color:#7dd3fc; font-variant-numeric:tabular-nums; font-weight:600; }
+.stats-row b.gold { color:#fde68a; }
+.stats-row b.danger { color:#fca5a5; }
+.stats-loading { color:rgba(255,255,255,.45); font-size:13px; text-align:center; padding:10px 0; }
 </style>
 </head>
 <body>
@@ -292,10 +294,6 @@
   </div>
   <div class="profile-card">
     <div class="profile-head">
-     <div class="edit-label" style="margin-top:16px" data-i18n="statsLabel">Статистика</div>
-<div class="stats-block" id="stats-block">
-  <div id="stats-grid"><div class="stats-loading">…</div></div>
-</div>
       <div class="profile-avatar" id="profile-avatar">?</div>
       <div class="profile-meta">
         <div class="profile-name" id="profile-name">—</div>
@@ -304,6 +302,10 @@
           <button class="profile-copy" id="profile-copy">📎</button>
         </div>
       </div>
+    </div>
+    <!-- Статистика игрока: между шапкой и bio. Заполняется loadStatsInto() -->
+    <div class="stats-block" id="stats-block">
+      <div id="stats-grid"><div class="stats-loading">…</div></div>
     </div>
     <div class="profile-bio empty" id="profile-bio"></div>
     <div class="profile-actions">
@@ -1487,11 +1489,91 @@ function paintProfile(isl) {
   if (bio) { bioEl.textContent = bio; bioEl.classList.remove('empty'); }
   else { bioEl.textContent = t('profileNoBio'); bioEl.classList.add('empty'); }
 
+  // Старый блок статистики чистим сразу: пока летит /stats, в карточке
+  // не должно быть цифр ПРЕДЫДУЩЕГО игрока.
+  const statsGrid = $('stats-grid');
+  if (statsGrid) statsGrid.innerHTML = '<div class="stats-loading">…</div>';
+
   // Кнопка «Копировать» — визуально сбрасываем «copied» при открытии новой
   // карточки, чтобы состояние не переезжало между игроками.
   const copyBtn = $('profile-copy');
 copyBtn.classList.remove('copied');
 copyBtn.textContent = '📎';
+}
+
+// --- Stats block -------------------------------------------------------
+
+function statsPercent(part, total) {
+  if (!total) return '—';
+  return Math.round((part / total) * 100) + '%';
+}
+
+function renderStats(s, gridEl) {
+  if (!gridEl) return;
+  gridEl.innerHTML = '';
+
+  const makeGroup = (titleKey, rows) => {
+    const g = document.createElement('div');
+    g.className = 'stats-group';
+    const title = document.createElement('div');
+    title.className = 'stats-group-title';
+    title.textContent = t(titleKey);
+    g.appendChild(title);
+
+    for (const [labelKey, value, cls] of rows) {
+      const row = document.createElement('div');
+      row.className = 'stats-row';
+      const label = document.createElement('span');
+      label.textContent = t(labelKey);
+      const val = document.createElement('b');
+      val.textContent = value;
+      if (cls) val.classList.add(cls);
+      row.append(label, val);
+      g.appendChild(row);
+    }
+    return g;
+  };
+
+  // Отбитых = все обороне минус те, где флаг пал.
+  const defendedWon = Math.max(0, s.raids_defended - s.raids_lost);
+
+  gridEl.appendChild(makeGroup('statsCubes', [
+    ['statsCubesTotal', s.cubes_total],
+    ['statsCubesSafe', s.cubes_in_safe_zone],
+  ]));
+
+  gridEl.appendChild(makeGroup('statsAttacks', [
+    ['statsAttacksTotal', s.raids_attacked],
+    ['statsAttacksWon', s.raids_won, 'gold'],
+    ['statsAttacksWinrate', statsPercent(s.raids_won, s.raids_attacked)],
+  ]));
+
+  gridEl.appendChild(makeGroup('statsDefenses', [
+    ['statsDefensesTotal', s.raids_defended],
+    ['statsDefensesWon', defendedWon],
+    ['statsDefensesLost', s.raids_lost, 'danger'],
+  ]));
+
+  gridEl.appendChild(makeGroup('statsLoot', [
+    ['statsLootStolen', '⚡ ' + s.ether_stolen_total, 'gold'],
+    ['statsLootLost', '⚡ ' + s.ether_lost_total, 'danger'],
+  ]));
+}
+
+//: Грузит статистику и рисует в gridEl. tokenCheck — опциональная проверка
+//: «мы всё ещё смотрим на того же игрока»: пока летел ответ, игрок мог
+//: закрыть профиль и открыть другой. Без неё в карточку B прилетят цифры A.
+async function loadStatsInto(gridEl, url, tokenCheck) {
+  if (!gridEl) return;
+  gridEl.innerHTML = '<div class="stats-loading">…</div>';
+  try {
+    const s = await api(url);
+    if (tokenCheck && !tokenCheck()) return;
+    renderStats(s, gridEl);
+  } catch (e) {
+    if (tokenCheck && !tokenCheck()) return;
+    gridEl.innerHTML = '<div class="stats-loading">' + humanError(e) + '</div>';
+  }
 }
 
 async function openProfile(userId, fallbackUsername) {
@@ -1503,6 +1585,15 @@ async function openProfile(userId, fallbackUsername) {
   bio: null, avatar: null,
 });
   showScreen('profile-screen');
+
+  // Статистика грузится параллельно с bio/avatar — карточка появляется
+  // мгновенно, цифры подтягиваются сами. tokenCheck отсекает гонку:
+  // игрок мог закрыть профиль и открыть другого, пока летел ответ.
+  loadStatsInto(
+    $('stats-grid'),
+    '/api/v1/islands/' + userId + '/stats',
+    () => profileTarget && String(profileTarget.user_id) === String(userId)
+  );
 
   try {
     const isl = await api(`/api/v1/islands/${userId}/profile`);
@@ -1558,87 +1649,8 @@ function openEditProfile() {
   updateBioCounter();
   pendingAvatar = undefined;
   buildAvatarPicker();
-  function openEditProfile() {
-  $('edit-profile-name').textContent = currentUsername || '—';
-  renderAvatar($('edit-profile-avatar'), currentAvatar);
-  $('edit-bio').value = currentBio || '';
-  updateBioCounter();
-  pendingAvatar = undefined;
-  buildAvatarPicker();
-  loadMyStats();               // <-- новое
-  showScreen('edit-profile-screen');
-  }
   showScreen('edit-profile-screen');
 }
- async function loadMyStats() {
-  const grid = $('stats-grid');
-  if (!grid) return;
-  grid.innerHTML = '<div class="stats-loading">…</div>';
-  try {
-    const s = await api('/api/v1/me/stats');
-    renderStats(s);
-  } catch (e) {
-    grid.innerHTML = '<div class="stats-loading">' + humanError(e) + '</div>';
-  }
-}
-
-function statsPercent(part, total) {
-  if (!total) return '—';
-  return Math.round((part / total) * 100) + '%';
-}
-
-function renderStats(s) {
-  const grid = $('stats-grid');
-  if (!grid) return;
-  grid.innerHTML = '';
-
-  const makeGroup = (titleKey, rows) => {
-    const g = document.createElement('div');
-    g.className = 'stats-group';
-    const title = document.createElement('div');
-    title.className = 'stats-group-title';
-    title.textContent = t(titleKey);
-    g.appendChild(title);
-
-    for (const [labelKey, value, cls] of rows) {
-      const row = document.createElement('div');
-      row.className = 'stats-row';
-      const label = document.createElement('span');
-      label.textContent = t(labelKey);
-      const val = document.createElement('b');
-      val.textContent = value;
-      if (cls) val.classList.add(cls);
-      row.append(label, val);
-      g.appendChild(row);
-    }
-    return g;
-  };
-
-  // Отбитых = все обороне минус те, где флаг пал.
-  const defendedWon = Math.max(0, s.raids_defended - s.raids_lost);
-
-  grid.appendChild(makeGroup('statsCubes', [
-    ['statsCubesTotal', s.cubes_total],
-    ['statsCubesSafe', s.cubes_in_safe_zone],
-  ]));
-
-  grid.appendChild(makeGroup('statsAttacks', [
-    ['statsAttacksTotal', s.raids_attacked],
-    ['statsAttacksWon', s.raids_won, 'gold'],
-    ['statsAttacksWinrate', statsPercent(s.raids_won, s.raids_attacked)],
-  ]));
-
-  grid.appendChild(makeGroup('statsDefenses', [
-    ['statsDefensesTotal', s.raids_defended],
-    ['statsDefensesWon', defendedWon],
-    ['statsDefensesLost', s.raids_lost, 'danger'],
-  ]));
-
-  grid.appendChild(makeGroup('statsLoot', [
-    ['statsLootStolen', '⚡ ' + s.ether_stolen_total, 'gold'],
-    ['statsLootLost', '⚡ ' + s.ether_lost_total, 'danger'],
-  ]));
- }
 
 async function saveEditProfile() {
   const bioVal = $('edit-bio').value.trim() || null;
