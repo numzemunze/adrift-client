@@ -230,6 +230,7 @@
 .settings-link:last-child { border-bottom:none; padding-bottom:0; }
 .settings-link:first-of-type { padding-top:0; }
 .settings-link:active { opacity:.65; }
+
 /* --- История рейдов ---------------------------------------------------- */
 .history-row { display:flex; flex-direction:column; gap:5px; width:100%; text-align:left; background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.1); border-radius:14px; padding:12px 15px; margin-bottom:8px; }
 .history-row:active { background:rgba(255,255,255,.16); }
@@ -409,11 +410,13 @@
     </div>
 
     <div class="settings-section">
-  <div class="settings-section-title" data-i18n="settingsPlay">Игра</div>
-  <button id="history-open-btn" class="big" style="width:100%;justify-content:center;">
-    <span class="ico">📜</span><span data-i18n="historyTitle">История рейдов</span>
-  </button>
+      <div class="settings-section-title" data-i18n="settingsPlay">Игра</div>
+      <button id="history-open-btn" class="big" style="width:100%;justify-content:center;">
+        <span class="ico">📜</span><span data-i18n="historyTitle">История рейдов</span>
+      </button>
     </div>
+
+    <div class="settings-section">
       <div class="settings-section-title" data-i18n="settingsAbout">О игре</div>
       <a class="settings-link" href="./privacy.html" target="_blank" rel="noopener" data-i18n="privacyLink">Privacy Policy</a>
       <a class="settings-link" href="./terms.html" target="_blank" rel="noopener" data-i18n="termsLink">Terms of Service</a>
@@ -2056,6 +2059,11 @@ async function paintSoundBlock() {
 }
 
 function openSettings() {
+  paintSoundBlock();
+  paintPushBlock();
+  showScreen('settings-screen');
+}
+
 // --- История рейдов -------------------------------------------------------
 // Отдельный экран, вызывается из настроек. Показывает последние 50 рейдов
 // в обеих ролях (атакующий и защитник), свежие сверху.
@@ -2167,10 +2175,6 @@ function openHistory() {
   hideScreens();
   showScreen('history-screen');
   loadHistoryList();
-}
-  paintSoundBlock();
-  paintPushBlock();
-  showScreen('settings-screen');
 }
 
 // Полный выход из аккаунта.
@@ -2578,4 +2582,4 @@ setMode('own'); buildMode = true; updatePanel(); ok();
 })();
 </script>
 </body>
-         </html>
+ </html>
