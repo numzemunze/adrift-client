@@ -218,6 +218,9 @@
 .push-status.warn { color:#fbbf24; }
 .push-status.err { color:#fca5a5; }
 .push-block button { padding:9px 16px; font-size:13px; white-space:nowrap; }
+
+/* --- Sign out: кнопка выхода в своём профиле --------------------------- */
+.signout-block { margin-top:16px; }
 </style>
 </head>
 <body>
@@ -356,6 +359,14 @@
         <button id="push-toggle" class="go"></button>
       </div>
     </div>
+
+    <!-- Sign out. Отдельная кнопка внизу карточки: локальный вход без неё
+         невозможно было сбросить, кроме как через настройки браузера. -->
+    <div class="signout-block">
+      <button id="signout-btn" class="danger big" style="width:100%;justify-content:center;">
+        <span class="ico">↩</span><span data-i18n="signOut">Sign out</span>
+      </button>
+    </div>
   </div>
 </div>
 <div id="toast" class="hidden"></div>
@@ -438,6 +449,15 @@ function signInWithGoogle() {
   window.location.href = url;
 }
 
+// JWT payload — base64url, а не base64. Плюс и слэш в base64url заменены
+// на дефис и подчёркивание, паддинг '=' выброшен. Нативный atob() на таком
+// вводе бросает — отсюда ручная нормализация, как в urlBase64ToUint8Array.
+function base64UrlDecode(str) {
+  const padding = '='.repeat((4 - (str.length % 4)) % 4);
+  const base64 = (str + padding).replace(/-/g, '+').replace(/_/g, '/');
+  return atob(base64);
+}
+
 // Разбирает токен из URL после возврата с Google.
 // Supabase кладёт его в hash: #access_token=...&refresh_token=...&expires_in=...
 // Возвращает true, если токен был найден и сохранён.
@@ -450,15 +470,27 @@ function handleOAuthCallback() {
   if (!accessToken) return false;
 
   token = accessToken;
-  // myId достаём из JWT: payload — вторая часть токена, base64url.
+
+  // myId достаём из JWT. Ошибку парсинга не превращаем в фатал — токен
+  // уже есть, а myId можно вытащить позже из /me. Просто логируем.
   try {
-    const payload = JSON.parse(atob(token.split('.')[1]));
-    myId = payload.sub;
+    const payload = JSON.parse(base64UrlDecode(token.split('.')[1]));
+    myId = payload.sub || null;
   } catch (e) { myId = null; }
 
+  // refresh_token — обязательная часть. Без него access-токен умрёт через
+  // час, и всё, что делает игрок, начнёт получать 401. Supabase кладёт его
+  // в тот же hash, но старый код его игнорировал.
+  const refreshToken = params.get('refresh_token');
+  if (refreshToken) {
+    try { localStorage.setItem('adrift_refresh', refreshToken); } catch (e) {}
+  }
+
   if (myId) {
-    localStorage.setItem('adrift_token', token);
-    localStorage.setItem('adrift_id', myId);
+    try {
+      localStorage.setItem('adrift_token', token);
+      localStorage.setItem('adrift_id', myId);
+    } catch (e) {}
   }
 
   // Чистим URL, чтобы токен не висел в адресной строке и не попал в
@@ -467,7 +499,60 @@ function handleOAuthCallback() {
   history.replaceState(null, '', window.location.pathname + window.location.search);
   return true;
 }
-function clearSession() { token = null; myId = null; localStorage.removeItem('adrift_token'); localStorage.removeItem('adrift_id'); }
+
+function clearSession() {
+  token = null;
+  myId = null;
+  try {
+    localStorage.removeItem('adrift_token');
+    localStorage.removeItem('adrift_id');
+    // refresh-токен — тоже секрет сессии. Если его не убрать, следующий
+    // api() попытается обновить токен и войти под старым аккаунтом.
+    localStorage.removeItem('adrift_refresh');
+  } catch (e) {}
+}
+
+const AUTH_ERRORS = ['TOKEN_EXPIRED','TOKEN_INVALID','TOKEN_MISSING','UNAUTHORIZED'];
+
+// Обновляет access-токен через refresh_token. Возвращает true, если удалось.
+//
+// ВАЖНО ПРО РОТАЦИЮ: Supabase выдаёт НОВЫЙ refresh_token при каждом обновлении,
+// а старый сгорает. Если сохранить только access_token, второй refresh через
+// час упадёт с 401. Поэтому обновляем обе записи в localStorage.
+//
+// Возвращает false на любой ошибке: сеть, 401, отсутствие refresh-токена.
+// Вызывающий (api) сам решает, что делать — обычно показать экран логина.
+async function refreshSession() {
+  let refreshToken;
+  try { refreshToken = localStorage.getItem('adrift_refresh'); } catch (e) { return false; }
+  if (!refreshToken) return false;
+
+  try {
+    const res = await fetchT(`${SUPABASE_URL}/auth/v1/token?grant_type=refresh_token`, {
+      method: 'POST',
+      headers: {
+        'apikey': SUPABASE_ANON_KEY,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ refresh_token: refreshToken }),
+    });
+
+    if (!res.ok) return false;
+
+    const data = await res.json();
+    if (!data.access_token) return false;
+
+    token = data.access_token;
+    try {
+      localStorage.setItem('adrift_token', token);
+      if (data.refresh_token) localStorage.setItem('adrift_refresh', data.refresh_token);
+    } catch (e) { /* приватный режим — работаем без персистентности */ }
+
+    return true;
+  } catch (e) {
+    return false;
+  }
+}
 
 async function api(path, options = {}) {
   const res = await fetchT(API_URL + path, {
@@ -482,39 +567,52 @@ async function api(path, options = {}) {
     err.code = body?.error?.code || ('HTTP_' + res.status);
     err.details = body?.error?.details;
 
-   
+    // 401: access-токен протух (Supabase выдаёт их на час). Пробуем обновить
+    // через refresh_token и повторить запрос ОДИН раз. __retried защищает
+    // от петли, если и refresh-токен уже мёртв.
     if (AUTH_ERRORS.includes(err.code) && !options.__retried) {
-      clearSession();
-      try {
-        await signIn();
+      const refreshed = await refreshSession();
+      if (refreshed) {
         return api(path, { ...options, __retried: true });
-      } catch (reauthErr) {
-        throw err;   // не смогли — отдаём исходную 401-ошибку, не циклимся
       }
+      // Refresh не удался — сессия окончательно мертва. Чистим и показываем
+      // экран логина, чтобы игрок сам решил, входить ли заново.
+      clearSession();
+      showGoogleLogin();
+      throw err;
     }
     throw err;
   }
   return body;
 }
-const AUTH_ERRORS = ['TOKEN_EXPIRED','TOKEN_INVALID','TOKEN_MISSING','UNAUTHORIZED'];
+
 async function auth() {
   // 1. Только что вернулись от Google? Токен в URL.
   if (handleOAuthCallback()) return;
 
-  // 2. Токен уже есть в localStorage с прошлого визита.
+  // 2. Токен уже есть в localStorage с прошлого визита. Может быть протухшим —
+  //    тогда api() сама обновит его через refresh-токен и повторит запрос.
   const saved = localStorage.getItem('adrift_token');
   const savedId = localStorage.getItem('adrift_id');
   if (saved && savedId) {
     token = saved; myId = savedId;
-    try { await api('/api/v1/build/catalog'); return; }
-    catch (e) { if (!AUTH_ERRORS.includes(e.code)) throw e; clearSession(); }
+    try {
+      await api('/api/v1/build/catalog');
+      return;
+    } catch (e) {
+      // api() уже попробовала refresh. Если ошибка не про токен — это
+      // настоящий сбой (сервер, сеть), не глотаем.
+      if (!AUTH_ERRORS.includes(e.code)) throw e;
+      // Токен мёртв и не обновился — api() уже почистила сессию.
+      // Падаем в ветку показа логина ниже.
+    }
   }
 
-  // 3. Токена нет. Показываем кнопку Google на экране меню.
-  //    signInWithGoogle() уведёт браузер, после возврата сработает пункт 1.
+  // 3. Сессии нет или она мертва. Показываем кнопку Google на экране меню.
   showGoogleLogin();
-throw new Error('AUTH_REQUIRED');
+  throw new Error('AUTH_REQUIRED');
 }
+
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x0b1020);
 scene.fog = new THREE.Fog(0x0b1020, 60, 140);
@@ -1821,6 +1919,24 @@ async function togglePush() {
   }
 }
 
+// Полный выход из аккаунта.
+//
+// Почему reload, а не ручная очистка состояния: после sign out надо сбросить
+// WebGL-сцену, все setInterval, глобальные переменные, подписку Service Worker
+// и localStorage — пять независимых подсистем. Перезагрузка страницы делает
+// всё это атомарно и без риска забыть что-то. Пользователь этого не замечает:
+// игра загружается за секунду.
+async function signOut() {
+  // Отписываемся от push ДО очистки токена: эндпоинт требует авторизации.
+  // Если не успеем — не страшно, сервер почистит подписку при следующем 410.
+  try { await unsubscribeFromPush(); } catch (e) {}
+  clearSession();
+  try {
+    localStorage.removeItem('adrift_refresh');
+  } catch (e) {}
+  window.location.reload();
+}
+
 // --- Edit own profile -------------------------------------------------
 
 function updateBioCounter() {
@@ -2126,6 +2242,7 @@ $('tip-ok').addEventListener('click', closeTip);
 $('onboard-ok').addEventListener('click', () => { localStorage.setItem('adrift_onboarded', '1'); closeOnboard(); });
 $('sound-btn').addEventListener('click', toggleAudio);
 $('push-toggle').addEventListener('click', togglePush);
+$('signout-btn').addEventListener('click', signOut);
 $('menu-play').addEventListener('click', startGame);
 
 ['pointerdown', 'touchstart', 'click', 'keydown'].forEach(function (evt) {
