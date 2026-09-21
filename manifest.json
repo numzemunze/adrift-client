@@ -1,0 +1,19 @@
+{
+  "name": "ADRIFT",
+  "short_name": "ADRIFT",
+  "description": "Cubic sandbox with async PvP, live economy and a world map.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#0b1020",
+  "theme_color": "#0b1020",
+  "icons": [
+    {
+      "src": "./assets/Untitled72_20260916105743.png",
+      "sizes": "any",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}
