@@ -2056,6 +2056,118 @@ async function paintSoundBlock() {
 }
 
 function openSettings() {
+// --- История рейдов -------------------------------------------------------
+// Отдельный экран, вызывается из настроек. Показывает последние 50 рейдов
+// в обеих ролях (атакующий и защитник), свежие сверху.
+//
+// Тап по строке открывает профиль оппонента — оттуда можно «Посетить» или
+// «Рейд». Возврат из профиля возвращает в историю (profile-screen лежит
+// выше history в DOM, при закрытии profile history остаётся видимой).
+
+//: Относительное время: «только что», «5м», «3ч», «2д», потом дата.
+//: fmtTime() из utils не подходит — он для таймеров (mm:ss).
+function fmtAgo(iso) {
+  const diff = Math.max(0, Date.now() - new Date(iso).getTime());
+  const min = Math.floor(diff / 60000);
+  if (min < 1) return t('justNow');
+  if (min < 60) return min + t('mShort');
+  const h = Math.floor(min / 60);
+  if (h < 24) return h + t('hShort');
+  const d = Math.floor(h / 24);
+  if (d < 7) return d + t('dShort');
+  return new Date(iso).toLocaleDateString(
+    lang === 'ru' ? 'ru-RU' : 'en-US', { day: 'numeric', month: 'short' }
+  );
+}
+
+function makeHistoryRow(r) {
+  const isAttacker = r.role === 'attacker';
+  const isActive = r.status === 'active';
+
+  // Исход зависит от роли. is_success = «рейд удался для АТАКУЮЩЕГО»,
+  // поэтому у защитника успех рейда = он проиграл.
+  let outcomeKey, outcomeCls;
+  if (isActive) {
+    outcomeKey = 'historyActive'; outcomeCls = 'active';
+  } else if (isAttacker) {
+    outcomeKey = r.is_success ? 'historyWonAttacker' : 'historyLostAttacker';
+    outcomeCls = r.is_success ? 'won' : 'lost';
+  } else {
+    outcomeKey = r.is_success ? 'historyLostDefender' : 'historyWonDefender';
+    outcomeCls = r.is_success ? 'lost' : 'won';
+  }
+
+  const row = document.createElement('button');
+  row.className = 'history-row';
+
+  const head = document.createElement('div'); head.className = 'history-head';
+  const role = document.createElement('span');
+  role.className = 'history-role ' + (isAttacker ? 'attacker' : 'defender');
+  role.textContent = isAttacker ? '⚔️' : '🛡';
+  const name = document.createElement('span');
+  name.className = 'history-name';
+  name.textContent = r.opponent_username;
+  const time = document.createElement('span');
+  time.className = 'history-time';
+  time.textContent = fmtAgo(r.created_at);
+  head.append(role, name, time);
+
+  // Собираем строку метрики. Для активного рейда stolen_ether ещё 0,
+  // ether_spent уже тикает — покажем «Идёт · ⚡-N».
+  const parts = [t(outcomeKey)];
+  if (r.ether_spent) parts.push('⚡-' + r.ether_spent);
+  if (isAttacker && r.stolen_ether) parts.push('⚡+' + r.stolen_ether);
+  if (!isAttacker && r.stolen_ether) parts.push('⚡-' + r.stolen_ether);
+  if (r.destroyed_cubes) parts.push('🧱-' + r.destroyed_cubes);
+
+  const meta = document.createElement('div');
+  meta.className = 'history-meta ' + outcomeCls;
+  meta.textContent = parts.join(' · ');
+
+  row.append(head, meta);
+
+  // Профиль открываем поверх истории: profile-screen лежит выше в DOM,
+  // закрытие ✕ вернёт игрока обратно к списку рейдов.
+  row.addEventListener('click', () => openProfile(r.opponent_id, r.opponent_username));
+  return row;
+}
+
+async function loadHistoryList() {
+  const list = $('history-list');
+  list.innerHTML = '';
+  const note = document.createElement('div');
+  note.className = 'screen-note';
+  note.textContent = t('loading');
+  list.appendChild(note);
+
+  try {
+    const data = await api('/api/v1/raids/history?limit=50');
+    list.innerHTML = '';
+    const raids = data.raids || [];
+    if (!raids.length) {
+      const empty = document.createElement('div');
+      empty.className = 'screen-note';
+      empty.textContent = t('historyEmpty');
+      list.appendChild(empty);
+      return;
+    }
+    for (const r of raids) list.appendChild(makeHistoryRow(r));
+  } catch (e) {
+    list.innerHTML = '';
+    const err = document.createElement('div');
+    err.className = 'screen-note';
+    err.textContent = t('error') + ': ' + humanError(e);
+    list.appendChild(err);
+  }
+}
+
+function openHistory() {
+  // Скрываем настройки (и всё остальное) — история это отдельный экран.
+  // Возврат через ✕ откроет настройки заново, чтобы игрок не терял контекст.
+  hideScreens();
+  showScreen('history-screen');
+  loadHistoryList();
+}
   paintSoundBlock();
   paintPushBlock();
   showScreen('settings-screen');
