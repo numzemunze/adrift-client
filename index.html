@@ -2498,6 +2498,13 @@ $('push-toggle').addEventListener('click', togglePush);
 $('signout-btn').addEventListener('click', signOut);
 $('settings-btn').addEventListener('click', openSettings);
 $('settings-close').addEventListener('click', hideScreens);
+$('history-open-btn').addEventListener('click', openHistory);
+$('history-close').addEventListener('click', () => {
+  // Возврат в настройки, а не в игру: игрок пришёл сюда оттуда и,
+  // скорее всего, хочет продолжить копаться в настройках.
+  $('history-screen').classList.add('hidden');
+  showScreen('settings-screen');
+});
 $('menu-play').addEventListener('click', startGame);
 
 ['pointerdown', 'touchstart', 'click', 'keydown'].forEach(function (evt) {
