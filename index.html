@@ -230,6 +230,19 @@
 .settings-link:last-child { border-bottom:none; padding-bottom:0; }
 .settings-link:first-of-type { padding-top:0; }
 .settings-link:active { opacity:.65; }
+/* --- История рейдов ---------------------------------------------------- */
+.history-row { display:flex; flex-direction:column; gap:5px; width:100%; text-align:left; background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.1); border-radius:14px; padding:12px 15px; margin-bottom:8px; }
+.history-row:active { background:rgba(255,255,255,.16); }
+.history-head { display:flex; align-items:center; gap:10px; }
+.history-role { font-size:15px; line-height:1; }
+.history-role.attacker { color:#fca5a5; }
+.history-role.defender { color:#7dd3fc; }
+.history-name { flex:1; font-size:15px; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.history-time { font-size:12px; color:rgba(255,255,255,.5); font-variant-numeric:tabular-nums; }
+.history-meta { font-size:13px; color:rgba(255,255,255,.65); font-variant-numeric:tabular-nums; }
+.history-meta.won { color:#86efac; }
+.history-meta.lost { color:#fca5a5; }
+.history-meta.active { color:#fbbf24; }
 </style>
 </head>
 <body>
