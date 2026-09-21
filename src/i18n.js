@@ -67,6 +67,7 @@ export const I18N = {
     pushUnsupported: 'Этот браузер не поддерживает уведомления',
     pushIOSHint: 'На iPhone: сначала добавь игру на домашний экран (Поделиться → На экран «Домой»), потом включи уведомления.',
     pushSubscribeFail: 'Не удалось включить уведомления. Попробуй ещё раз.',
+    signOut: 'Выйти из аккаунта',
     pushUnsubscribeFail: 'Не удалось отключить уведомления. Попробуй ещё раз.',
 
     errNetTimeout: 'Сервер не отвечает, попробуй ещё раз',
@@ -191,6 +192,7 @@ export const I18N = {
     pushUnsupported: 'This browser does not support notifications',
     pushIOSHint: 'On iPhone: add the game to your Home Screen first (Share → Add to Home Screen), then enable notifications.',
     pushSubscribeFail: 'Could not enable notifications. Try again.',
+    signOut: 'Sign out',
     pushUnsubscribeFail: 'Could not disable notifications. Try again.',
 
     errNetTimeout: 'The server is not responding, try again',
