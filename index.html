@@ -180,14 +180,6 @@
 .edit-bio:focus { outline:none; border-color:#3b82f6; }
 .edit-bio-counter { font-size:11px; color:rgba(255,255,255,.45); text-align:right; margin-top:4px; }
 .edit-label { font-size:12px; color:rgba(255,255,255,.55); text-transform:uppercase; letter-spacing:.9px; margin-bottom:8px; margin-top:4px; }
-.push-block { background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.08); border-radius:12px; padding:14px 16px; margin-top:16px; }
-.push-head { display:flex; align-items:center; justify-content:space-between; gap:12px; }
-.push-title { font-size:14px; font-weight:600; }
-.push-status { font-size:12px; color:rgba(255,255,255,.55); margin-top:4px; line-height:1.4; }
-.push-status.on { color:#86efac; }
-.push-status.warn { color:#fbbf24; }
-.push-status.err { color:#fca5a5; }
-.push-block button { padding:9px 16px; font-size:13px; white-space:nowrap; }
   .hidden { display:none !important; }
   .profile-card { background:#111a33; border:1px solid rgba(255,255,255,.15); border-radius:18px; padding:20px; margin-top:12px; max-width:440px; width:100%; align-self:center; }
  .profile-head { display:flex; gap:14px; align-items:center; margin-bottom:16px; }
@@ -216,6 +208,16 @@
 .stats-row b.gold { color:#fde68a; }
 .stats-row b.danger { color:#fca5a5; }
 .stats-loading { color:rgba(255,255,255,.45); font-size:13px; text-align:center; padding:10px 0; }
+
+/* --- Push-уведомления: блок в своём профиле ---------------------------- */
+.push-block { background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.08); border-radius:12px; padding:14px 16px; margin-top:16px; }
+.push-head { display:flex; align-items:center; justify-content:space-between; gap:12px; }
+.push-title { font-size:14px; font-weight:600; }
+.push-status { font-size:12px; color:rgba(255,255,255,.55); margin-top:4px; line-height:1.4; }
+.push-status.on { color:#86efac; }
+.push-status.warn { color:#fbbf24; }
+.push-status.err { color:#fca5a5; }
+.push-block button { padding:9px 16px; font-size:13px; white-space:nowrap; }
 </style>
 </head>
 <body>
@@ -339,20 +341,21 @@
     <div class="avatar-grid" id="avatar-grid"></div>
     <div class="edit-label" style="margin-top:18px" data-i18n="bioLabel">About</div>
     <textarea class="edit-bio" id="edit-bio" maxlength="280" rows="4" placeholder="Tell others about you..."></textarea>
-    <!-- Push-уведомления. Управление подпиской текущего устройства. -->
-<div class="push-block" id="push-block">
-  <div class="push-head">
-    <div>
-      <div class="push-title" data-i18n="pushTitle">Notifications</div>
-      <div class="push-status" id="push-status"></div>
-    </div>
-    <button id="push-toggle" class="go"></button>
-  </div>
-</div>
     <div class="edit-bio-counter" id="edit-bio-counter">0 / 280</div>
     <button class="go big" id="edit-save" style="width:100%;justify-content:center;margin-top:16px;">
       <span class="ico">✓</span><span data-i18n="save">Save</span>
     </button>
+
+    <!-- Push-уведомления. Управление подпиской текущего устройства. -->
+    <div class="push-block" id="push-block">
+      <div class="push-head">
+        <div>
+          <div class="push-title" data-i18n="pushTitle">Notifications</div>
+          <div class="push-status" id="push-status"></div>
+        </div>
+        <button id="push-toggle" class="go"></button>
+      </div>
+    </div>
   </div>
 </div>
 <div id="toast" class="hidden"></div>
@@ -1624,6 +1627,200 @@ async function openProfile(userId, fallbackUsername) {
   }
 }
 
+// --- Push-уведомления -----------------------------------------------------
+// Подписка привязана к УСТРОЙСТВУ, а не к игроку: телефон и ноутбук
+// подписываются отдельно. Поэтому кнопка «Включить» работает для текущего
+// браузера, и на другом устройстве её надо нажать снова.
+
+// iOS Safari даёт push только когда сайт добавлен на домашний экран (PWA).
+// Проверяем это, чтобы показать правильную подсказку вместо «не поддерживается».
+function isIOS() {
+  return /iPad|iPhone|iPod/.test(navigator.userAgent);
+}
+function isStandalone() {
+  return window.matchMedia('(display-mode: standalone)').matches
+      || window.navigator.standalone === true;
+}
+
+function pushSupported() {
+  // На iOS без PWA pushManager формально есть, но subscribe() всегда падает.
+  // Считаем это «не поддерживается», чтобы не пугать игрока ошибкой.
+  if (isIOS() && !isStandalone()) return false;
+  return 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
+}
+
+// Base64url → Uint8Array. applicationServerKey требует BufferSource, а сервер
+// отдаёт ключ строкой (base64url без паддинга, как велит спецификация VAPID).
+function urlBase64ToUint8Array(base64String) {
+  const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
+  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+  const raw = atob(base64);
+  const out = new Uint8Array(raw.length);
+  for (let i = 0; i < raw.length; i++) out[i] = raw.charCodeAt(i);
+  return out;
+}
+
+async function registerServiceWorker() {
+  if (!('serviceWorker' in navigator)) return null;
+  try {
+    return await navigator.serviceWorker.register('./sw.js', { scope: './' });
+  } catch (e) {
+    return null;
+  }
+}
+
+// Возвращает одно из: 'unsupported' | 'denied' | 'ios' | 'idle' | 'subscribed'
+async function getPushStatus() {
+  if (isIOS() && !isStandalone()) return 'ios';
+  if (!pushSupported()) return 'unsupported';
+  if (Notification.permission === 'denied') return 'denied';
+  if (Notification.permission !== 'granted') return 'idle';
+  const reg = await navigator.serviceWorker.getRegistration();
+  if (!reg) return 'idle';
+  const sub = await reg.pushManager.getSubscription();
+  return sub ? 'subscribed' : 'idle';
+}
+
+async function subscribeToPush() {
+  if (!pushSupported()) throw new Error('PUSH_UNSUPPORTED');
+
+  const perm = await Notification.requestPermission();
+  if (perm !== 'granted') throw new Error('PUSH_DENIED');
+
+  const reg = await registerServiceWorker();
+  if (!reg) throw new Error('PUSH_SW_FAILED');
+
+  // Ждём, пока SW станет активным: сразу после регистрации он в состоянии
+  // 'installing', и pushManager.subscribe() на нём упадёт.
+  if (!reg.active) {
+    await new Promise((resolve) => {
+      const sw = reg.installing || reg.waiting;
+      if (!sw) return resolve();
+      sw.addEventListener('statechange', () => {
+        if (sw.state === 'activated') resolve();
+      });
+    });
+  }
+
+  const vapid = await api('/api/v1/push/vapid-public-key');
+  const appKey = urlBase64ToUint8Array(vapid.public_key);
+
+  let sub = await reg.pushManager.getSubscription();
+
+  // Если подписка есть, но с другим VAPID-ключом (ключи на сервере сменили) —
+  // старая недействительна, отписываемся и подписываемся заново.
+  if (sub) {
+    try {
+      const existing = sub.options && sub.options.applicationServerKey;
+      if (existing && urlBase64ToUint8Array(vapid.public_key).length !== new Uint8Array(existing).length) {
+        await sub.unsubscribe();
+        sub = null;
+      }
+    } catch (e) { /* не смогли проверить — попробуем переиспользовать */ }
+  }
+
+  if (!sub) {
+    sub = await reg.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: appKey,
+    });
+  }
+
+  const json = sub.toJSON();
+  await api('/api/v1/push/subscribe', {
+    method: 'POST',
+    body: JSON.stringify({
+      endpoint: json.endpoint,
+      p256dh: json.keys.p256dh,
+      auth: json.keys.auth,
+    }),
+  });
+
+  return 'subscribed';
+}
+
+async function unsubscribeFromPush() {
+  const reg = await navigator.serviceWorker.getRegistration();
+  if (!reg) return;
+  const sub = await reg.pushManager.getSubscription();
+  if (!sub) return;
+  const endpoint = sub.endpoint;
+  try { await sub.unsubscribe(); } catch (e) { /* уже отписана — не наша забота */ }
+  try {
+    await api('/api/v1/push/unsubscribe', {
+      method: 'DELETE',
+      body: JSON.stringify({ endpoint }),
+    });
+  } catch (e) { /* сервер почистит при следующем 410 */ }
+}
+
+async function paintPushBlock() {
+  const btn = $('push-toggle');
+  const statusEl = $('push-status');
+  if (!btn || !statusEl) return;
+
+  const status = await getPushStatus();
+  statusEl.classList.remove('on', 'warn', 'err');
+  btn.disabled = false;
+
+  switch (status) {
+    case 'subscribed':
+      statusEl.textContent = t('pushEnabled');
+      statusEl.classList.add('on');
+      btn.textContent = t('pushDisable');
+      btn.className = 'danger';
+      break;
+    case 'idle':
+      statusEl.textContent = t('pushDesc');
+      btn.textContent = t('pushEnable');
+      btn.className = 'go';
+      break;
+    case 'denied':
+      statusEl.textContent = t('pushDenied');
+      statusEl.classList.add('err');
+      btn.textContent = t('pushEnable');
+      btn.className = '';
+      btn.disabled = true;
+      break;
+    case 'ios':
+      statusEl.textContent = t('pushIOSHint');
+      statusEl.classList.add('warn');
+      btn.textContent = t('pushEnable');
+      btn.className = '';
+      btn.disabled = true;
+      break;
+    default:
+      statusEl.textContent = t('pushUnsupported');
+      statusEl.classList.add('warn');
+      btn.textContent = t('pushEnable');
+      btn.className = '';
+      btn.disabled = true;
+  }
+}
+
+async function togglePush() {
+  const btn = $('push-toggle');
+  if (!btn) return;
+  const wasSubscribed = (await getPushStatus()) === 'subscribed';
+  btn.disabled = true;
+  try {
+    if (wasSubscribed) {
+      await unsubscribeFromPush();
+      toast(t('pushDisable'), 'tip');
+    } else {
+      await subscribeToPush();
+      toast(t('pushEnabled'), 'tip');
+    }
+  } catch (e) {
+    if (e.message === 'PUSH_DENIED') toast(t('pushDenied'), 'error');
+    else if (e.message === 'PUSH_UNSUPPORTED') toast(t('pushUnsupported'), 'error');
+    else toast(humanError(e) || t('pushSubscribeFail'), 'error');
+  } finally {
+    btn.disabled = false;
+    paintPushBlock();
+  }
+}
+
 // --- Edit own profile -------------------------------------------------
 
 function updateBioCounter() {
@@ -1669,6 +1866,7 @@ function openEditProfile() {
   updateBioCounter();
   pendingAvatar = undefined;
   buildAvatarPicker();
+  paintPushBlock();
   showScreen('edit-profile-screen');
 }
 
@@ -1927,6 +2125,7 @@ $('loot-ok').addEventListener('click', returnHome);
 $('tip-ok').addEventListener('click', closeTip);
 $('onboard-ok').addEventListener('click', () => { localStorage.setItem('adrift_onboarded', '1'); closeOnboard(); });
 $('sound-btn').addEventListener('click', toggleAudio);
+$('push-toggle').addEventListener('click', togglePush);
 $('menu-play').addEventListener('click', startGame);
 
 ['pointerdown', 'touchstart', 'click', 'keydown'].forEach(function (evt) {
@@ -1974,6 +2173,10 @@ animate();
     playMusic('nowhereland');
 
     await auth();
+    // Регистрируем Service Worker при каждом старте. Без регистрации не
+    // заработает ни подписка на push, ни клик по уведомлению. Если игрок
+    // не хочет push — SW всё равно живёт, но ничего не делает.
+    registerServiceWorker();
 fail(t('loading'));
 await loadCatalog();
 await loadMe();
