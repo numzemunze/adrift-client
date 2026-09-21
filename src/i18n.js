@@ -6,8 +6,10 @@
 // must be reloaded. This is intentional: otherwise we would need to repaint
 // the whole UI, including already-rendered shop cards.
 //
-// t() lookup order: current language → ru (fallback) → the key itself.
-// This keeps the game working if a translation is missing in en.
+// t() lookup order: current language → en (source of truth) → the key itself.
+// EN-first, deliberately: the game is English-first, so a missing key in a
+// non-English bundle must fall back to English, not to Russian. Otherwise a
+// foreign player would see a half-Russian UI when a translator missed a key.
 //
 // Placeholder format: 'Destroy {need} more blocks' → t('key', { need: 5 }).
 
@@ -54,21 +56,19 @@ export const I18N = {
     bioLabel: 'О себе',
     save: 'Сохранить',
     profileSaved: 'Профиль сохранён',
-    statsLabel: '📊 Статистика',
-statsCubes: 'Кубы',
-statsCubesTotal: 'Стоит сейчас',
-statsCubesSafe: 'В безопасной зоне',
-statsAttacks: 'Атаки',
-statsAttacksTotal: 'Рейдов начато',
-statsAttacksWon: 'Побед',
-statsAttacksWinrate: 'Винрейт',
-statsDefenses: 'Оборона',
-statsDefensesTotal: 'Атак принято',
-statsDefensesWon: 'Отбито',
-statsDefensesLost: 'Флаг разрушен',
-statsLoot: 'Эфир',
-statsLootStolen: 'Украдено всего',
-statsLootLost: 'Потеряно всего',
+
+    // --- Push-уведомления ---------------------------------------------
+    pushTitle: 'Уведомления',
+    pushDesc: 'Буй напишет, когда тебя рейдят, когда накопится эфир, и когда ты давно не заходил.',
+    pushEnable: 'Включить',
+    pushDisable: 'Отключить',
+    pushEnabled: 'Уведомления включены для этого устройства',
+    pushDenied: 'Уведомления заблокированы в настройках браузера',
+    pushUnsupported: 'Этот браузер не поддерживает уведомления',
+    pushIOSHint: 'На iPhone: сначала добавь игру на домашний экран (Поделиться → На экран «Домой»), потом включи уведомления.',
+    pushSubscribeFail: 'Не удалось включить уведомления. Попробуй ещё раз.',
+    pushUnsubscribeFail: 'Не удалось отключить уведомления. Попробуй ещё раз.',
+
     errNetTimeout: 'Сервер не отвечает, попробуй ещё раз',
     errNetDown: 'Нет соединения с сервером',
     errNotReady: 'Сервер перегружен, попробуй ещё раз',
@@ -161,7 +161,7 @@ statsLootLost: 'Потеряно всего',
     flagNeedPercent: 'Destroy {need} more ground blocks to open the Flag. Now {percent}%, threshold {min}%.',
     flagNeedPath: 'No path to the Flag: the Buoy cannot get through. Clear a corridor {width} cells wide.',
     flagOpened: 'The Flag is open. Hit it.', flagReserved: 'Too close to the Flag',
-    flagColorChanged: 'Flag color changed', noone: 'Nobody in your region yet',
+    flagColorChanged: 'Flag color changed', noone: 'Nobody here yet. Check back later.',
     error: 'Error', yourIsland: 'your island',
     dmgyou: 'Flag damage', refund: 'refunded', ether: 'Ether',
     noSupport: 'Needs support below', occupied: 'Already occupied',
@@ -180,21 +180,19 @@ statsLootLost: 'Потеряно всего',
     bioLabel: 'About',
     save: 'Save',
     profileSaved: 'Profile saved',
-    statsLabel: '📊 Stats',
-statsCubes: 'Cubes',
-statsCubesTotal: 'Standing now',
-statsCubesSafe: 'In safe zone',
-statsAttacks: 'Attacks',
-statsAttacksTotal: 'Raids started',
-statsAttacksWon: 'Wins',
-statsAttacksWinrate: 'Winrate',
-statsDefenses: 'Defense',
-statsDefensesTotal: 'Attacks taken',
-statsDefensesWon: 'Defended',
-statsDefensesLost: 'Flag destroyed',
-statsLoot: 'Ether',
-statsLootStolen: 'Total stolen',
-statsLootLost: 'Total lost',
+
+    // --- Push notifications -------------------------------------------
+    pushTitle: 'Notifications',
+    pushDesc: "Buoy will ping you when you're raided, when Ether piles up, and when you've been away too long.",
+    pushEnable: 'Enable',
+    pushDisable: 'Disable',
+    pushEnabled: 'Notifications are on for this device',
+    pushDenied: 'Notifications are blocked in browser settings',
+    pushUnsupported: 'This browser does not support notifications',
+    pushIOSHint: 'On iPhone: add the game to your Home Screen first (Share → Add to Home Screen), then enable notifications.',
+    pushSubscribeFail: 'Could not enable notifications. Try again.',
+    pushUnsubscribeFail: 'Could not disable notifications. Try again.',
+
     errNetTimeout: 'The server is not responding, try again',
     errNetDown: 'No connection to the server',
     errNotReady: 'Server is overloaded, try again',
@@ -276,9 +274,14 @@ statsLootLost: 'Total lost',
 export const lang = (navigator.language || 'en').toLowerCase().startsWith('ru') ? 'ru' : 'en';
 
 // Translate by key. Lookup order:
-// current language → ru (fallback) → the key itself (so the UI never shows 'undefined').
+// current language → en (source of truth) → the key itself (so the UI never
+// shows 'undefined').
+//
+// EN is the fallback, not RU: the game is English-first, and a missing key
+// in a translated bundle must show English, not Russian. Otherwise a foreign
+// player sees a half-Russian UI when a translator missed a key.
 export function t(key, vars) {
-  let s = (I18N[lang] && I18N[lang][key]) || I18N.ru[key] || key;
+  let s = (I18N[lang] && I18N[lang][key]) || I18N.en[key] || key;
   if (vars) for (const [k, v] of Object.entries(vars)) s = s.replace('{' + k + '}', v);
   return s;
 }
@@ -291,4 +294,4 @@ export function applyI18n() {
   document.querySelectorAll('[data-i18n]').forEach(el => { el.textContent = t(el.dataset.i18n); });
   document.querySelectorAll('[data-i18n-html]').forEach(el => { el.innerHTML = t(el.dataset.i18nHtml); });
   document.documentElement.lang = lang;
-    }
+      }
