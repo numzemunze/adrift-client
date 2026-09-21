@@ -22,7 +22,7 @@
 <a class="back" href="./">← Back to ADRIFT</a>
 
 <h1>Privacy Policy</h1>
-<p class="meta">Last updated: 16 September 2026</p>
+<p class="meta">Last updated: 21 September 2026</p>
 
 <p>ADRIFT ("the Game", "we", "us") is a browser-based sandbox game. This page explains what data we collect, why, and how you can control it.</p>
 
@@ -36,26 +36,29 @@
 <p>While you play, we store the following on our servers:</p>
 <ul>
   <li>Your in-game progress: placed blocks, Ether balance, flag state, raids, and other gameplay actions</li>
-  <li>Timestamps of your actions</li>
+  <li>Timestamps of your actions and the time you were last active</li>
   <li>Your chosen in-game username, bio, avatar, and region</li>
 </ul>
-<p>We do <strong>not</strong> collect your IP address for tracking, we do <strong>not</strong> use analytics or advertising cookies, and we <strong>do not</strong> sell any data to third parties.</p>
+<p>If you enable push notifications, we also store your device's push endpoint and the encryption keys required to deliver notifications to that device. You can disable notifications at any time in your profile; doing so removes this data from our servers.</p>
+<p>We store an authentication token and your display preferences (sound setting, block-shape preset) in your browser's <code>localStorage</code>. This data never leaves your device except as part of the authentication flow.</p>
+<p>We do <strong>not</strong> use your IP address for tracking, we do <strong>not</strong> use analytics or advertising cookies, and we <strong>do not</strong> sell any data to third parties. Our hosting provider (Render) logs incoming requests, including IP addresses, for operational purposes such as abuse prevention and debugging. These logs are retained by the provider for a limited time and are not shared with advertisers.</p>
 
 <h2>2. How we use it</h2>
 <ul>
   <li>To create and maintain your game account</li>
   <li>To display your profile to other players (username, bio, avatar, region)</li>
   <li>To synchronize game state between your device and our servers</li>
+  <li>To send push notifications that you have enabled (raid alerts, Ether accumulation, long-absence reminders)</li>
   <li>To prevent abuse, cheating, and multi-accounting</li>
 </ul>
 
 <h2>3. Where data is stored</h2>
-<p>Game data is stored in a PostgreSQL database hosted by <a href="https://supabase.com" target="_blank" rel="noopener">Supabase</a>. Game servers run on <a href="https://render.com" target="_blank" rel="noopener">Render</a>. Authentication is provided by Supabase via Google OAuth. Each of these providers has its own privacy policy and security practices.</p>
+<p>Game data is stored in a PostgreSQL database hosted by <a href="https://supabase.com" target="_blank" rel="noopener">Supabase</a>. Game servers run on <a href="https://render.com" target="_blank" rel="noopener">Render</a>. Authentication is provided by Supabase via Google OAuth. Push notifications are delivered via the browser push service of your platform (Google FCM on Android, Apple Push Notification service on iOS, Mozilla on Firefox). Each of these providers has its own privacy policy and security practices.</p>
 
 <h2>4. Data sharing</h2>
 <p>We do not share your personal data with third parties, except:</p>
 <ul>
-  <li>With Supabase and Render, as described above, to operate the Game</li>
+  <li>With Supabase, Render, and platform push services as described above, to operate the Game</li>
   <li>When required by law</li>
 </ul>
 <p>Your in-game username, bio, avatar, and public game statistics are visible to other players.</p>
