@@ -24,7 +24,6 @@
   .pill-btn.ready b { color:#fff; }
   #claim-hint { font-size:12px; opacity:.8; }
   #target-pill b { color:#fca5a5; }
-  #sound-btn { padding:6px 10px; font-size:16px; line-height:1; }
   button { background:linear-gradient(180deg, rgba(255,255,255,.14), rgba(255,255,255,.06)); border:1px solid rgba(255,255,255,.16); color:#fff; padding:11px 14px; border-radius:12px; font-size:14px; font-weight:500; font-family:inherit; cursor:pointer; box-shadow:0 2px 8px rgba(0,0,0,.25); transition:transform .1s ease, background .15s ease, box-shadow .15s ease; }
   button:active { transform:scale(.94); background:rgba(255,255,255,.22); }
   button.on { background:linear-gradient(180deg,#3b82f6,#2563eb); border-color:#60a5fa; }
@@ -118,6 +117,12 @@
   .island-meta { font-size:13px; color:rgba(255,255,255,.7); }
   .island-badge { font-size:12px; color:#fca5a5; }
   .screen-note { text-align:center; color:rgba(255,255,255,.5); padding:32px 16px; }
+
+  /* Точка «онлайн»: зелёная с подсветкой, серая без. */
+  .online-dot { display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:7px; vertical-align:middle; }
+  .online-dot.on  { background:#22c55e; box-shadow:0 0 6px #22c55e; }
+  .online-dot.off { background:rgba(255,255,255,.25); }
+
   #loot-screen { align-items:center; justify-content:center; }
   .loot-card { background:#111a33; border:1px solid rgba(255,255,255,.15); border-radius:18px; padding:28px 24px; text-align:center; max-width:340px; width:100%; }
   .loot-emoji { font-size:48px; margin-bottom:8px; }
@@ -187,6 +192,7 @@
  .profile-avatar img { width:100%; height:100%; object-fit:cover; display:block; }
  .profile-meta { min-width:0; flex:1; }
  .profile-name { font-size:18px; font-weight:700; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+ .profile-status { font-size:12px; color:rgba(255,255,255,.55); margin-top:3px; }
  .profile-id-row { display:flex; align-items:center; gap:8px; margin-top:4px; }
 .profile-id { font-size:11px; color:rgba(255,255,255,.45); font-family:ui-monospace,monospace; }
 .profile-copy { padding:3px 8px; font-size:11px; line-height:1.2; border-radius:6px; background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.14); cursor:pointer; color:rgba(255,255,255,.75); font-family:inherit; }
@@ -209,18 +215,21 @@
 .stats-row b.danger { color:#fca5a5; }
 .stats-loading { color:rgba(255,255,255,.45); font-size:13px; text-align:center; padding:10px 0; }
 
-/* --- Push-уведомления: блок в своём профиле ---------------------------- */
-.push-block { background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.08); border-radius:12px; padding:14px 16px; margin-top:16px; }
-.push-head { display:flex; align-items:center; justify-content:space-between; gap:12px; }
-.push-title { font-size:14px; font-weight:600; }
-.push-status { font-size:12px; color:rgba(255,255,255,.55); margin-top:4px; line-height:1.4; }
-.push-status.on { color:#86efac; }
-.push-status.warn { color:#fbbf24; }
-.push-status.err { color:#fca5a5; }
-.push-block button { padding:9px 16px; font-size:13px; white-space:nowrap; }
-
-/* --- Sign out: кнопка выхода в своём профиле --------------------------- */
-.signout-block { margin-top:16px; }
+/* --- Settings screen: секции внутри карточки --------------------------- */
+.settings-section { background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.08); border-radius:12px; padding:14px 16px; margin-bottom:12px; }
+.settings-section:last-child { margin-bottom:0; }
+.settings-section-title { font-size:11px; color:rgba(255,255,255,.55); text-transform:uppercase; letter-spacing:.9px; margin-bottom:10px; }
+.settings-row { display:flex; align-items:center; justify-content:space-between; gap:12px; }
+.settings-row-label { font-size:14px; font-weight:500; }
+.settings-row-sub { font-size:12px; color:rgba(255,255,255,.55); margin-top:3px; line-height:1.4; }
+.settings-row-sub.on { color:#86efac; }
+.settings-row-sub.warn { color:#fbbf24; }
+.settings-row-sub.err { color:#fca5a5; }
+.settings-row button { padding:9px 16px; font-size:13px; white-space:nowrap; }
+.settings-link { display:block; padding:11px 0; color:#7dd3fc; text-decoration:none; font-size:14px; border-bottom:1px solid rgba(255,255,255,.06); transition:opacity .15s; }
+.settings-link:last-child { border-bottom:none; padding-bottom:0; }
+.settings-link:first-of-type { padding-top:0; }
+.settings-link:active { opacity:.65; }
 </style>
 </head>
 <body>
@@ -238,7 +247,7 @@
   <div class="pill">🚩 <b id="flag">—</b></div>
   <div class="pill hidden" id="target-pill">👁 <b id="target-name">—</b></div>
   <button class="pill pill-btn" id="profile-btn" title="Profile">👤</button>
-  <button class="pill pill-btn" id="sound-btn" title="Sound">🔊</button>
+  <button class="pill pill-btn" id="settings-btn" title="Settings">⚙️</button>
 </div>
 <div id="price-tag" class="hidden">10⚡</div>
 <div class="bar hidden" id="bottom">
@@ -312,6 +321,7 @@
       <div class="profile-avatar" id="profile-avatar">?</div>
       <div class="profile-meta">
         <div class="profile-name" id="profile-name">—</div>
+        <div class="profile-status" id="profile-status"></div>
         <div class="profile-id-row">
           <span class="profile-id" id="profile-id">#—</span>
           <button class="profile-copy" id="profile-copy">📎</button>
@@ -348,25 +358,49 @@
     <button class="go big" id="edit-save" style="width:100%;justify-content:center;margin-top:16px;">
       <span class="ico">✓</span><span data-i18n="save">Save</span>
     </button>
+  </div>
+</div>
+<div class="screen hidden" id="settings-screen">
+  <div class="screen-head">
+    <div class="screen-title" data-i18n="settingsTitle">⚙ Настройки</div>
+    <button id="settings-close">✕</button>
+  </div>
+  <div class="profile-card">
 
-    <!-- Push-уведомления. Управление подпиской текущего устройства. -->
-    <div class="push-block" id="push-block">
-      <div class="push-head">
+    <div class="settings-section">
+      <div class="settings-section-title" data-i18n="settingsSound">Звук</div>
+      <div class="settings-row">
         <div>
-          <div class="push-title" data-i18n="pushTitle">Notifications</div>
-          <div class="push-status" id="push-status"></div>
+          <div class="settings-row-label" data-i18n="settingsSoundLabel">Эффекты и музыка</div>
+          <div class="settings-row-sub" id="sound-status"></div>
+        </div>
+        <button id="sound-btn" title="Sound">🔊</button>
+      </div>
+    </div>
+
+    <div class="settings-section">
+      <div class="settings-section-title" data-i18n="pushTitle">Уведомления</div>
+      <div class="settings-row">
+        <div>
+          <div class="settings-row-sub" id="push-status"></div>
         </div>
         <button id="push-toggle" class="go"></button>
       </div>
     </div>
 
-    <!-- Sign out. Отдельная кнопка внизу карточки: локальный вход без неё
-         невозможно было сбросить, кроме как через настройки браузера. -->
-    <div class="signout-block">
+    <div class="settings-section">
+      <div class="settings-section-title" data-i18n="settingsAbout">О игре</div>
+      <a class="settings-link" href="./privacy.html" target="_blank" rel="noopener" data-i18n="privacyLink">Privacy Policy</a>
+      <a class="settings-link" href="./terms.html" target="_blank" rel="noopener" data-i18n="termsLink">Terms of Service</a>
+    </div>
+
+    <div class="settings-section">
+      <div class="settings-section-title" data-i18n="settingsAccount">Аккаунт</div>
       <button id="signout-btn" class="danger big" style="width:100%;justify-content:center;">
-        <span class="ico">↩</span><span data-i18n="signOut">Sign out</span>
+        <span class="ico">↩</span><span data-i18n="signOut">Выйти из аккаунта</span>
       </button>
     </div>
+
   </div>
 </div>
 <div id="toast" class="hidden"></div>
@@ -645,20 +679,52 @@ ground.position.y = -0.5; scene.add(ground);
 const grid = new THREE.GridHelper(64, 64, 0x3b82f6, 0x1e293b);
 grid.position.y = 0.01; scene.add(grid);
 
-const noBuildRing = new THREE.Mesh(
-  new THREE.RingGeometry(FLAG_CLEAR_RADIUS * Math.SQRT2, FLAG_CLEAR_RADIUS * Math.SQRT2 + 0.08, 48),
-  new THREE.MeshBasicMaterial({ color: 0xef4444, transparent: true, opacity: 0.45, side: THREE.DoubleSide, depthWrite: false })
-);
-noBuildRing.rotation.x = -Math.PI / 2;
-noBuildRing.position.y = 0.03;
+// Запретная зона вокруг Флага — квадрат, а не круг.
+//
+// Сервер запрещает ставить кубы, чей прямоугольник задевает клетки
+// [-R, R] по X и Z (R = FLAG_CLEAR_RADIUS). Клетка (x, z) в мире занимает
+// [x, x+1] × [z, z+1], значит запрет — прямоугольник [-R, R+1] в мировых
+// координатах, его центр (0.5, 0.5), полудлина R + 0.5.
+//
+// Круг радиуса R+0.5 не подходит: он вписан в квадрат, а по диагонали
+// угол квадрата лежит вне круга. Игрок видел бы разрешённую зону там,
+// где сервер запрещает.
+//
+// Рисуем 4 тонких плоских полосы — они образуют квадратный контур.
+const FLAG_CELL_CENTER = 0.5;                    // центр клетки (0, 0, 0)
+const RING_HALF = FLAG_CLEAR_RADIUS + 0.5;       // полудлина квадрата
+const RING_THICK = 0.08;
+
+const ringMat = new THREE.MeshBasicMaterial({
+  color: 0xef4444, transparent: true, opacity: 0.5, depthWrite: false,
+});
+const noBuildRing = new THREE.Group();
+const ringN = new THREE.Mesh(new THREE.BoxGeometry(RING_HALF * 2, 0.02, RING_THICK), ringMat);
+ringN.position.set(0, 0, -RING_HALF);
+const ringS = new THREE.Mesh(new THREE.BoxGeometry(RING_HALF * 2, 0.02, RING_THICK), ringMat);
+ringS.position.set(0, 0, RING_HALF);
+const ringW = new THREE.Mesh(new THREE.BoxGeometry(RING_THICK, 0.02, RING_HALF * 2), ringMat);
+ringW.position.set(-RING_HALF, 0, 0);
+const ringE = new THREE.Mesh(new THREE.BoxGeometry(RING_THICK, 0.02, RING_HALF * 2), ringMat);
+ringE.position.set(RING_HALF, 0, 0);
+noBuildRing.add(ringN, ringS, ringW, ringE);
+noBuildRing.position.set(FLAG_CELL_CENTER, 0.03, FLAG_CELL_CENTER);
 noBuildRing.visible = false;
 scene.add(noBuildRing);
+
+// Флаг стоит в ЦЕНТРЕ клетки (0, 0, 0), а не в её углу. Клетка занимает
+// мировые [0, 1] × [0, 1], её центр — (0.5, 0.5). Раньше flagGroup был
+// привязан к мировому (0, 0, 0), и флаг визуально съезжал к границе
+// запретной зоны.
 const flagGroup = new THREE.Group();
 const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.15,0.15,4,8), new THREE.MeshLambertMaterial({ color:0x94a3b8 }));
 pole.position.y = 2;
 const banner = new THREE.Mesh(new THREE.BoxGeometry(1.6,1,0.1), new THREE.MeshLambertMaterial({ color:0xef4444 }));
 banner.position.set(0.8, 3.3, 0);
-flagGroup.add(pole, banner); scene.add(flagGroup);
+flagGroup.add(pole, banner);
+flagGroup.position.set(FLAG_CELL_CENTER, 0, FLAG_CELL_CENTER);
+scene.add(flagGroup);
+
 initBlocks(scene);
 
 
@@ -1247,7 +1313,7 @@ function setMode(next) {
 function setBuildMode(on) { buildMode = on; if (!on) setDemolish(false); closeAllPalettes(); updatePanel(); }
 function setDemolish(on) { demolishMode = on; $('btn-demolish').classList.toggle('demolish-on', on); updatePanel(); }
 function showScreen(id) { $(id).classList.remove('hidden'); }
-function hideScreens() { ['world-screen','loot-screen','onboard-screen','tip-screen','shop-screen','profile-screen','edit-profile-screen'].forEach(id => $(id).classList.add('hidden')); closeAllPalettes(); }
+function hideScreens() { ['world-screen','loot-screen','onboard-screen','tip-screen','shop-screen','profile-screen','edit-profile-screen','settings-screen'].forEach(id => $(id).classList.add('hidden')); closeAllPalettes(); }
 function closeOnboard() {
   const el = $('onboard-screen'); el.classList.add('closing');
   setTimeout(() => { el.classList.remove('closing'); el.classList.add('hidden'); }, 300);
@@ -1534,7 +1600,16 @@ function blockLabel(isl) {
 function makeIslandRow(isl) {
   const row = document.createElement('button');
   row.className = 'island-row' + (isl.can_raid ? '' : ' locked');
-  const name = document.createElement('div'); name.className = 'island-name'; name.textContent = isl.username;
+
+  const name = document.createElement('div'); name.className = 'island-name';
+  // Точка «онлайн» — рядом с ником. is_online приходит с сервера (last_seen_at
+  // в пределах 3 минут). Точный статус не гарантируем: игрок мог только что
+  // уйти, а last_seen_at ещё не «остыл».
+  const dot = document.createElement('span');
+  dot.className = 'online-dot ' + (isl.is_online ? 'on' : 'off');
+  name.appendChild(dot);
+  name.appendChild(document.createTextNode(isl.username));
+
   const meta = document.createElement('div'); meta.className = 'island-meta';
   meta.textContent = `🧱 ${isl.cube_count} · ⚡ ${isl.potential_loot} · 🚩 ${isl.flag_hp}`;
   row.append(name, meta);
@@ -1605,15 +1680,23 @@ function paintProfile(isl) {
   // Полный UUID, не обрезанный: игрок может захотеть скопировать целиком.
   $('profile-id').textContent = String(isl.user_id);
 
+  // Онлайн-статус в карточке. Обновляем через textContent, а не innerHTML,
+  // чтобы не рисковать с ником (хотя он у нас regex-валидируется).
+  const statusEl = $('profile-status');
+  if (statusEl) {
+    statusEl.innerHTML = '';
+    const dot = document.createElement('span');
+    dot.className = 'online-dot ' + (isl.is_online ? 'on' : 'off');
+    statusEl.appendChild(dot);
+    statusEl.appendChild(document.createTextNode(
+      isl.is_online ? t('onlineNow') : t('offlineLabel')
+    ));
+  }
+
   const bio = (isl.bio || '').trim();
   const bioEl = $('profile-bio');
   if (bio) { bioEl.textContent = bio; bioEl.classList.remove('empty'); }
   else { bioEl.textContent = t('profileNoBio'); bioEl.classList.add('empty'); }
-
-  // Старый блок статистики чистим сразу: пока летит /stats, в карточке
-  // не должно быть цифр ПРЕДЫДУЩЕГО игрока.
-  const statsGrid = $('stats-grid');
-  if (statsGrid) statsGrid.innerHTML = '<div class="stats-loading">…</div>';
 
   // Кнопка «Копировать» — визуально сбрасываем «copied» при открытии новой
   // карточки, чтобы состояние не переезжало между игроками.
@@ -1698,6 +1781,16 @@ async function loadStatsInto(gridEl, url, tokenCheck) {
 }
 
 async function openProfile(userId, fallbackUsername) {
+  // Сброс статистики делается ЗДЕСЬ, а не в paintProfile.
+  //
+  // Причина: openProfile вызывает paintProfile дважды (сначала fallback,
+  // потом реальные данные). Если сброс живёт в paintProfile, второй вызов
+  // затирает уже отрисованные цифры обратно в «…». Симптом: статистика
+  // иногда не появляется — выглядит как race condition, но на самом деле
+  // детерминированный баг от двойного вызова.
+  const statsGrid = $('stats-grid');
+  if (statsGrid) statsGrid.innerHTML = '<div class="stats-loading">…</div>';
+
   // Пока грузим — рисуем карточку из того, что уже есть в списке: ник и
   // «—» вместо bio. Так игрок видит мгновенный отклик, а не пустой экран.
   paintProfile({
@@ -1919,6 +2012,30 @@ async function togglePush() {
   }
 }
 
+// --- Экран настроек ---------------------------------------------------
+// Отдельный экран вместо блока в профиле: во-первых, так короче edit-profile
+// (только avatar + bio, а не пять секций), во-вторых, сюда же переезжает
+// кнопка звука и sign out, и в-третьих, тут будут жить будущие настройки
+// (язык, регион, приватность), которым не место в профиле.
+
+async function paintSoundBlock() {
+  // Иконка уже обновляется audio.js через updateSoundIcon(), нам важно
+  // добавить текстовую подпись рядом. Раз статус читается из localStorage,
+  // его можно дёрнуть синхронно — без await.
+  const statusEl = $('sound-status');
+  if (!statusEl) return;
+  let muted = false;
+  try { muted = localStorage.getItem('adrift_audio_muted') === '1'; } catch (e) {}
+  statusEl.textContent = muted ? t('soundOff') : t('soundOn');
+  statusEl.className = 'settings-row-sub' + (muted ? '' : ' on');
+}
+
+function openSettings() {
+  paintSoundBlock();
+  paintPushBlock();
+  showScreen('settings-screen');
+}
+
 // Полный выход из аккаунта.
 //
 // Почему reload, а не ручная очистка состояния: после sign out надо сбросить
@@ -1982,7 +2099,6 @@ function openEditProfile() {
   updateBioCounter();
   pendingAvatar = undefined;
   buildAvatarPicker();
-  paintPushBlock();
   showScreen('edit-profile-screen');
 }
 
@@ -2243,6 +2359,8 @@ $('onboard-ok').addEventListener('click', () => { localStorage.setItem('adrift_o
 $('sound-btn').addEventListener('click', toggleAudio);
 $('push-toggle').addEventListener('click', togglePush);
 $('signout-btn').addEventListener('click', signOut);
+$('settings-btn').addEventListener('click', openSettings);
+$('settings-close').addEventListener('click', hideScreens);
 $('menu-play').addEventListener('click', startGame);
 
 ['pointerdown', 'touchstart', 'click', 'keydown'].forEach(function (evt) {
@@ -2316,4 +2434,4 @@ setMode('own'); buildMode = true; updatePanel(); ok();
 })();
 </script>
 </body>
- </html>
+         </html>
