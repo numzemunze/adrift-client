@@ -1,23 +1,5 @@
 // src/map3d.js
 // Карта мира: 3D-глобус с LOD-маркерами.
-//
-// LOD-СТРАТЕГИЯ
-// -------------
-// На карте обычно много маркеров, они кучкуются. Держать у каждого крупный
-// ник — визуальный шум, к тому же ники налезают друг на друга. Решение:
-// два варианта текстуры на каждого игрока и переключение по расстоянию
-// камеры до центра сферы.
-//
-//   далеко (> 4R)   — компактный круг без ника, мелкий;
-//   средне (2.5-4R) — ник сверху, круг снизу, средний размер;
-//   близко (< 2.5R) — тот же полный маркер, крупно.
-//
-// ТАП
-// ---
-// Раньше тап сравнивал только экранное расстояние до маркера. При кучке
-// игроков это было случайное попадание. Теперь при тапе собираются ВСЕ
-// маркеры в радиусе HIT_RADIUS_PX, и выбирается тот, что ближе к камере
-// по 3D-расстоянию. Логика: «тот, что на переднем плане».
 
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
@@ -36,14 +18,10 @@ const EARTH_TEXTURE_SOURCES = [
   'https://cdn.jsdelivr.net/npm/three-globe@2/example/img/earth-blue-marble.jpg',
 ];
 
-// Радиус попадания пальцем в маркер, в экранных пикселях. 55 — примерно
-// 3 мм на экране телефона. Хватает, чтобы не промахиваться, при этом
-// соседние маркеры не воруют тап друг у друга.
 const HIT_RADIUS_PX = 55;
 
-// Пороги LOD: отношение расстояния камеры к радиусу сферы.
-const LOD_FAR   = 4.0;
-const LOD_MID   = 2.5;
+const LOD_FAR = 4.0;
+const LOD_MID = 2.5;
 
 let scene = null;
 let camera = null;
@@ -58,14 +36,11 @@ let disposed = false;
 let running = false;
 let animationId = 0;
 
-// user_id -> { sprite, data }
 const markers = new Map();
 let rawPoints = [];
 let myUserId = null;
 
 const _projVec = new THREE.Vector3();
-
-// --- Инициализация --------------------------------------------------------
 
 export function initMap3D(containerEl, { onPointTap, myUserId: myId } = {}) {
   if (scene) return;
@@ -158,8 +133,6 @@ function loadEarthTexture(material) {
   tryNext();
 }
 
-// --- Координаты ----------------------------------------------------------
-
 function worldToLatLon(wx, wy) {
   return {
     lon: WORLD_CENTER_LON + wx * WORLD_TO_DEG,
@@ -177,12 +150,8 @@ function latLonToVec3(lat, lon, radius) {
   );
 }
 
-// --- Текстуры маркеров ---------------------------------------------------
-// Два варианта на игрока. Оба кэшируются по ключу «вариант|цвет|ник|свой».
-
 const markerTextureCache = new Map();
 
-// Компактный: только круг, без ника. Для дальнего плана.
 function makeCompactTexture(colorHex, isMine) {
   const key = `c|${colorHex}|${isMine ? 'm' : ''}`;
   if (markerTextureCache.has(key)) return markerTextureCache.get(key);
@@ -226,23 +195,19 @@ function makeCompactTexture(colorHex, isMine) {
   return tex;
 }
 
-// Полный: ник СВЕРХУ, круг СНИЗУ. Ширина адаптивная по measureText,
-// чтобы длинные ники не обрезались. Высота увеличена до 160 — буквы
-// с descender'ами (g, y, p) не режутся по нижнему краю.
-function makeFullTexture(colorHex, label, isMine) {
-  const key = `f|${colorHex}|${label}|${isMine ? 'm' : ''}`;
+function makeFullTexture(colorHex, label, isMine, extra = null) {
+  const key = `f|${colorHex}|${label}|${isMine ? 'm' : ''}|${extra ? extra.cubes + '_' + (extra.online ? '1' : '0') : ''}`;
   if (markerTextureCache.has(key)) return markerTextureCache.get(key);
 
   const FONT_SIZE = 40;
   const PADDING = 32;
 
-  // Меряем ширину ника отдельным offscreen-canvas'ом.
   const measureCanvas = document.createElement('canvas');
   const mCtx = measureCanvas.getContext('2d');
   mCtx.font = `700 ${FONT_SIZE}px system-ui,-apple-system,sans-serif`;
   const textWidth = Math.ceil(mCtx.measureText(label).width);
-  const W = Math.max(220, textWidth + PADDING * 2);
-  const H = 160;
+  const W = Math.max(240, textWidth + PADDING * 2);
+  const H = extra ? 200 : 160;
 
   const canvas = document.createElement('canvas');
   canvas.width = W;
@@ -280,7 +245,6 @@ function makeFullTexture(colorHex, label, isMine) {
   ctx.fillStyle = 'rgba(255,255,255,.55)';
   ctx.fill();
 
-  // Ник сверху — с толстой обводкой, читается на любом фоне.
   ctx.font = `700 ${FONT_SIZE}px system-ui,-apple-system,sans-serif`;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'top';
@@ -290,14 +254,52 @@ function makeFullTexture(colorHex, label, isMine) {
   ctx.fillStyle = '#ffffff';
   ctx.fillText(label, cx, textY);
 
+  if (extra) {
+    const badgeY = circleY + r + 14;
+    const badgeFont = '600 26px system-ui,-apple-system,sans-serif';
+    ctx.font = badgeFont;
+
+    const cubeText = '🧱 ' + extra.cubes;
+    const statusText = extra.online ? '●' : '○';
+    const statusColor = extra.online ? '#22c55e' : 'rgba(255,255,255,.5)';
+
+    const cubeW = ctx.measureText(cubeText).width;
+    const statusW = 20;
+    const padX = 14;
+    const badgeW = cubeW + statusW + padX * 3;
+    const badgeH = 36;
+    const bx = cx - badgeW / 2;
+
+    const radius = 10;
+    ctx.beginPath();
+    ctx.moveTo(bx + radius, badgeY);
+    ctx.arcTo(bx + badgeW, badgeY, bx + badgeW, badgeY + badgeH, radius);
+    ctx.arcTo(bx + badgeW, badgeY + badgeH, bx, badgeY + badgeH, radius);
+    ctx.arcTo(bx, badgeY + badgeH, bx, badgeY, radius);
+    ctx.arcTo(bx, badgeY, bx + badgeW, badgeY, radius);
+    ctx.closePath();
+    ctx.fillStyle = 'rgba(11,16,32,.85)';
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(255,255,255,.25)';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'middle';
+    ctx.fillStyle = '#fde68a';
+    ctx.fillText(cubeText, bx + padX, badgeY + badgeH / 2);
+
+    ctx.fillStyle = statusColor;
+    ctx.font = '700 28px system-ui,-apple-system,sans-serif';
+    ctx.fillText(statusText, bx + padX + cubeW + padX, badgeY + badgeH / 2);
+  }
+
   const tex = new THREE.CanvasTexture(canvas);
   tex.colorSpace = THREE.SRGBColorSpace;
   tex.needsUpdate = true;
   markerTextureCache.set(key, tex);
   return tex;
 }
-
-// --- Создание / обновление маркеров --------------------------------------
 
 export function setMapPoints(points) {
   if (!markersGroup) return;
@@ -362,8 +364,6 @@ export function setMapPoints(points) {
   updateMarkerScales();
 }
 
-// Пересчёт масштаба и LOD. Вызывается каждый кадр — дёшево: количество
-// маркеров обычно < 200, а операции — сравнение двух чисел и set().
 function updateMarkerScales() {
   const h = renderer.domElement.clientHeight;
   const vFov = (camera.fov * Math.PI) / 180;
@@ -372,38 +372,48 @@ function updateMarkerScales() {
   const camDist = camera.position.length();
   const ratio = camDist / SPHERE_RADIUS;
 
-  // Какой LOD активен для всей сцены прямо сейчас.
-  let useFull;
+  let level;
   let baseSize;
   if (ratio > LOD_FAR) {
-    useFull = false;
+    level = 'far';
     baseSize = 34;
   } else if (ratio > LOD_MID) {
-    useFull = true;
+    level = 'mid';
     baseSize = 56;
   } else {
-    useFull = true;
-    baseSize = 84;
+    level = 'close';
+    baseSize = 90;
   }
 
-  for (const { sprite } of markers.values()) {
+  for (const { sprite, data } of markers.values()) {
     const distance = camera.position.distanceTo(sprite.position);
 
-    // Переключение текстуры только если реально поменялся LOD —
-    // каждый set() на material.map стоит дорого (загрузка в GPU).
-    const targetMap = useFull ? sprite.userData.texFull : sprite.userData.texCompact;
-    if (sprite.material.map !== targetMap) {
+    const targetMap = level === 'far' ? sprite.userData.texCompact : sprite.userData.texFull;
+
+    if (level === 'close') {
+      const hex = FLAG_COLORS_HEX[data.flag_color] ?? 0xef4444;
+      const css = '#' + hex.toString(16).padStart(6, '0');
+      const isMine = myUserId && String(data.user_id) === String(myUserId);
+      const texClose = makeFullTexture(css, data.username, isMine, {
+        cubes: data.cube_count || 0,
+        online: !!data.is_online,
+      });
+      if (sprite.material.map !== texClose) {
+        sprite.material.map = texClose;
+        sprite.material.needsUpdate = true;
+      }
+    } else if (sprite.material.map !== targetMap) {
       sprite.material.map = targetMap;
       sprite.material.needsUpdate = true;
     }
 
-    const aspect = useFull ? sprite.userData.aspectFull : sprite.userData.aspectCompact;
+    const aspect = level === 'far'
+      ? sprite.userData.aspectCompact
+      : (sprite.material.map.image.width / sprite.material.map.image.height);
     const scale = k * distance * baseSize;
     sprite.scale.set(scale * aspect, scale, 1);
   }
 }
-
-// --- Цикл рендера ---------------------------------------------------------
 
 function animate() {
   if (disposed) return;
@@ -415,8 +425,6 @@ function animate() {
   renderer.render(scene, camera);
 }
 
-// --- Тап по маркеру: screen-space + приоритет по камере ------------------
-
 let pointerDown = { x: 0, y: 0, t: 0 };
 
 function onPointerDown(ev) {
@@ -426,7 +434,6 @@ function onPointerDown(ev) {
 function onPointerUp(ev) {
   if (!onTapCallback) return;
 
-  // Отсеиваем drag и long-press — это не тап.
   const dx = ev.clientX - pointerDown.x;
   const dy = ev.clientY - pointerDown.y;
   if (Math.hypot(dx, dy) > 10) return;
@@ -437,9 +444,6 @@ function onPointerUp(ev) {
   const tapY = ev.clientY - rect.top;
   const camPos = camera.position;
 
-  // Собираем всех, кто в радиусе попадания. Затем среди них выбираем
-  // ближайшего к камере — это «передний план», к которому игрок
-  // и хотел обратиться.
   const candidates = [];
   for (const [uid, { sprite, data }] of markers.entries()) {
     _projVec.copy(sprite.position).project(camera);
@@ -456,15 +460,12 @@ function onPointerUp(ev) {
 
   if (!candidates.length) return;
 
-  // Сортировка: сначала по camDist, при равенстве — по screenDist.
   candidates.sort((a, b) => (a.camDist - b.camDist) || (a.screenDist - b.screenDist));
   const chosen = candidates[0];
 
   if (chosen.sprite.userData.isMine) return;
   onTapCallback(chosen.uid, chosen.data.username);
 }
-
-// --- Публичное API --------------------------------------------------------
 
 export function flyToPlayer(userId, username, { zoom = 1 } = {}) {
   if (!camera || !controls) return;
@@ -580,4 +581,4 @@ export function disposeMap3D() {
   controls = null;
   sphereMesh = null;
   markersGroup = null;
-    }
+        }
