@@ -484,6 +484,7 @@ import {
   effectiveShape, effectiveMaterial, isFlatHalf,
   effectiveColorHex, makeCubeMaterial,
 } from './src/blocks.js';
+import { makeToonMaterial } from './src/style.js';
 import {
   initMap3D, setMapPoints, setMapCameraToMe, flyToPlayer,
   zoomMapBy, resizeMap3D, setMapRunning, disposeMap3D,
@@ -658,6 +659,7 @@ camera.position.set(26, 44, 26);
 const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
 renderer.setPixelRatio(1);
 renderer.setSize(innerWidth, innerHeight);
+renderer.domElement.style.filter = 'saturate(1.18) contrast(1.06)';
 $('app').appendChild(renderer.domElement);
 const controls = new OrbitControls(camera, renderer.domElement);
 controls.target.set(0, 0, 3);
@@ -674,10 +676,13 @@ const menuOrbit = {
   speed: 0.12,
 };
 
-scene.add(new THREE.AmbientLight(0xffffff, 0.75));
-const sun = new THREE.DirectionalLight(0xffffff, 1.0);
+scene.add(new THREE.AmbientLight(0xffffff, 0.42));
+const sun = new THREE.DirectionalLight(0xffffff, 1.15);
 sun.position.set(30, 50, 20); scene.add(sun);
-const ground = new THREE.Mesh(new THREE.BoxGeometry(66,1,66), new THREE.MeshLambertMaterial({ color: 0x1e3a2f }));
+const ground = new THREE.Mesh(
+  new THREE.BoxGeometry(66,1,66),
+  makeToonMaterial({ color: 0x1e3a2f, flatShading: true })
+);
 ground.position.y = -0.5; scene.add(ground);
 const grid = new THREE.GridHelper(64, 64, 0x3b82f6, 0x1e293b);
 grid.position.y = 0.01; scene.add(grid);
@@ -704,9 +709,15 @@ noBuildRing.visible = false;
 scene.add(noBuildRing);
 
 const flagGroup = new THREE.Group();
-const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.15,0.15,4,8), new THREE.MeshLambertMaterial({ color:0x94a3b8 }));
+const pole = new THREE.Mesh(
+  new THREE.CylinderGeometry(0.15,0.15,4,8),
+  makeToonMaterial({ color: 0x94a3b8 })
+);
 pole.position.y = 2;
-const banner = new THREE.Mesh(new THREE.BoxGeometry(1.6,1,0.1), new THREE.MeshLambertMaterial({ color:0xef4444 }));
+const banner = new THREE.Mesh(
+  new THREE.BoxGeometry(1.6,1,0.1),
+  makeToonMaterial({ color: 0xef4444 })
+);
 banner.position.set(0.8, 3.3, 0);
 flagGroup.add(pole, banner);
 flagGroup.position.set(FLAG_CELL_CENTER, 0, FLAG_CELL_CENTER);
@@ -764,11 +775,11 @@ const droplets = [];
 
 (function buildMinion() {
   const SKIN = 0xe8dcc8, CLOTH = 0x9c9184, DARK = 0x6b6152, EYE = 0x241f19;
-  const matSkin = new THREE.MeshLambertMaterial({ color: SKIN });
-  const matCloth = new THREE.MeshLambertMaterial({ color: CLOTH });
-  const matDark = new THREE.MeshLambertMaterial({ color: DARK });
+  const matSkin = makeToonMaterial({ color: SKIN, flatShading: true });
+  const matCloth = makeToonMaterial({ color: CLOTH, flatShading: true });
+  const matDark = makeToonMaterial({ color: DARK, flatShading: true });
   const matEye = new THREE.MeshBasicMaterial({ color: EYE });
-  minionFlagMat = new THREE.MeshLambertMaterial({ color: 0xef4444 });
+  minionFlagMat = makeToonMaterial({ color: 0xef4444, flatShading: true });
   const bodyGroup = new THREE.Group();
   const torso = new THREE.Mesh(new THREE.BoxGeometry(0.52, 0.6, 0.38), matCloth); torso.position.y = 0.8; bodyGroup.add(torso);
   const head = new THREE.Mesh(new THREE.BoxGeometry(0.58, 0.54, 0.52), matSkin); head.position.y = 1.38;
@@ -1307,7 +1318,6 @@ function showGoogleLogin() {
   const menu = $('menu-screen');
   menu.classList.remove('hidden');
   menu.classList.remove('fading');
-
   if ($('google-login-btn')) return;
 
   const btn = document.createElement('button');
