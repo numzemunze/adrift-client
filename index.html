@@ -1948,17 +1948,42 @@ const MAP_WORLD_HALF = 2000;   // синхронно с WORLD_MAX на бэке
 
 let mapCanvas = null, mapCtx = null, mapTexture = null, mapDPR = 1;
 
-// Попытка загрузить текстуру Земли. Если файла нет — тихо остаёмся
-// без неё: рисуем процедурный фон.
 function loadMapTexture() {
   if (mapTexture !== null) return;
-  const img = new Image();
-  img.crossOrigin = 'anonymous';
-  img.onload = () => { mapTexture = img; mapState.textureReady = true; if (mapState.open) drawMap(); };
-  img.onerror = () => { mapTexture = false; };
-  // Официальная текстура из репозитория three.js. 2048×1024, ~600 КБ.
-  // CDN jsdelivr — стабильный, работает во всех регионах, ничего не блокирует.
-  img.src = 'https://cdn.jsdelivr.net/npm/three@0.160.0/examples/textures/planets/earth_atmos_2048.jpg';
+
+  // Несколько источников по очереди. Порядок: от лёгкого картографического
+  // к фото из космоса. Первый успешный фиксируется в mapTexture.
+  //
+  //   earth-dark.jpg   — ~200 КБ, тёмная картографическая отмывка,
+  //                      ближе всего к «Google Maps в ночном режиме»
+  //   earth-day.jpg    — ~700 КБ, светлая карта без облаков
+  //   earth_atmos      — ~1.5 МБ, Blue Marble с атмосферой (fallback)
+  const SOURCES = [
+    'https://cdn.jsdelivr.net/npm/three-globe@2/example/img/earth-dark.jpg',
+    'https://cdn.jsdelivr.net/npm/three-globe@2/example/img/earth-day.jpg',
+    'https://unpkg.com/three@0.160.0/examples/textures/planets/earth_atmos_2048.jpg',
+  ];
+
+  let idx = 0;
+  const tryNext = () => {
+    if (idx >= SOURCES.length) {
+      // Все источники недоступны — переходим на процедурный фон.
+      // mapTexture = false означает «пробовали и не смогли».
+      mapTexture = false;
+      return;
+    }
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => {
+      mapTexture = img;
+      mapState.textureReady = true;
+      if (mapState.open) drawMap();
+    };
+    img.onerror = () => { idx++; tryNext(); };
+    img.src = SOURCES[idx];
+  };
+
+  tryNext();
 }
 
 function resizeMapCanvas() {
