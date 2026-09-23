@@ -652,8 +652,8 @@ async function auth() {
 }
 
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x0b1020);
-scene.fog = new THREE.Fog(0x0b1020, 60, 140);
+scene.background = new THREE.Color(0x070f22);
+scene.fog = new THREE.Fog(0x1c3054, 80, 220);
 const camera = new THREE.PerspectiveCamera(55, innerWidth/innerHeight, 0.1, 500);
 camera.position.set(26, 44, 26);
 const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
@@ -678,12 +678,12 @@ const menuOrbit = {
   speed: 0.12,
 };
 
-const skyGeo = new THREE.SphereGeometry(300, 24, 12);
+const skyGeo = new THREE.SphereGeometry(320, 32, 16);
 const skyMat = new THREE.ShaderMaterial({
   uniforms: {
-    topColor:    { value: new THREE.Color(0x02040c) },
-    midColor:    { value: new THREE.Color(0x0b1020) },
-    bottomColor: { value: new THREE.Color(0x1a2a3e) },
+    topColor:    { value: new THREE.Color(0x070f22) },
+    midColor:    { value: new THREE.Color(0x1c3054) },
+    bottomColor: { value: new THREE.Color(0x506080) },
   },
   vertexShader: `
     varying vec3 vWorldPos;
@@ -715,6 +715,7 @@ const skyMat = new THREE.ShaderMaterial({
 });
 const skyMesh = new THREE.Mesh(skyGeo, skyMat);
 skyMesh.renderOrder = -1000;
+skyMesh.frustumCulled = false;
 scene.add(skyMesh);
 
 scene.add(new THREE.AmbientLight(0xffffff, 0.35));
@@ -929,13 +930,7 @@ function bfsPath(sx, sz, tx, tz) {
   return null;
 }
 function resetMinionPath() { minion.path = []; }
-setOnCubesChanged(() => {
-  for (const mesh of cubeMeshes.values()) {
-    mesh.castShadow = true;
-    mesh.receiveShadow = true;
-  }
-  resetMinionPath();
-});
+setOnCubesChanged(resetMinionPath);
 function pickMinionTarget() {
   const panic = minion.mood === 'panic';
   const rMin = panic ? PANIC_RADIUS_MIN : MINION_RADIUS_MIN;
