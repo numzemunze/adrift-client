@@ -1,22 +1,4 @@
 // Карта мира: 3D-глобус.
-//
-// КАК РАБОТАЕТ
-// ------------
-// MeshBasicMaterial + текстура. Не зависит от света — гарантированно
-// яркий шар, без багов с терминатором. Cartoony через CSS-фильтр на
-// canvas: saturate + contrast.
-//
-// КЛАСТЕРИЗАЦИЯ
-// -------------
-// Отключена. Пять игроков в Берлине рисуются как пять отдельных
-// маркеров с никами. Вернём, когда будет 100+ игроков.
-//
-// ПОПАДАНИЕ ПО МАРКЕРУ
-// --------------------
-// Не raycaster, а screen-space. Каждый маркер проецируется на экран,
-// считается расстояние до тапа в пикселях. Радиус 44px — легко попасть
-// пальцем. Raycaster не используется: его порог по спрайту слишком
-// маленький.
 
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
@@ -35,8 +17,6 @@ const EARTH_TEXTURE_SOURCES = [
   'https://cdn.jsdelivr.net/npm/three-globe@2/example/img/earth-blue-marble.jpg',
 ];
 
-// Радиус попадания по маркеру в экранных пикселях. 44 = ~2.4 мм на
-// экране телефона. Хватает, чтобы не промахиваться.
 const HIT_RADIUS_PX = 44;
 
 let scene = null;
@@ -52,16 +32,11 @@ let disposed = false;
 let running = false;
 let animationId = 0;
 
-// user_id -> { sprite, data }. Всегда одиночные маркеры.
 const markers = new Map();
 let rawPoints = [];
 let myUserId = null;
 
-// Временный вектор для проекции маркеров на экран в onPointerUp.
-// Один на модуль — не создаём новый на каждый тап.
 const _projVec = new THREE.Vector3();
-
-// --- Инициализация --------------------------------------------------------
 
 export function initMap3D(containerEl, { onPointTap, myUserId: myId } = {}) {
   if (scene) return;
@@ -87,8 +62,6 @@ export function initMap3D(containerEl, { onPointTap, myUserId: myId } = {}) {
   renderer.domElement.style.width = '100%';
   renderer.domElement.style.height = '100%';
   renderer.domElement.style.touchAction = 'none';
-  // Cartoony: насыщенность + контраст. Сильнее, чем в игре — карта
-  // должна быть ярче, чтобы читалась на маленьком экране.
   renderer.domElement.style.filter = 'saturate(1.5) contrast(1.15)';
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   container.appendChild(renderer.domElement);
@@ -97,7 +70,7 @@ export function initMap3D(containerEl, { onPointTap, myUserId: myId } = {}) {
   controls.enableDamping = true;
   controls.dampingFactor = 0.15;
   controls.rotateSpeed = 0.35;
-  controls.zoomSpeed = 0.08;
+  controls.zoomSpeed = 0.55;
   controls.minDistance = SPHERE_RADIUS * 1.08;
   controls.maxDistance = SPHERE_RADIUS * 6;
   controls.enablePan = false;
@@ -106,7 +79,7 @@ export function initMap3D(containerEl, { onPointTap, myUserId: myId } = {}) {
   const geo = new THREE.SphereGeometry(SPHERE_RADIUS, 96, 48);
 
   const mat = new THREE.MeshBasicMaterial({
-    color: 0x3a5f8a,   // fallback-цвет, пока текстура не загрузилась
+    color: 0x3a5f8a,
     toneMapped: false,
   });
 
@@ -156,8 +129,6 @@ function loadEarthTexture(material) {
   tryNext();
 }
 
-// --- Позиционирование -----------------------------------------------------
-
 function worldToLatLon(wx, wy) {
   return {
     lon: WORLD_CENTER_LON + wx * WORLD_TO_DEG,
@@ -175,31 +146,24 @@ function latLonToVec3(lat, lon, radius) {
   );
 }
 
-// --- Текстуры маркеров ---------------------------------------------------
-
 const markerTextureCache = new Map();
 
-// Маркер: круг + ник снизу. Холст компактный по высоте, шрифт крупный —
-// на экране ник читается без приближения.
 function makeMarkerTexture(colorHex, { label, isMine }) {
   const key = `${colorHex}|${label}|${isMine ? 'm' : ''}`;
   if (markerTextureCache.has(key)) return markerTextureCache.get(key);
 
-  // Холст 320×140. Соотношение сторон 2.28. Круг сверху, ник снизу.
-  const W = 320;
-  const H = 140;
+  const W = 240;
+  const H = 110;
 
   const canvas = document.createElement('canvas');
   canvas.width = W;
   canvas.height = H;
   const ctx = canvas.getContext('2d');
 
-  // Круг.
   const cx = W / 2;
-  const cy = 52;
-  const r = 36;
+  const cy = 40;
+  const r = 28;
 
-  // Свечение под своим маркером.
   if (isMine) {
     const glow = ctx.createRadialGradient(cx, cy, r * 0.5, cx, cy, r * 1.9);
     glow.addColorStop(0, 'rgba(253,230,138,.75)');
@@ -208,38 +172,32 @@ function makeMarkerTexture(colorHex, { label, isMine }) {
     ctx.fillRect(0, 0, W, H);
   }
 
-  // Тень под кругом.
   ctx.beginPath();
   ctx.arc(cx, cy + 3, r, 0, Math.PI * 2);
   ctx.fillStyle = 'rgba(0,0,0,.5)';
   ctx.fill();
 
-  // Основной круг.
   ctx.beginPath();
   ctx.arc(cx, cy, r, 0, Math.PI * 2);
   ctx.fillStyle = colorHex;
   ctx.fill();
-  ctx.lineWidth = 7;
+  ctx.lineWidth = 6;
   ctx.strokeStyle = isMine ? '#fde68a' : 'rgba(255,255,255,.95)';
   ctx.stroke();
 
-  // Блик.
   ctx.beginPath();
   ctx.arc(cx - r * 0.3, cy - r * 0.35, r * 0.4, 0, Math.PI * 2);
   ctx.fillStyle = 'rgba(255,255,255,.55)';
   ctx.fill();
 
-  // Ник — крупный, с жирной чёрной обводкой, снизу от круга.
-  ctx.font = '700 44px system-ui,-apple-system,sans-serif';
+  ctx.font = '700 34px system-ui,-apple-system,sans-serif';
   ctx.textAlign = 'center';
   ctx.textBaseline = 'top';
-  // Обводка: 6px чёрного под текстом.
-  ctx.lineWidth = 6;
+  ctx.lineWidth = 5;
   ctx.strokeStyle = 'rgba(0,0,0,.9)';
-  ctx.strokeText(label, cx, 96);
-  // Сам текст белый.
+  ctx.strokeText(label, cx, 76);
   ctx.fillStyle = '#ffffff';
-  ctx.fillText(label, cx, 96);
+  ctx.fillText(label, cx, 76);
 
   const tex = new THREE.CanvasTexture(canvas);
   tex.colorSpace = THREE.SRGBColorSpace;
@@ -247,8 +205,6 @@ function makeMarkerTexture(colorHex, { label, isMine }) {
   markerTextureCache.set(key, tex);
   return tex;
 }
-
-// --- Маркеры --------------------------------------------------------------
 
 export function setMapPoints(points) {
   if (!markersGroup) return;
@@ -277,11 +233,8 @@ export function setMapPoints(points) {
       sprite.userData.user_id = p.user_id;
       sprite.userData.username = p.username;
       sprite.userData.isMine = isMine;
-      // Соотношение сторон холста: 320/140 = 2.28.
-      sprite.userData.aspect = 320 / 140;
-      // baseSize — размер по вертикали на экране в пикселях.
-      // 60px высоты = круг 60×(72/140) ≈ 30px + ник 60×(44/140) ≈ 19px.
-      sprite.userData.baseSize = isMine ? 68 : 60;
+      sprite.userData.aspect = 240 / 110;
+      sprite.userData.baseSize = isMine ? 42 : 36;
 
       const { lat, lon } = worldToLatLon(p.world_x, p.world_y);
       sprite.position.copy(latLonToVec3(lat, lon, SPHERE_RADIUS * 1.015));
@@ -320,13 +273,11 @@ function updateMarkerScales() {
   for (const { sprite } of markers.values()) {
     const distance = camera.position.distanceTo(sprite.position);
     const aspect = sprite.userData.aspect || 1;
-    const baseSize = sprite.userData.baseSize || 60;
+    const baseSize = sprite.userData.baseSize || 36;
     const scale = k * distance * baseSize;
     sprite.scale.set(scale * aspect, scale, 1);
   }
 }
-
-// --- Цикл рендера ---------------------------------------------------------
 
 function animate() {
   if (disposed) return;
@@ -338,8 +289,6 @@ function animate() {
   renderer.render(scene, camera);
 }
 
-// --- Тап по маркеру: screen-space hit test -------------------------------
-
 let pointerDown = { x: 0, y: 0, t: 0 };
 
 function onPointerDown(ev) {
@@ -349,8 +298,6 @@ function onPointerDown(ev) {
 function onPointerUp(ev) {
   if (!onTapCallback) return;
 
-  // Отличаем тап от вращения: движение > 10px или долгое удержание — это
-  // не тап.
   const dx = ev.clientX - pointerDown.x;
   const dy = ev.clientY - pointerDown.y;
   if (Math.hypot(dx, dy) > 10) return;
@@ -360,15 +307,10 @@ function onPointerUp(ev) {
   const tapX = ev.clientX - rect.left;
   const tapY = ev.clientY - rect.top;
 
-  // Screen-space hit test: проецируем каждый маркер на экран и ищем
-  // ближайший к точке тапа. Radii в пикселях, а не в мире — попадание
-  // одинаково легко и вблизи, и вдали.
   let best = null;
   let bestDist = Infinity;
 
   for (const [uid, { sprite, data }] of markers.entries()) {
-    // project() возвращает NDC [-1, 1] по X/Y и z — «глубину» в NDC.
-    // z > 1 значит маркер за камерой — пропускаем.
     _projVec.copy(sprite.position).project(camera);
     if (_projVec.z > 1) continue;
 
@@ -388,8 +330,6 @@ function onPointerUp(ev) {
   if (best.sprite.userData.isMine) return;
   onTapCallback(best.uid, best.data.username);
 }
-
-// --- Публичное API --------------------------------------------------------
 
 export function flyToPlayer(userId, username, { zoom = 1 } = {}) {
   if (!camera || !controls) return;
@@ -505,4 +445,4 @@ export function disposeMap3D() {
   controls = null;
   sphereMesh = null;
   markersGroup = null;
-    }
+  }
