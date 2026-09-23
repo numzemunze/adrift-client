@@ -59,7 +59,7 @@ export const I18N = {
 
     // --- Push-уведомления ---------------------------------------------
     pushTitle: 'Уведомления',
-    historyTitle: '📜 История рейдов',
+    historyTitle: 'История рейдов',
 historyEmpty: 'Пока ни одного рейда',
 historyActive: 'Идёт',
 historyWonAttacker: 'Победа',
@@ -198,7 +198,7 @@ dShort: 'д',
 
     // --- Push notifications -------------------------------------------
     pushTitle: 'Notifications',
-    historyTitle: '📜 Raid history',
+    historyTitle: 'Raid history',
 historyEmpty: 'No raids yet',
 historyActive: 'Ongoing',
 historyWonAttacker: 'Victory',
