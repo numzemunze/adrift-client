@@ -1942,6 +1942,7 @@ const mapState = {
   loading: false,
   lastBBox: null,         // для решения, пора ли перезапрашивать
   textureReady: false,
+  fitted: false,          // подгоняли ли зум под точки в этой сессии
 };
 
 const MAP_WORLD_HALF = 2000;   // синхронно с WORLD_MAX на бэке
@@ -2006,6 +2007,27 @@ function worldToScreen(wx, wy) {
   };
 }
 
+// Мировые координаты -> долгота/широта.
+//
+// Центр мира (0, 0) = Германия, (50°N, 10°E). Полный мир
+// [-2000, 2000] × [-2000, 2000] — это 40° долготы × 40° широты.
+// То есть 1 единица мира = 0.01°.
+//
+// ВНИМАНИЕ: эта проекция — линейная (плоская), а не equirectangular с
+// учётом широты. На масштабе 40° она даёт небольшие искажения (Германия
+// и Испания окажутся чуть шире, чем на реальной карте), но для инди-игры
+// это незаметно, а взамен — простые формулы без тригонометрии.
+const WORLD_TO_DEG = 0.01;
+const WORLD_CENTER_LON = 10;    // 10°E
+const WORLD_CENTER_LAT = 50;    // 50°N
+
+function worldToLatLon(wx, wy) {
+  return {
+    lon: WORLD_CENTER_LON + wx * WORLD_TO_DEG,
+    lat: WORLD_CENTER_LAT - wy * WORLD_TO_DEG,  // +y вверх, широта растёт вверх
+  };
+}
+
 // Экранный пиксель -> мировая единица.
 function screenToWorld(sx, sy) {
   const W = mapCanvas.width, H = mapCanvas.height;
@@ -2061,6 +2083,15 @@ async function fetchMapPoints() {
     mapState.points = data.points || [];
     mapState.total = data.total || 0;
     mapState.lastBBox = box;
+
+    // При первой загрузке — подгоняем зум так, чтобы все игроки попали
+    // в кадр. Иначе при 5 игроках в кластере 100×100 они займут один
+    // пиксель на карте мира.
+    if (!mapState.fitted && mapState.points.length > 0) {
+      fitMapToPoints();
+      mapState.fitted = true;
+    }
+
     drawMap();
   } catch (e) {
     // Не показываем toast: карта может быть просто пустой, а не сломанной.
@@ -2070,6 +2101,48 @@ async function fetchMapPoints() {
     mapState.loading = false;
     showMapLoading(false);
   }
+}
+
+// Подгоняет камеру так, чтобы все точки попали в кадр с отступом 20%.
+// Если точек < 2 — ставит zoom на «разумный» 10 и центрирует на игроке.
+function fitMapToPoints() {
+  const pts = mapState.points;
+  if (!pts.length) return;
+
+  // Включаем в bbox и своего игрока тоже — он часть картины.
+  let xMin = Infinity, xMax = -Infinity, yMin = Infinity, yMax = -Infinity;
+  for (const p of pts) {
+    if (p.world_x < xMin) xMin = p.world_x;
+    if (p.world_x > xMax) xMax = p.world_x;
+    if (p.world_y < yMin) yMin = p.world_y;
+    if (p.world_y > yMax) yMax = p.world_y;
+  }
+  if (myWorldX !== null) {
+    if (myWorldX < xMin) xMin = myWorldX;
+    if (myWorldX > xMax) xMax = myWorldX;
+    if (myWorldY < yMin) yMin = myWorldY;
+    if (myWorldY > yMax) yMax = myWorldY;
+  }
+
+  // Размер bbox, минимум 200 единиц — иначе при одной точке zoom взлетит.
+  const spanX = Math.max(200, xMax - xMin);
+  const spanY = Math.max(200, yMax - yMin);
+
+  const W = mapCanvas.width / mapDPR;
+  const H = mapCanvas.height / mapDPR;
+
+  // Отступ 20% — чтобы точки не липли к краям экрана.
+  const zoomX = W / (spanX * 1.4);
+  const zoomY = H / (spanY * 1.4);
+  mapState.zoom = Math.max(
+    mapState.minZoom,
+    Math.min(mapState.maxZoom, Math.min(zoomX, zoomY))
+  );
+
+  // Центр — середина bbox.
+  mapState.cx = (xMin + xMax) / 2;
+  mapState.cy = (yMin + yMax) / 2;
+  clampCenter();
 }
 
 function showMapLoading(on) {
@@ -2085,25 +2158,12 @@ function drawMap() {
   const W = mapCanvas.width, H = mapCanvas.height;
   const scale = mapState.zoom * mapDPR;
 
-  // Фон: если есть текстура — рисуем её в экранных координатах с
-  // учетом зума и центра. Если нет — процедурный градиент + сетка.
+  // Фон.
   mapCtx.fillStyle = '#0a1a2e';
   mapCtx.fillRect(0, 0, W, H);
 
   if (mapState.textureReady && mapTexture) {
-    // Проекция equirectangular: world_x ∈ [-2000, 2000] маппится в
-    // долготу [-20°, 20°] от 10°E. То же для y и широты от 50°N.
-    // При zoom=1 (весь мир) текстура растягивается на canvas целиком.
-    //
-    // Простой способ: предполагаем, что текстура покрывает весь мир
-    // один в один. Рисуем её в экранных координатах точки (-2000,-2000)
-    // размером 4000*scale.
-    const topLeft = worldToScreen(-MAP_WORLD_HALF, -MAP_WORLD_HALF);
-    const texW = MAP_WORLD_HALF * 2 * scale;
-    const texH = MAP_WORLD_HALF * 2 * scale;
-    mapCtx.globalAlpha = 0.55;
-    mapCtx.drawImage(mapTexture, topLeft.x, topLeft.y, texW, texH);
-    mapCtx.globalAlpha = 1;
+    drawEarthTexture(W, H, scale);
   } else {
     drawMapGrid(W, H, scale);
   }
@@ -2130,6 +2190,66 @@ function drawMap() {
     mapCtx.fillStyle = '#fde68a';
     mapCtx.fill();
   }
+}
+
+// Рисует текстуру Земли.
+//
+// Текстура equirectangular: охватывает долготу [-180, 180] и широту [-90, 90],
+// соотношение 2:1. Мы рисуем НЕ её целиком, а только видимую часть —
+// иначе при zoom=10 drawImage получит прямоугольник 360000×180000 пикселей
+// и браузер упадёт или будет тормозить.
+//
+// Логика:
+//   1. Вычисляем видимый прямоугольник в мировых координатах.
+//   2. Переводим его в долготу/широту.
+//   3. Определяем, какая часть пиксельной текстуры туда попадает.
+//   4. Рисуем только эту часть, растянув на нужную область экрана.
+function drawEarthTexture(W, H, scale) {
+  // Видимая область в мире.
+  const halfW = W / 2 / scale;
+  const halfH = H / 2 / scale;
+  const wxMin = mapState.cx - halfW;
+  const wxMax = mapState.cx + halfW;
+  const wyMin = mapState.cy - halfH;
+  const wyMax = mapState.cy + halfH;
+
+  // В долготу/широту. Широта у нас «вверх», а y — «вниз», поэтому
+  // северный край (максимальная широта) — это wyMin.
+  const lonMin = WORLD_CENTER_LON + wxMin * WORLD_TO_DEG;
+  const lonMax = WORLD_CENTER_LON + wxMax * WORLD_TO_DEG;
+  const latMax = WORLD_CENTER_LAT - wyMin * WORLD_TO_DEG;
+  const latMin = WORLD_CENTER_LAT - wyMax * WORLD_TO_DEG;
+
+  // Отсекаем к границам мира: за пределами ±180° / ±90° текстура кончается.
+  const lLonMin = Math.max(-180, lonMin);
+  const lLonMax = Math.min(180, lonMax);
+  const lLatMin = Math.max(-90, latMin);
+  const lLatMax = Math.min(90, latMax);
+  if (lLonMin >= lLonMax || lLatMin >= lLatMax) return;
+
+  // Пиксели в текстуре.
+  const texW = mapTexture.width;
+  const texH = mapTexture.height;
+  const sx = ((lLonMin + 180) / 360) * texW;
+  const sy = ((90 - lLatMax) / 180) * texH;
+  const sw = ((lLonMax - lLonMin) / 360) * texW;
+  const sh = ((lLatMax - lLatMin) / 180) * texH;
+
+  // Куда рисовать на экране. Всё в тех же мировых координатах.
+  const wLonMin = (lLonMin - WORLD_CENTER_LON) / WORLD_TO_DEG;
+  const wLonMax = (lLonMax - WORLD_CENTER_LON) / WORLD_TO_DEG;
+  const wLatMax = (WORLD_CENTER_LAT - lLatMax) / WORLD_TO_DEG;
+  const wLatMin = (WORLD_CENTER_LAT - lLatMin) / WORLD_TO_DEG;
+  const tl = worldToScreen(wLonMin, wLatMax);
+  const br = worldToScreen(wLonMax, wLatMin);
+
+  mapCtx.globalAlpha = 0.65;
+  mapCtx.drawImage(
+    mapTexture,
+    sx, sy, sw, sh,
+    tl.x, tl.y, br.x - tl.x, br.y - tl.y
+  );
+  mapCtx.globalAlpha = 1;
 }
 
 function drawMapGrid(W, H, scale) {
@@ -2223,14 +2343,10 @@ function openMap() {
     mapState.cx = myWorldX !== null ? myWorldX : 0;
     mapState.cy = myWorldY !== null ? myWorldY : 0;
 
-    // Авто-зум: если у нас 100 игроков — они все в пятне радиуса 200,
-    // надо показать это пятно, а не весь мир 4000×4000.
-    // Эвристика: если клиент видит только свою область, ставим zoom
-    // так, чтобы bbox был примерно 600×600.
-    mapState.zoom = Math.max(
-      mapCanvas.width / mapDPR / 600,
-      mapCanvas.width / mapDPR / (MAP_WORLD_HALF * 2)
-    );
+    // Стартовый zoom будет пересчитан после первого запроса точек —
+    // см. fitMapToPoints(). Здесь ставим временный, чтобы первый drawMap
+    // не рисовал в мусорных масштабах.
+    mapState.zoom = 1;
 
     attachMapHandlers();
 
@@ -3165,4 +3281,4 @@ setMode('own'); buildMode = true; updatePanel(); ok();
 })();
 </script>
 </body>
- </html>
+       </html>
