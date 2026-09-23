@@ -314,7 +314,6 @@
   <button id="btn-demolish" class="hidden icon" title="Demolish">🗑</button>
   <button id="btn-shop" class="hidden" title="Shop"><span class="shop-ico">🛒</span><span id="shop-mini"></span></button>
   <button id="btn-map" class="icon" title="Map">🗺️</button>
-  <button id="btn-world" class="icon" title="World">🌍</button>
   <button id="reload" class="icon" title="Reload">↻</button>
 </div>
 <div class="bar hidden" id="bottom-visit">
@@ -1378,7 +1377,6 @@ function updatePanel() {
   $('btn-palette').classList.toggle('hidden', !on);
   $('btn-demolish').classList.toggle('hidden', !on);
   $('btn-shop').classList.toggle('hidden', !on);
-  $('btn-world').classList.toggle('hidden', on);
   $('reload').classList.toggle('hidden', on);
   $('target-pill').classList.toggle('hidden', mode === 'own');
   updateRotateButton();
@@ -1953,12 +1951,14 @@ let mapCanvas = null, mapCtx = null, mapTexture = null, mapDPR = 1;
 // Попытка загрузить текстуру Земли. Если файла нет — тихо остаёмся
 // без неё: рисуем процедурный фон.
 function loadMapTexture() {
-  if (mapTexture !== null) return;  // уже пробовали
+  if (mapTexture !== null) return;
   const img = new Image();
   img.crossOrigin = 'anonymous';
   img.onload = () => { mapTexture = img; mapState.textureReady = true; if (mapState.open) drawMap(); };
-  img.onerror = () => { mapTexture = false; };  // false = «пробовали и не смогли»
-  img.src = './assets/earth.png';
+  img.onerror = () => { mapTexture = false; };
+  // Официальная текстура из репозитория three.js. 2048×1024, ~600 КБ.
+  // CDN jsdelivr — стабильный, работает во всех регионах, ничего не блокирует.
+  img.src = 'https://cdn.jsdelivr.net/npm/three@0.160.0/examples/textures/planets/earth_atmos_2048.jpg';
 }
 
 function resizeMapCanvas() {
@@ -3023,7 +3023,6 @@ $('map-center').addEventListener('click', () => {
   }
   drawMap(); scheduleFetch();
 });
-$('btn-world').addEventListener('click', openWorld);
  // Профиль закрывается БЕЗ hideScreens: если игрок пришёл сюда из списка
 // соседей, он должен вернуться обратно в список, а не на пустой экран.
 $('profile-close').addEventListener('click', () => $('profile-screen').classList.add('hidden'));
