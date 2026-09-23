@@ -411,6 +411,16 @@
   </div>
   <div class="profile-card">
     <div class="settings-section">
+      <div class="settings-section-title" data-i18n="settingsGraphics">Графика</div>
+      <div class="settings-row">
+        <div>
+          <div class="settings-row-label" data-i18n="settingsGraphicsLabel">Качество</div>
+          <div class="settings-row-sub" id="graphics-status"></div>
+        </div>
+        <button id="graphics-toggle" class="go"></button>
+      </div>
+    </div>
+    <div class="settings-section">
       <div class="settings-section-title" data-i18n="settingsSound">Звук</div>
       <div class="settings-row">
         <div>
@@ -654,7 +664,7 @@ async function auth() {
 
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x070f22);
-scene.fog = new THREE.Fog(0x1c3054, 80, 220);
+scene.fog = new THREE.Fog(0x4a6a9c, 50, 160);
 const camera = new THREE.PerspectiveCamera(55, innerWidth/innerHeight, 0.1, 500);
 camera.position.set(26, 44, 26);
 const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
@@ -682,9 +692,9 @@ const menuOrbit = {
 const skyGeo = new THREE.SphereGeometry(320, 32, 16);
 const skyMat = new THREE.ShaderMaterial({
   uniforms: {
-    topColor:    { value: new THREE.Color(0x070f22) },
-    midColor:    { value: new THREE.Color(0x1c3054) },
-    bottomColor: { value: new THREE.Color(0x506080) },
+    topColor:    { value: new THREE.Color(0x0d1b3d) },
+    midColor:    { value: new THREE.Color(0x4a6a9c) },
+    bottomColor: { value: new THREE.Color(0xa8b8d0) },
   },
   vertexShader: `
     varying vec3 vWorldPos;
@@ -2060,6 +2070,64 @@ async function togglePush() {
   }
 }
 
+const GRAPHICS_KEY = 'adrift_graphics';
+
+function getGraphicsQuality() {
+  try { return localStorage.getItem(GRAPHICS_KEY) || 'high'; } catch (e) { return 'high'; }
+}
+
+function applyGraphicsQuality(q) {
+  const high = q === 'high';
+  renderer.shadowMap.enabled = high;
+  renderer.shadowMap.needsUpdate = true;
+
+  for (const mesh of cubeMeshes.values()) {
+    mesh.castShadow = high;
+    mesh.receiveShadow = high;
+    mesh.material.needsUpdate = true;
+  }
+  minionGroup.traverse((obj) => {
+    if (obj.isMesh) {
+      obj.castShadow = high;
+      obj.receiveShadow = high;
+      if (obj.material && obj.material.needsUpdate !== undefined) {
+        obj.material.needsUpdate = true;
+      }
+    }
+  });
+  flagGroup.traverse((obj) => {
+    if (obj.isMesh) {
+      obj.castShadow = high;
+      obj.receiveShadow = high;
+    }
+  });
+  ground.receiveShadow = high;
+
+  renderer.setPixelRatio(high ? Math.min(devicePixelRatio, 2) : 1);
+}
+
+async function paintGraphicsBlock() {
+  const btn = $('graphics-toggle');
+  const statusEl = $('graphics-status');
+  if (!btn || !statusEl) return;
+
+  const q = getGraphicsQuality();
+  const high = q === 'high';
+  statusEl.textContent = high ? t('graphicsHighDesc') : t('graphicsLowDesc');
+  statusEl.className = 'settings-row-sub' + (high ? ' on' : '');
+  btn.textContent = high ? t('graphicsHigh') : t('graphicsLow');
+  btn.className = high ? 'go' : 'danger';
+}
+
+function toggleGraphics() {
+  const current = getGraphicsQuality();
+  const next = current === 'high' ? 'low' : 'high';
+  try { localStorage.setItem(GRAPHICS_KEY, next); } catch (e) {}
+  applyGraphicsQuality(next);
+  paintGraphicsBlock();
+  toast(next === 'high' ? t('graphicsHigh') : t('graphicsLow'), 'tip');
+}
+
 async function paintSoundBlock() {
   const statusEl = $('sound-status');
   if (!statusEl) return;
@@ -2070,6 +2138,7 @@ async function paintSoundBlock() {
 }
 
 function openSettings() {
+  paintGraphicsBlock();
   paintSoundBlock();
   paintPushBlock();
   showScreen('settings-screen');
@@ -2479,6 +2548,7 @@ $('btn-leave').addEventListener('click', leaveRaid);
 $('loot-ok').addEventListener('click', returnHome);
 $('tip-ok').addEventListener('click', closeTip);
 $('onboard-ok').addEventListener('click', () => { localStorage.setItem('adrift_onboarded', '1'); closeOnboard(); });
+$('graphics-toggle').addEventListener('click', toggleGraphics);
 $('sound-btn').addEventListener('click', toggleAudio);
 $('push-toggle').addEventListener('click', togglePush);
 $('signout-btn').addEventListener('click', signOut);
@@ -2534,6 +2604,8 @@ animate();
 
     showMenu(true);
     playMusic('nowhereland');
+
+    applyGraphicsQuality(getGraphicsQuality());
 
     await auth();
     registerServiceWorker();
