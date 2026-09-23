@@ -660,6 +660,8 @@ const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'hi
 renderer.setPixelRatio(1);
 renderer.setSize(innerWidth, innerHeight);
 renderer.domElement.style.filter = 'saturate(1.18) contrast(1.06)';
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 $('app').appendChild(renderer.domElement);
 const controls = new OrbitControls(camera, renderer.domElement);
 controls.target.set(0, 0, 3);
@@ -676,16 +678,73 @@ const menuOrbit = {
   speed: 0.12,
 };
 
-scene.add(new THREE.AmbientLight(0xffffff, 0.42));
-const sun = new THREE.DirectionalLight(0xffffff, 1.15);
-sun.position.set(30, 50, 20); scene.add(sun);
+const skyGeo = new THREE.SphereGeometry(300, 24, 12);
+const skyMat = new THREE.ShaderMaterial({
+  uniforms: {
+    topColor:    { value: new THREE.Color(0x02040c) },
+    midColor:    { value: new THREE.Color(0x0b1020) },
+    bottomColor: { value: new THREE.Color(0x1a2a3e) },
+  },
+  vertexShader: `
+    varying vec3 vWorldPos;
+    void main() {
+      vec4 wp = modelMatrix * vec4(position, 1.0);
+      vWorldPos = wp.xyz;
+      gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+    }
+  `,
+  fragmentShader: `
+    uniform vec3 topColor;
+    uniform vec3 midColor;
+    uniform vec3 bottomColor;
+    varying vec3 vWorldPos;
+    void main() {
+      float h = normalize(vWorldPos).y;
+      vec3 color;
+      if (h < 0.0) {
+        color = mix(bottomColor, midColor, smoothstep(-0.4, 0.0, h));
+      } else {
+        color = mix(midColor, topColor, smoothstep(0.0, 0.6, h));
+      }
+      gl_FragColor = vec4(color, 1.0);
+    }
+  `,
+  side: THREE.BackSide,
+  depthWrite: false,
+  fog: false,
+});
+const skyMesh = new THREE.Mesh(skyGeo, skyMat);
+skyMesh.renderOrder = -1000;
+scene.add(skyMesh);
+
+scene.add(new THREE.AmbientLight(0xffffff, 0.35));
+const sun = new THREE.DirectionalLight(0xffffff, 1.25);
+sun.position.set(30, 50, 20);
+sun.castShadow = true;
+sun.shadow.mapSize.width = 1024;
+sun.shadow.mapSize.height = 1024;
+sun.shadow.camera.left = -45;
+sun.shadow.camera.right = 45;
+sun.shadow.camera.top = 45;
+sun.shadow.camera.bottom = -45;
+sun.shadow.camera.near = 10;
+sun.shadow.camera.far = 150;
+sun.shadow.bias = -0.0003;
+sun.shadow.normalBias = 0.02;
+scene.add(sun);
+scene.add(sun.target);
+
 const ground = new THREE.Mesh(
   new THREE.BoxGeometry(66,1,66),
   makeToonMaterial({ color: 0x1e3a2f, flatShading: true })
 );
-ground.position.y = -0.5; scene.add(ground);
+ground.position.y = -0.5;
+ground.receiveShadow = true;
+ground.castShadow = false;
+scene.add(ground);
 const grid = new THREE.GridHelper(64, 64, 0x3b82f6, 0x1e293b);
-grid.position.y = 0.01; scene.add(grid);
+grid.position.y = 0.01;
+scene.add(grid);
 
 const FLAG_CELL_CENTER = 0.5;
 const RING_HALF = FLAG_CLEAR_RADIUS + 0.5;
@@ -714,11 +773,15 @@ const pole = new THREE.Mesh(
   makeToonMaterial({ color: 0x94a3b8 })
 );
 pole.position.y = 2;
+pole.castShadow = true;
+pole.receiveShadow = true;
 const banner = new THREE.Mesh(
   new THREE.BoxGeometry(1.6,1,0.1),
   makeToonMaterial({ color: 0xef4444 })
 );
 banner.position.set(0.8, 3.3, 0);
+banner.castShadow = true;
+banner.receiveShadow = true;
 flagGroup.add(pole, banner);
 flagGroup.position.set(FLAG_CELL_CENTER, 0, FLAG_CELL_CENTER);
 scene.add(flagGroup);
@@ -818,6 +881,12 @@ const droplets = [];
     const d = makeSprite('💦', 0.55); d.userData.phase = i / 3; d.position.set(0, 1.2, 0);
     minionGroup.add(d); droplets.push(d);
   }
+  minionGroup.traverse((obj) => {
+    if (obj.isMesh) {
+      obj.castShadow = true;
+      obj.receiveShadow = true;
+    }
+  });
   scene.add(minionGroup);
 })();
 
@@ -860,7 +929,13 @@ function bfsPath(sx, sz, tx, tz) {
   return null;
 }
 function resetMinionPath() { minion.path = []; }
-setOnCubesChanged(resetMinionPath);
+setOnCubesChanged(() => {
+  for (const mesh of cubeMeshes.values()) {
+    mesh.castShadow = true;
+    mesh.receiveShadow = true;
+  }
+  resetMinionPath();
+});
 function pickMinionTarget() {
   const panic = minion.mood === 'panic';
   const rMin = panic ? PANIC_RADIUS_MIN : MINION_RADIUS_MIN;
