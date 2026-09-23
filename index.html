@@ -244,6 +244,46 @@
 .history-meta.won { color:#86efac; }
 .history-meta.lost { color:#fca5a5; }
 .history-meta.active { color:#fbbf24; }
+
+/* --- Карта мира -------------------------------------------------------- */
+#map-screen { padding:0; }                     /* карта занимает весь экран */
+#map-screen .screen-head {
+  position:absolute; top:0; left:0; right:0; z-index:3;
+  padding:14px;
+  background:linear-gradient(180deg, rgba(11,16,32,.9), rgba(11,16,32,0));
+  pointer-events:none;                          /* фон не мешает тапу по canvas */
+}
+#map-screen .screen-head > * { pointer-events:auto; }
+
+#map-container { position:absolute; inset:0; overflow:hidden; background:#0a1a2e; }
+#map-canvas { display:block; width:100%; height:100%; touch-action:none; }
+
+.map-loading {
+  position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
+  font-size:28px; color:rgba(255,255,255,.4); letter-spacing:.2em;
+  pointer-events:none; transition:opacity .25s ease;
+}
+.map-loading.hidden { opacity:0; }
+
+.map-hint {
+  position:absolute; left:50%; bottom:80px; transform:translateX(-50%);
+  background:rgba(17,26,51,.92); backdrop-filter:blur(8px);
+  border:1px solid rgba(255,255,255,.12); border-radius:20px;
+  padding:7px 14px; font-size:12px; color:rgba(255,255,255,.7);
+  pointer-events:none; opacity:1; transition:opacity .6s ease .5s;
+  white-space:nowrap; max-width:90vw; overflow:hidden; text-overflow:ellipsis;
+}
+.map-hint.fade { opacity:0; }
+
+#map-controls {
+  position:absolute; right:14px; bottom:24px; z-index:3;
+  display:flex; flex-direction:column; gap:8px;
+}
+.map-zoom-btn, .map-center-btn {
+  width:44px; height:44px; padding:0; font-size:20px; line-height:1;
+  border-radius:12px;
+}
+.map-center-btn { font-size:18px; }
 </style>
 </head>
 <body>
@@ -273,6 +313,7 @@
   <button id="btn-palette" class="hidden icon" title="Flag color"><span class="swatch" id="swatch-flag"></span></button>
   <button id="btn-demolish" class="hidden icon" title="Demolish">🗑</button>
   <button id="btn-shop" class="hidden" title="Shop"><span class="shop-ico">🛒</span><span id="shop-mini"></span></button>
+  <button id="btn-map" class="icon" title="Map">🗺️</button>
   <button id="btn-world" class="icon" title="World">🌍</button>
   <button id="reload" class="icon" title="Reload">↻</button>
 </div>
@@ -290,6 +331,22 @@
 <div class="screen hidden" id="world-screen">
   <div class="screen-head"><div class="screen-title" data-i18n="worldTitle">🌍 Мир</div><button id="world-close">✕</button></div>
   <div id="world-list"></div>
+</div>
+<div class="screen hidden" id="map-screen">
+  <div class="screen-head">
+    <div class="screen-title" data-i18n="mapTitle">🗺️ Карта мира</div>
+    <button id="map-close">✕</button>
+  </div>
+  <div id="map-container">
+    <canvas id="map-canvas"></canvas>
+    <div id="map-loading" class="map-loading">…</div>
+    <div id="map-hint" class="map-hint" data-i18n="mapHint">Тапни по острову, чтобы открыть профиль</div>
+  </div>
+  <div id="map-controls">
+    <button id="map-zoom-in" class="map-zoom-btn">＋</button>
+    <button id="map-zoom-out" class="map-zoom-btn">－</button>
+    <button id="map-center" class="map-center-btn">🎯</button>
+  </div>
 </div>
 <div class="screen hidden" id="history-screen">
   <div class="screen-head">
@@ -494,6 +551,7 @@ let myFlagColor = 'red';
 let displayFlagColor = 'red';
 let currentFlagHp = 0, currentFlagMax = 0;
 let myRaidAlert = false;
+let myWorldX = null, myWorldY = null;
 let menuMode = true;
 
 // Анонимный Supabase-signup больше не используем: единственный вход —
@@ -1341,7 +1399,7 @@ function setMode(next) {
 function setBuildMode(on) { buildMode = on; if (!on) setDemolish(false); closeAllPalettes(); updatePanel(); }
 function setDemolish(on) { demolishMode = on; $('btn-demolish').classList.toggle('demolish-on', on); updatePanel(); }
 function showScreen(id) { $(id).classList.remove('hidden'); }
-function hideScreens() { ['world-screen','loot-screen','onboard-screen','tip-screen','shop-screen','history-screen','profile-screen','edit-profile-screen','settings-screen'].forEach(id => $(id).classList.add('hidden')); closeAllPalettes(); }
+function hideScreens() { ['world-screen','loot-screen','onboard-screen','tip-screen','shop-screen','history-screen','map-screen','profile-screen','edit-profile-screen','settings-screen'].forEach(id => $(id).classList.add('hidden')); closeAllPalettes(); }
 function closeOnboard() {
   const el = $('onboard-screen'); el.classList.add('closing');
   setTimeout(() => { el.classList.remove('closing'); el.classList.add('hidden'); }, 300);
@@ -1428,6 +1486,8 @@ async function loadMe() {
   myFlagColor = me.flag_color || 'red'; displayFlagColor = myFlagColor;
   setMinionFlagColor(myFlagColor);
   updateFlagSwatch();
+  myWorldX = me.world_pos ? me.world_pos.x : null;
+  myWorldY = me.world_pos ? me.world_pos.y : null;
   currentUsername = me.username || '';
   currentBio = me.bio || null;
   currentAvatar = me.avatar || null;
@@ -1843,6 +1903,488 @@ async function openProfile(userId, fallbackUsername) {
     if (!$('profile-screen').classList.contains('hidden')) paintProfile(isl);
   } catch (e) {
     toast(humanError(e), 'error');
+  }
+}
+
+// --- Карта мира -----------------------------------------------------------
+// Отдельный экран с canvas 2D. Плоская проекция (пока), рисует точки
+// игроков из GET /islands/map?bbox=...
+//
+// КООРДИНАТЫ
+// ----------
+// world_x/world_y — игровые единицы, диапазон [-2000, 2000]. Камера
+// хранит центр в этих координатах и zoom (пикселей на единицу).
+// При zoom=1 весь мир умещается в ширину canvas; при zoom=10 — только
+// 10% (виден свой кластер).
+//
+// ПРОЕКЦИЯ
+// --------
+// Экранные пиксели ↔ мировые единицы:
+//   sx = (wx - cx) * scale + W/2
+//   wy = (sy - H/2) / scale + cy
+// где W, H — размеры canvas, cx/cy — центр камеры, scale — пикселей
+// на единицу мира. Это линейная проекция без искажений — на масштабе
+// «планета» это упрощение не критично, на масштабе «континент» его
+// вообще не видно.
+//
+// ЗАГРУЗКА
+// --------
+// При открытии и при изменении bbox больше чем на 20% запрашиваем точки
+// с бэка. Между запросами рисуем то, что уже есть (последний успешный
+// ответ). Так карта не мигает при зуме и перетаскивании.
+
+const mapState = {
+  open: false,
+  cx: 0, cy: 0,           // центр камеры в мировых координатах
+  zoom: 1,                // пикселей на единицу
+  minZoom: 0.1,
+  maxZoom: 40,
+  points: [],             // последний успешный ответ
+  total: 0,
+  loading: false,
+  lastBBox: null,         // для решения, пора ли перезапрашивать
+  textureReady: false,
+};
+
+const MAP_WORLD_HALF = 2000;   // синхронно с WORLD_MAX на бэке
+
+let mapCanvas = null, mapCtx = null, mapTexture = null, mapDPR = 1;
+
+// Попытка загрузить текстуру Земли. Если файла нет — тихо остаёмся
+// без неё: рисуем процедурный фон.
+function loadMapTexture() {
+  if (mapTexture !== null) return;  // уже пробовали
+  const img = new Image();
+  img.crossOrigin = 'anonymous';
+  img.onload = () => { mapTexture = img; mapState.textureReady = true; if (mapState.open) drawMap(); };
+  img.onerror = () => { mapTexture = false; };  // false = «пробовали и не смогли»
+  img.src = './assets/earth.png';
+}
+
+function resizeMapCanvas() {
+  if (!mapCanvas) return;
+  mapDPR = Math.min(window.devicePixelRatio || 1, 2);
+  const rect = mapCanvas.parentElement.getBoundingClientRect();
+  mapCanvas.width = Math.floor(rect.width * mapDPR);
+  mapCanvas.height = Math.floor(rect.height * mapDPR);
+  mapCanvas.style.width = rect.width + 'px';
+  mapCanvas.style.height = rect.height + 'px';
+}
+
+// Мировая единица -> экранный пиксель.
+function worldToScreen(wx, wy) {
+  const W = mapCanvas.width, H = mapCanvas.height;
+  const scale = mapState.zoom * mapDPR;
+  return {
+    x: (wx - mapState.cx) * scale + W / 2,
+    y: (wy - mapState.cy) * scale + H / 2,
+  };
+}
+
+// Экранный пиксель -> мировая единица.
+function screenToWorld(sx, sy) {
+  const W = mapCanvas.width, H = mapCanvas.height;
+  const scale = mapState.zoom * mapDPR;
+  return {
+    x: (sx - W / 2) / scale + mapState.cx,
+    y: (sy - H / 2) / scale + mapState.cy,
+  };
+}
+
+// Видимый прямоугольник в мировых координатах.
+function visibleBBox() {
+  const W = mapCanvas.width, H = mapCanvas.height;
+  const scale = mapState.zoom * mapDPR;
+  const halfW = W / 2 / scale;
+  const halfH = H / 2 / scale;
+  return {
+    x1: Math.max(-MAP_WORLD_HALF, Math.floor(mapState.cx - halfW)),
+    y1: Math.max(-MAP_WORLD_HALF, Math.floor(mapState.cy - halfH)),
+    x2: Math.min(MAP_WORLD_HALF, Math.ceil(mapState.cx + halfW)),
+    y2: Math.min(MAP_WORLD_HALF, Math.ceil(mapState.cy + halfH)),
+  };
+}
+
+// Сравнивает два bbox. Если новый заметно больше старого — стоит
+// перезапросить (иначе при отдалении увидим пустоту). Если просто
+// сдвинулись внутри — тянем из уже загруженного.
+function bboxNeedsReload(a, b) {
+  if (!a) return true;
+  const sizeA = (a.x2 - a.x1) * (a.y2 - a.y1);
+  const sizeB = (b.x2 - b.x1) * (b.y2 - b.y1);
+  if (sizeB > sizeA * 1.3) return true;
+  // Если новый bbox вылезает за пределы старого хотя бы на 20% по любой
+  // стороне — тоже перезапрашиваем.
+  const marginX = (a.x2 - a.x1) * 0.2;
+  const marginY = (a.y2 - a.y1) * 0.2;
+  return (
+    b.x1 < a.x1 - marginX || b.x2 > a.x2 + marginX ||
+    b.y1 < a.y1 - marginY || b.y2 > a.y2 + marginY
+  );
+}
+
+async function fetchMapPoints() {
+  const box = visibleBBox();
+  if (!bboxNeedsReload(mapState.lastBBox, box)) return;
+
+  mapState.loading = true;
+  showMapLoading(true);
+  try {
+    const data = await api(
+      `/api/v1/islands/map?x1=${box.x1}&y1=${box.y1}&x2=${box.x2}&y2=${box.y2}&limit=1000`
+    );
+    mapState.points = data.points || [];
+    mapState.total = data.total || 0;
+    mapState.lastBBox = box;
+    drawMap();
+  } catch (e) {
+    // Не показываем toast: карта может быть просто пустой, а не сломанной.
+    // Логируем в консоль для отладки.
+    console.warn('map fetch failed', e);
+  } finally {
+    mapState.loading = false;
+    showMapLoading(false);
+  }
+}
+
+function showMapLoading(on) {
+  const el = $('map-loading');
+  if (!el) return;
+  el.classList.toggle('hidden', !on);
+}
+
+// Рисует карту. Полная перерисовка на каждый кадр — для 1000 точек это
+// <1мс, оптимизировать не нужно.
+function drawMap() {
+  if (!mapCtx) return;
+  const W = mapCanvas.width, H = mapCanvas.height;
+  const scale = mapState.zoom * mapDPR;
+
+  // Фон: если есть текстура — рисуем её в экранных координатах с
+  // учетом зума и центра. Если нет — процедурный градиент + сетка.
+  mapCtx.fillStyle = '#0a1a2e';
+  mapCtx.fillRect(0, 0, W, H);
+
+  if (mapState.textureReady && mapTexture) {
+    // Проекция equirectangular: world_x ∈ [-2000, 2000] маппится в
+    // долготу [-20°, 20°] от 10°E. То же для y и широты от 50°N.
+    // При zoom=1 (весь мир) текстура растягивается на canvas целиком.
+    //
+    // Простой способ: предполагаем, что текстура покрывает весь мир
+    // один в один. Рисуем её в экранных координатах точки (-2000,-2000)
+    // размером 4000*scale.
+    const topLeft = worldToScreen(-MAP_WORLD_HALF, -MAP_WORLD_HALF);
+    const texW = MAP_WORLD_HALF * 2 * scale;
+    const texH = MAP_WORLD_HALF * 2 * scale;
+    mapCtx.globalAlpha = 0.55;
+    mapCtx.drawImage(mapTexture, topLeft.x, topLeft.y, texW, texH);
+    mapCtx.globalAlpha = 1;
+  } else {
+    drawMapGrid(W, H, scale);
+  }
+
+  // Точки игроков.
+  for (const p of mapState.points) {
+    const s = worldToScreen(p.world_x, p.world_y);
+    if (s.x < -20 || s.x > W + 20 || s.y < -20 || s.y > H + 20) continue;
+    drawMapPoint(p, s.x, s.y, scale);
+  }
+
+  // Свой остров — отдельно, поверх и с пульсацией.
+  if (myWorldX !== null && myWorldY !== null) {
+    const s = worldToScreen(myWorldX, myWorldY);
+    const pulse = 1 + Math.sin(performance.now() / 400) * 0.25;
+    const r = Math.max(6, Math.min(20, 6 * pulse)) * mapDPR;
+    mapCtx.beginPath();
+    mapCtx.arc(s.x, s.y, r + 4 * mapDPR, 0, Math.PI * 2);
+    mapCtx.strokeStyle = '#fde68a';
+    mapCtx.lineWidth = 2 * mapDPR;
+    mapCtx.stroke();
+    mapCtx.beginPath();
+    mapCtx.arc(s.x, s.y, r, 0, Math.PI * 2);
+    mapCtx.fillStyle = '#fde68a';
+    mapCtx.fill();
+  }
+}
+
+function drawMapGrid(W, H, scale) {
+  // Сетка каждые 500 единиц мира. При сильном зуме сетка перестаёт
+  // быть видимой (шаг больше экрана) — нормально, есть точки.
+  const step = 500;
+  mapCtx.strokeStyle = 'rgba(125,211,252,.12)';
+  mapCtx.lineWidth = 1 * mapDPR;
+
+  const halfW = W / 2 / scale;
+  const halfH = H / 2 / scale;
+  const left = mapState.cx - halfW;
+  const right = mapState.cx + halfW;
+  const top = mapState.cy - halfH;
+  const bottom = mapState.cy + halfH;
+
+  for (let x = Math.ceil(left / step) * step; x <= right; x += step) {
+    const s = worldToScreen(x, 0);
+    mapCtx.beginPath();
+    mapCtx.moveTo(s.x, 0);
+    mapCtx.lineTo(s.x, H);
+    mapCtx.stroke();
+  }
+  for (let y = Math.ceil(top / step) * step; y <= bottom; y += step) {
+    const s = worldToScreen(0, y);
+    mapCtx.beginPath();
+    mapCtx.moveTo(0, s.y);
+    mapCtx.lineTo(W, s.y);
+    mapCtx.stroke();
+  }
+
+  // Метка центра мира (Германия) — красный крестик.
+  const origin = worldToScreen(0, 0);
+  if (origin.x > -50 && origin.x < W + 50 && origin.y > -50 && origin.y < H + 50) {
+    mapCtx.strokeStyle = 'rgba(239,68,68,.5)';
+    mapCtx.lineWidth = 2 * mapDPR;
+    const L = 8 * mapDPR;
+    mapCtx.beginPath();
+    mapCtx.moveTo(origin.x - L, origin.y); mapCtx.lineTo(origin.x + L, origin.y);
+    mapCtx.moveTo(origin.x, origin.y - L); mapCtx.lineTo(origin.x, origin.y + L);
+    mapCtx.stroke();
+  }
+}
+
+function drawMapPoint(p, sx, sy, scale) {
+  // Радиус точки зависит от cube_count. При 0 кубов — минимум 4px,
+  // при 256 (лимит) — 14px. Логарифмическая шкала, потому что острова
+  // в основном маленькие, а большие — исключения.
+  const rWorld = Math.max(4, Math.min(14, 4 + Math.log2(1 + p.cube_count) * 1.5)) * mapDPR;
+
+  // Цвет — по цвету флага. is_online меняет яркость.
+  const colorHex = FLAG_COLORS_CSS[p.flag_color] || '#ef4444';
+
+  mapCtx.globalAlpha = p.is_online ? 0.95 : 0.5;
+
+  mapCtx.beginPath();
+  mapCtx.arc(sx, sy, rWorld, 0, Math.PI * 2);
+  mapCtx.fillStyle = colorHex;
+  mapCtx.fill();
+
+  mapCtx.strokeStyle = p.is_online ? '#ffffff' : 'rgba(255,255,255,.4)';
+  mapCtx.lineWidth = (p.is_online ? 1.5 : 1) * mapDPR;
+  mapCtx.stroke();
+
+  mapCtx.globalAlpha = 1;
+
+  // Подпись — только при достаточном зуме. Иначе превратится в кашу.
+  if (mapState.zoom > 3) {
+    mapCtx.font = `${11 * mapDPR}px system-ui,-apple-system,sans-serif`;
+    mapCtx.textAlign = 'center';
+    mapCtx.textBaseline = 'top';
+    mapCtx.fillStyle = 'rgba(0,0,0,.6)';
+    mapCtx.fillText(p.username, sx + 1, sy + rWorld + 3 * mapDPR);
+    mapCtx.fillStyle = p.is_online ? '#fff' : 'rgba(255,255,255,.65)';
+    mapCtx.fillText(p.username, sx, sy + rWorld + 2 * mapDPR);
+  }
+}
+
+// --- Открытие / закрытие ---
+function openMap() {
+  closeAllPalettes();
+  showScreen('map-screen');
+
+  if (!mapCanvas) {
+    mapCanvas = $('map-canvas');
+    mapCtx = mapCanvas.getContext('2d');
+    resizeMapCanvas();
+    loadMapTexture();
+
+    // Инициализируем центр по игроку.
+    mapState.cx = myWorldX !== null ? myWorldX : 0;
+    mapState.cy = myWorldY !== null ? myWorldY : 0;
+
+    // Авто-зум: если у нас 100 игроков — они все в пятне радиуса 200,
+    // надо показать это пятно, а не весь мир 4000×4000.
+    // Эвристика: если клиент видит только свою область, ставим zoom
+    // так, чтобы bbox был примерно 600×600.
+    mapState.zoom = Math.max(
+      mapCanvas.width / mapDPR / 600,
+      mapCanvas.width / mapDPR / (MAP_WORLD_HALF * 2)
+    );
+
+    attachMapHandlers();
+
+    window.addEventListener('resize', () => {
+      if (mapState.open) {
+        resizeMapCanvas();
+        fetchMapPoints();
+        drawMap();
+      }
+    });
+  } else {
+    resizeMapCanvas();
+  }
+
+  mapState.open = true;
+  mapState.lastBBox = null;   // форсируем перезапрос при открытии
+  fetchMapPoints();
+
+  // Прячем подсказку через 4 секунды.
+  setTimeout(() => {
+    const h = $('map-hint');
+    if (h) h.classList.add('fade');
+  }, 4000);
+}
+
+function closeMap() {
+  mapState.open = false;
+  $('map-screen').classList.add('hidden');
+}
+
+// --- Обработчики canvas: тап, pinch, drag ---
+function attachMapHandlers() {
+  let pointers = new Map();       // pointerId -> {x, y}
+  let startDistance = 0;
+  let startZoom = 1;
+  let startCenter = { x: 0, y: 0 };
+  let startMidpoint = { x: 0, y: 0 };
+  let dragged = false;
+  let dragStart = { x: 0, y: 0 };
+  let startCx = 0, startCy = 0;
+
+  const getRect = () => mapCanvas.getBoundingClientRect();
+
+  mapCanvas.addEventListener('pointerdown', (ev) => {
+    if (ev.pointerType === 'mouse' && ev.button !== 0) return;
+    mapCanvas.setPointerCapture(ev.pointerId);
+    const rect = getRect();
+    pointers.set(ev.pointerId, { x: ev.clientX - rect.left, y: ev.clientY - rect.top });
+
+    if (pointers.size === 1) {
+      dragged = false;
+      dragStart = { x: ev.clientX, y: ev.clientY };
+      startCx = mapState.cx;
+      startCy = mapState.cy;
+    } else if (pointers.size === 2) {
+      const [a, b] = [...pointers.values()];
+      startDistance = Math.hypot(a.x - b.x, a.y - b.y);
+      startZoom = mapState.zoom;
+      startCenter = { x: mapState.cx, y: mapState.cy };
+      startMidpoint = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
+    }
+  });
+
+  mapCanvas.addEventListener('pointermove', (ev) => {
+    if (!pointers.has(ev.pointerId)) return;
+    const rect = getRect();
+    pointers.set(ev.pointerId, { x: ev.clientX - rect.left, y: ev.clientY - rect.top });
+
+    if (pointers.size === 1) {
+      const dx = ev.clientX - dragStart.x;
+      const dy = ev.clientY - dragStart.y;
+      if (Math.hypot(dx, dy) > 6) dragged = true;
+      const scale = mapState.zoom * mapDPR;
+      mapState.cx = startCx - dx * mapDPR / scale;
+      mapState.cy = startCy - dy * mapDPR / scale;
+      clampCenter();
+      drawMap();
+      scheduleFetch();
+    } else if (pointers.size === 2) {
+      const [a, b] = [...pointers.values()];
+      const dist = Math.hypot(a.x - b.x, a.y - b.y);
+      const factor = dist / Math.max(1, startDistance);
+      const newZoom = Math.max(mapState.minZoom, Math.min(mapState.maxZoom, startZoom * factor));
+      // Сохраняем точку под пальцами: zoom относительно midpoint.
+      const mid = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
+      const scaleOld = startZoom * mapDPR;
+      const scaleNew = newZoom * mapDPR;
+      mapState.cx = startCenter.x - (mid.x - startMidpoint.x) * mapDPR / scaleOld;
+      mapState.cy = startCenter.y - (mid.y - startMidpoint.y) * mapDPR / scaleOld;
+      // Дополнительно сдвигаем центр так, чтобы мировая точка под midpoint
+      // осталась под ним же при новом зуме.
+      const W = mapCanvas.width, H = mapCanvas.height;
+      const worldMid = {
+        x: (mid.x * mapDPR - W / 2) / scaleNew + mapState.cx,
+        y: (mid.y * mapDPR - H / 2) / scaleNew + mapState.cy,
+      };
+      const oldWorldMid = {
+        x: (mid.x * mapDPR - W / 2) / scaleOld + startCenter.x,
+        y: (mid.y * mapDPR - H / 2) / scaleOld + startCenter.y,
+      };
+      mapState.cx += oldWorldMid.x - worldMid.x;
+      mapState.cy += oldWorldMid.y - worldMid.y;
+      mapState.zoom = newZoom;
+      clampCenter();
+      drawMap();
+      scheduleFetch();
+    }
+  });
+
+  const onUp = (ev) => {
+    if (!pointers.has(ev.pointerId)) return;
+    const wasSingle = pointers.size === 1;
+    pointers.delete(ev.pointerId);
+    if (wasSingle && !dragged) {
+      handleMapTap(ev);
+    }
+  };
+  mapCanvas.addEventListener('pointerup', onUp);
+  mapCanvas.addEventListener('pointercancel', (ev) => {
+    pointers.delete(ev.pointerId);
+  });
+
+  // Колесо мыши — десктоп.
+  mapCanvas.addEventListener('wheel', (ev) => {
+    ev.preventDefault();
+    const rect = getRect();
+    const mx = ev.clientX - rect.left;
+    const my = ev.clientY - rect.top;
+    const W = mapCanvas.width, H = mapCanvas.height;
+    const scale = mapState.zoom * mapDPR;
+    const worldBefore = screenToWorld(mx * mapDPR, my * mapDPR);
+    const factor = ev.deltaY > 0 ? 0.85 : 1.18;
+    mapState.zoom = Math.max(mapState.minZoom, Math.min(mapState.maxZoom, mapState.zoom * factor));
+    const scaleNew = mapState.zoom * mapDPR;
+    const worldAfter = screenToWorld(mx * mapDPR, my * mapDPR);
+    mapState.cx += worldBefore.x - worldAfter.x;
+    mapState.cy += worldBefore.y - worldAfter.y;
+    clampCenter();
+    drawMap();
+    scheduleFetch();
+  }, { passive: false });
+}
+
+function clampCenter() {
+  const M = MAP_WORLD_HALF;
+  mapState.cx = Math.max(-M, Math.min(M, mapState.cx));
+  mapState.cy = Math.max(-M, Math.min(M, mapState.cy));
+}
+
+let mapFetchTimer = null;
+function scheduleFetch() {
+  clearTimeout(mapFetchTimer);
+  mapFetchTimer = setTimeout(fetchMapPoints, 250);
+}
+
+// Тап по canvas: если близко к точке — открываем профиль.
+function handleMapTap(ev) {
+  if (!mapCanvas || mapState.points.length === 0) return;
+  const rect = mapCanvas.getBoundingClientRect();
+  const sx = (ev.clientX - rect.left) * mapDPR;
+  const sy = (ev.clientY - rect.top) * mapDPR;
+
+  // Ищем ближайшую точку в радиусе 24px (по экрану, не по миру).
+  // Это даёт ~44px диаметр зоны попадания — удобно пальцем.
+  const HIT_RADIUS_SQ = 24 * 24 * mapDPR * mapDPR;
+  let best = null, bestD = HIT_RADIUS_SQ;
+
+  for (const p of mapState.points) {
+    const s = worldToScreen(p.world_x, p.world_y);
+    const dx = s.x - sx, dy = s.y - sy;
+    const d = dx * dx + dy * dy;
+    if (d < bestD) { bestD = d; best = p; }
+  }
+
+  if (best) {
+    // Свой остров не открываем — оставляем как есть. Иначе случайный тап
+    // по себе открывает профиль, что раздражает.
+    if (myId && String(best.user_id) === String(myId)) return;
+    openProfile(best.user_id, best.username);
   }
 }
 
@@ -2464,6 +3006,23 @@ $('btn-palette').addEventListener('click', () => togglePalette('palette'));
 $('btn-shop').addEventListener('click', openShop);
 $('shop-close').addEventListener('click', hideScreens);
 $('shop-confirm').addEventListener('click', hideScreens);
+$('btn-map').addEventListener('click', openMap);
+$('map-close').addEventListener('click', closeMap);
+$('map-zoom-in').addEventListener('click', () => {
+  mapState.zoom = Math.min(mapState.maxZoom, mapState.zoom * 1.5);
+  clampCenter(); drawMap(); scheduleFetch();
+});
+$('map-zoom-out').addEventListener('click', () => {
+  mapState.zoom = Math.max(mapState.minZoom, mapState.zoom / 1.5);
+  clampCenter(); drawMap(); scheduleFetch();
+});
+$('map-center').addEventListener('click', () => {
+  if (myWorldX !== null && myWorldY !== null) {
+    mapState.cx = myWorldX;
+    mapState.cy = myWorldY;
+  }
+  drawMap(); scheduleFetch();
+});
 $('btn-world').addEventListener('click', openWorld);
  // Профиль закрывается БЕЗ hideScreens: если игрок пришёл сюда из списка
 // соседей, он должен вернуться обратно в список, а не на пустой экран.
