@@ -1,35 +1,35 @@
 // Карта мира: 3D-глобус с дневным/ночным циклом и кластеризацией.
 //
-// ОСВЕЩЕНИЕ (ИСПРАВЛЕНО)
-// ----------------------
-// Раньше нормаль к поверхности считалась в VIEW space через normalMatrix,
-// а солнце задавалось в WORLD space. Смешение систем давало баг: при
-// вращении камеры терминатор двигался вместе с ней.
+// ОСВЕЩЕНИЕ
+// ---------
+// Нормаль к поверхности считается в МИРОВЫХ координатах (mat3(modelMatrix)),
+// солнце задаётся в мире. Terminator зафиксирован в мировых координатах и
+// не зависит от вращения камеры. Солнце движется по реальному UTC:
+// 12:00 UTC — над Гринвичем, каждые 24 часа полный оборот. Широта
+// упрощена до 0° (реальная гуляет ±23.5° по сезону — для визуала
+// несущественно).
 //
-// Теперь нормаль в мире: mat3(modelMatrix) * normal. Солнце — тоже в мире.
-// Terminator зафиксирован в мировых координатах и не зависит от камеры.
-//
-// Подсолнечная точка движется по реальному UTC: 12:00 UTC — солнце над
-// Гринвичем, каждые 24 часа полный оборот. Широта упрощена до 0°.
+// ЯРКОСТЬ (актуальные значения)
+// -----------------------------
+// Дневная текстура усиливается через pow(raw * 1.4, 0.9) — blue-marble
+// сама по себе бледная. Терминатор расширен до ~60°: smoothstep(-0.45, 0.10)
+// вместо старого (-0.15, 0.25), чтобы день занимал больше диска.
+// Ночная сторона подсвечена дневной текстурой на 35% + огни городов
+// усилены в 1.6 раз.
 //
 // КЛАСТЕРИЗАЦИЯ
 // -------------
-// Если игроков много и они кучкуются, отдельные маркеры сливаются в кашу.
-// Решение: группируем точки в квадраты world-grid и рисуем один маркер
-// с числом игроков. Размер квадрата зависит от расстояния камеры: близко —
-// 30 единиц (все видны отдельно), далеко — 300 единиц (одна точка на
-// регион). Порог срабатывания: >1 игрока в квадрате.
+// При camDist > 2R точки группируются по квадратам world-grid. Размер
+// сетки 12..340 единиц, зависит от расстояния до камеры. Ближе 2R —
+// кластеризация полностью отключается, каждая точка рисуется отдельно
+// со своим ником.
 //
-// ПОДПИСИ
-// -------
-// Текст запечён в текстуру маркера (два варианта: с текстом и без).
-// Переключаются по расстоянию до камеры: < 2.5 радиуса — с ником,
-// иначе — чистый кружок. Так избегаем дорогой отрисовки текста каждый кадр.
-//
-// ПЕРЕЛЁТ
-// -------
-// flyToPlayer(userId) плавно интерполирует позицию камеры по дуге,
-// сохраняя ориентацию на центр сферы.
+// ДИНАМИЧЕСКИЕ СКОРОСТИ КАМЕРЫ
+// ----------------------------
+// rotateSpeed и zoomSpeed меняются каждый кадр в зависимости от
+// расстояния. У поверхности — точные (0.25 / 0.20), вдали — быстрые
+// (0.80 / 1.00). Фиксированные значения либо не давали точности вблизи,
+// либо не позволяли быстро обернуться вокруг глобуса.
 
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
@@ -51,10 +51,6 @@ const EARTH_TEXTURE_SOURCES_NIGHT = [
   'https://cdn.jsdelivr.net/npm/three-globe@2/example/img/earth-night.jpg',
 ];
 
-// Кластеризация: квадрат сетки в мировых единицах, зависит от расстояния.
-const CLUSTER_GRID_CLOSE = 30;    // при MAX-приближении — почти нет кластеров
-const CLUSTER_GRID_FAR   = 400;   // при максимальном отдалении — крупные группы
-
 let scene = null;
 let camera = null;
 let renderer = null;
@@ -70,11 +66,12 @@ let disposed = false;
 let running = false;
 let animationId = 0;
 
-// user_id -> { sprite, data, labelSprite }
+// user_id -> { sprite, data } — только для одиночных маркеров.
+// Используется в setMapCameraToMe, чтобы найти позицию своего острова.
 const markers = new Map();
 
-// Кластеры и отдельные точки — плоский список визуальных объектов
-// на сцене. Каждый: { sprite, isCluster, count, memberIds, data }
+// Плоский список визуальных объектов — одиночные маркеры и кластеры.
+// Каждый: { sprite, kind, data }
 let visualMarkers = [];
 
 // Сырые точки с бэка — источник правды для кластеризации.
@@ -119,8 +116,8 @@ export function initMap3D(containerEl, { onPointTap, myUserId: myId } = {}) {
   controls = new OrbitControls(camera, renderer.domElement);
   controls.enableDamping = true;
   controls.dampingFactor = 0.12;
-  // Скорости снижены: на телефоне дефолтные 1.0 слишком быстрые для
-  // точного зума и вращения. 0.45/0.35 — золотая середина.
+  // Стартовые скорости; animate() переписывает их каждый кадр в зависимости
+  // от расстояния. Здесь значения нужны только для первого кадра.
   controls.rotateSpeed = 0.45;
   controls.zoomSpeed = 0.35;
   controls.minDistance = SPHERE_RADIUS * 1.05;
@@ -145,8 +142,6 @@ export function initMap3D(containerEl, { onPointTap, myUserId: myId } = {}) {
 
       void main() {
         // Нормаль в МИРОВЫХ координатах — для расчёта дня/ночи.
-        // Раньше тут стоял normalMatrix (view space) — это и был баг:
-        // при вращении камеры освещение крутилось вместе с ней.
         vWorldNormal = normalize(mat3(modelMatrix) * normal);
         // Нормаль во VIEW space — только для rim-эффекта (обводки).
         vViewNormal = normalize(normalMatrix * normal);
@@ -163,36 +158,39 @@ export function initMap3D(containerEl, { onPointTap, myUserId: myId } = {}) {
       varying vec2 vUv;
 
       void main() {
-        vec3 dayColor = texture2D(dayTexture, vUv).rgb;
-        vec3 nightColor = texture2D(nightTexture, vUv).rgb;
+        vec3 dayRaw = texture2D(dayTexture, vUv).rgb;
+        vec3 nightRaw = texture2D(nightTexture, vUv).rgb;
+
+        // Усиление дневной текстуры: blue-marble сама по себе недостаточно
+        // насыщенная, океаны серовато-синие. 1.4 + лёгкая gamma вытягивают
+        // континенты и воду до читаемого уровня.
+        vec3 dayColor = pow(dayRaw * 1.4, vec3(0.9));
 
         // Угол между нормалью и солнцем в мировых координатах.
         float cosAngle = dot(normalize(vWorldNormal), normalize(sunDirection));
 
-        // Полоса терминатора ~20° ширины. smoothstep(-0.15, 0.25) — плавный
-        // переход от ночи к дню. Без него был бы резкий шов.
-        float dayAmount = smoothstep(-0.15, 0.25, cosAngle);
+        // Расширенная дневная зона.
+        //   cosAngle = 1.0  → прямо под солнцем
+        //   cosAngle = 0.1  → ещё день (верхний порог)
+        //   cosAngle = -0.45 → начинается ночь (нижний порог)
+        // Терминатор ~60° ширины. Старый smoothstep(-0.15, 0.25) давал
+        // ночь уже при 75° от солнца — больше половины диска в тени.
+        float dayAmount = smoothstep(-0.45, 0.10, cosAngle);
 
-        // Ночная сторона: огни городов + подсветка континентов, чтобы
-        // силуэты были видны. Раньше nightFloor=0.08 делал тёмную сторону
-        // почти чёрной, сейчас добавили dayColor * 0.22 — континенты
-        // угадываются, как на реальных ночных снимках из космоса.
-        vec3 nightLit = nightColor * 1.4 + dayColor * 0.22 + vec3(0.03);
+        // Ночная сторона: огни городов заметно ярче + подсветка
+        // континентов дневной текстурой (силуэты читаются).
+        vec3 nightLit = nightRaw * 1.6 + dayColor * 0.35 + vec3(0.05);
 
         vec3 color = mix(nightLit, dayColor, dayAmount);
 
         // Обводка («нарисованный» вид): rim-эффект по краю диска.
-        // vViewNormal.z = 1 в центре (лицом к камере), 0 на лимбе.
-        // 1 - z даёт 0..1: 0 в центре, 1 на краю.
         float rim = 1.0 - abs(vViewNormal.z);
-        // smoothstep(0.6, 0.95) — обводка шириной ~15% радиуса.
-        float outline = smoothstep(0.6, 0.95, rim);
-        color = mix(color, vec3(0.02, 0.03, 0.08), outline * 0.75);
+        float outline = smoothstep(0.62, 0.96, rim);
+        color = mix(color, vec3(0.02, 0.04, 0.10), outline * 0.7);
 
-        // Тонкая голубая атмосфера на границе дня и космоса — только
-        // на светлой стороне, чтобы усилить «объём» планеты.
-        float atmosphere = smoothstep(0.5, 0.9, rim) * dayAmount * 0.3;
-        color += vec3(0.3, 0.55, 1.0) * atmosphere;
+        // Голубая атмосфера на светлом лимбе.
+        float atmosphere = smoothstep(0.55, 0.92, rim) * dayAmount * 0.35;
+        color += vec3(0.35, 0.6, 1.0) * atmosphere;
 
         gl_FragColor = vec4(color, 1.0);
       }
@@ -279,9 +277,6 @@ function latLonToVec3(lat, lon, radius) {
 
 // --- Текстуры маркеров ---------------------------------------------------
 
-// Кэш: ключ = hex + label + isMine. Для каждого уникального сочетания
-// генерируем canvas один раз. 10 цветов × 2 (label/no-label) × 2 (mine/other)
-// = максимум 40 canvas'ов за сессию. Мелочь.
 const markerTextureCache = new Map();
 
 function makeMarkerTexture(colorHex, { label = null, isMine = false, count = 0 } = {}) {
@@ -366,18 +361,29 @@ function rebuildMarkers() {
 
   const camDist = camera.position.length();
 
-  // Интерполируем размер сетки между CLUSTER_GRID_CLOSE и CLUSTER_GRID_FAR
-  // по расстоянию камеры: чем дальше, тем крупнее ячейки.
-  // Нормируем: (dist - minDist) / (maxDist - minDist), затем возводим в
-  // степень 1.5 — при приближении сетка уменьшается быстрее, чтобы
-  // отдельные маркеры появлялись раньше.
+  // Нормированное расстояние 0 (у поверхности) .. 1 (максимум).
   const t = Math.max(0, Math.min(1,
     (camDist - controls.minDistance) / (controls.maxDistance - controls.minDistance)
   ));
-  const gridSize = CLUSTER_GRID_CLOSE + Math.pow(t, 1.5) * (CLUSTER_GRID_FAR - CLUSTER_GRID_CLOSE);
 
-  // Показывать ли подписи: при близком зуме.
-  const showLabels = camDist < SPHERE_RADIUS * 2.5;
+  // Полное отключение кластеризации при достаточно близком зуме.
+  //
+  // Причина: 5 игроков спавнятся в радиусе 60 единиц вокруг Берлина.
+  // При ячейке 30×30 они все попадают в один-два квадрата, и вместо
+  // отдельных маркеров с никами виден один кластер с цифрой.
+  // При camDist < 2R каждая точка рисуется отдельно — ник на каждом.
+  const noClustering = camDist < SPHERE_RADIUS * 2.0;
+
+  // Размер сетки: 1 (= нет кластеризации) вблизи, 340 вдали.
+  // Нижняя граница 12 — на среднем зуме плотные группы начинают
+  // разбиваться раньше, чем при старой 30.
+  const gridSize = noClustering
+    ? 1
+    : 12 + Math.pow(t, 1.6) * 340;
+
+  // Подписи показываем щедрее: было < 2.5R, стало < 3.2R. При 3.2R
+  // уже есть смысл различать ники.
+  const showLabels = camDist < SPHERE_RADIUS * 3.2;
 
   // Квадратная сетка в мировых единицах.
   const cells = new Map();
@@ -421,7 +427,10 @@ function rebuildMarkers() {
       // Коэффициент масштабирования под текстуру с подписью: она шире,
       // надо нормировать, чтобы высота спрайта была как у одиночного кружка.
       sprite.userData.aspect = label ? (256 / 180) : 1;
-      sprite.userData.baseSize = isMine ? 26 : 20;
+      // Маркеры с подписью делаем крупнее, чтобы ник читался.
+      sprite.userData.baseSize = label
+        ? (isMine ? 36 : 30)
+        : (isMine ? 26 : 20);
 
       markersGroup.add(sprite);
       visualMarkers.push({ sprite, kind: 'single', data: p });
@@ -467,8 +476,8 @@ function rebuildMarkers() {
     visualMarkers.push({ sprite, kind: 'cluster', data: { wx, wy, count: group.length } });
   }
 
-  // Обновляем глобальный указатель для маркеров (устаревшая структура,
-  // оставлена для совместимости с setMapCameraToMe).
+  // Обновляем глобальный указатель для одиночных маркеров — нужен
+  // для setMapCameraToMe и flyToPlayer.
   markers.clear();
   for (const vm of visualMarkers) {
     if (vm.kind === 'single') {
@@ -514,13 +523,27 @@ function animate() {
 
   updateSunDirection();
 
+  const camDist = camera.position.length();
+
+  // Динамические скорости: у поверхности камера должна двигаться
+  // медленно (иначе одно движение пальца пролетает полсферы), а вдали —
+  // быстрее, чтобы не «пилить» пальцем через экран.
+  const speedT = Math.max(0, Math.min(1,
+    (camDist - controls.minDistance) / (controls.maxDistance - controls.minDistance)
+  ));
+  // Вблизи: 0.25, вдали: 0.80. Разница в 3 раза — этого хватает,
+  // чтобы у поверхности вращение было точным, а вдали не раздражало.
+  controls.rotateSpeed = 0.25 + speedT * 0.55;
+  // Вблизи: 0.20 (один тик зума даёт маленький шаг), вдали: 1.00
+  // (за пару pinch'ей от полюса к полюсу).
+  controls.zoomSpeed = 0.20 + speedT * 0.80;
+
   controls.update();
 
   // Пересобираем кластеры, если дистанция изменилась больше чем на 15%
   // или прошло 1.5 секунды. Так избегаем пересборки на каждый кадр
   // (это дорого) и на каждый микро-сдвиг pinch'а.
   const now = performance.now();
-  const camDist = camera.position.length();
   if (
     Math.abs(camDist - lastClusterDist) > lastClusterDist * 0.15 ||
     now - lastClusterCheck > 1500
@@ -630,7 +653,6 @@ export function flyToPlayer(userId, username, { zoom = 1, fromCluster = false } 
     const e = 1 - Math.pow(1 - k, 3);
     // Лерпим, потом проецируем на сферу радиуса lerp(startDist, finalDist).
     const lerped = startPos.clone().lerp(endPos, e);
-    const lerpedDist = lerped.length();
     const targetDist = currentDist + (finalDist - currentDist) * e;
     camera.position.copy(lerped.normalize().multiplyScalar(targetDist));
     camera.lookAt(0, 0, 0);
@@ -713,4 +735,4 @@ export function disposeMap3D() {
   sphereMesh = null;
   markersGroup = null;
   uniforms = null;
-                                                  }
+        }
