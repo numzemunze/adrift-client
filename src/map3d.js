@@ -1,24 +1,18 @@
-// src/map3d.js
-// Карта мира: 3D-глобус с мини-островами игроков.
+// Карта мира: 3D-глобус с маркерами-островами.
 //
-// МИНИ-ОСТРОВА
-// ------------
-// Вместо спрайтов-точек каждый игрок — маленькая 3D-сцена на поверхности
-// сферы: диск травы, 1-3 куба-строения, мини-флаг. Все острова разделяют
-// общие геометрии и материалы (создаются один раз), отличается только
-// цвет и высота застройки.
+// АРХИТЕКТУРА
+// -----------
+// Каждый игрок — THREE.Sprite с canvas-иконкой. Иконка рисуется один раз
+// при первом появлении острова и переиспользуется. Спрайт всегда лицом
+// к камере, размер компенсируется каждый кадр под расстояние, поэтому
+// на экране остров всегда 80-140 пикселей — независимо от зума.
 //
-// LOD по расстоянию до камеры:
-//   FAR    (> 4R)  — остров не рисуется (мельче пикселя, экономия)
-//   MID    (2.5-4R) — билборд: canvas-текстура с изометрией острова
-//   CLOSE  (< 2.5R) — полная 3D-модель: диск + кубы + флаг
-//
-// ОБЛАКА (ОТКЛЮЧЕНЫ)
-// ------------------
-// Реализация через спрайты оказалась визуально неудачной — серые пятна
-// вместо облаков. Вызов buildCloudLayer() закомментирован, updateClouds
-// не крутится в animate(). Функции и переменные оставлены на будущее —
-// вернёмся к облакам, когда карта стабилизируется.
+// ПОЧЕМУ SPRITE, А НЕ 3D-МОДЕЛЬ
+// -----------------------------
+// 3D-модель из 4-5 мешей на каждого игрока = сотни draw-call'ов при
+// 100+ игроках. Спрайт — один draw-call на игрока, GPU-батчинг работает
+// идеально. Визуально разница минимальна: иконка в изометрии читается
+// так же хорошо, как настоящая 3D-модель, а стоит в разы дешевле.
 
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
@@ -34,18 +28,9 @@ const EARTH_TEXTURE_SOURCES = [
   'https://unpkg.com/three-globe/example/img/earth-blue-marble.jpg',
   'https://unpkg.com/three-globe/example/img/earth-day.jpg',
   'https://unpkg.com/three@0.160.0/examples/textures/planets/earth_atmos_2048.jpg',
-  'https://cdn.jsdelivr.net/npm/three-globe@2/example/img/earth-blue-marble.jpg',
 ];
 
-const HIT_RADIUS_PX = 55;
-
-const LOD_FAR = 4.0;
-const LOD_MID = 2.5;
-
-// Облака: радиус, количество и размер.
-const CLOUD_RADIUS = SPHERE_RADIUS * 1.10;
-const CLOUD_COUNT = 60;
-const CLOUD_QUAD_SIZE = 40;
+const HIT_RADIUS_PX = 60;
 
 let scene = null;
 let camera = null;
@@ -53,7 +38,6 @@ let renderer = null;
 let controls = null;
 let sphereMesh = null;
 let markersGroup = null;
-let cloudsGroup = null;
 
 let container = null;
 let onTapCallback = null;
@@ -61,23 +45,11 @@ let disposed = false;
 let running = false;
 let animationId = 0;
 
-const markers = new Map();  // user_id -> { group, billboard, data, level }
+const markers = new Map();
 let rawPoints = [];
 let myUserId = null;
 
 const _projVec = new THREE.Vector3();
-
-// Общие геометрии и материалы для всех мини-островов. Создаются лениво —
-// при первом острове. Позволяет не плодить объекты на 100+ игроков.
-let GEO_DISC = null;
-let GEO_BOX = null;
-let GEO_POLE = null;
-let MAT_GRASS = null;
-let MAT_BUILDING_WOOD = null;
-let MAT_BUILDING_IRON = null;
-
-// Текстура облака: генерируется один раз, переиспользуется инстансами.
-let CLOUD_TEXTURE = null;
 
 // --- Инициализация --------------------------------------------------------
 
@@ -91,7 +63,8 @@ export function initMap3D(containerEl, { onPointTap, myUserId: myId } = {}) {
   const h = container.clientHeight || window.innerHeight;
 
   scene = new THREE.Scene();
-  scene.background = new THREE.Color(0x0a1430);
+  // Тёмно-синий космос, как раньше.
+  scene.background = new THREE.Color(0x060b18);
 
   camera = new THREE.PerspectiveCamera(45, w / h, 0.1, 10000);
   const startPos = latLonToVec3(WORLD_CENTER_LAT, WORLD_CENTER_LON, SPHERE_RADIUS * 3.0);
@@ -105,17 +78,18 @@ export function initMap3D(containerEl, { onPointTap, myUserId: myId } = {}) {
   renderer.domElement.style.width = '100%';
   renderer.domElement.style.height = '100%';
   renderer.domElement.style.touchAction = 'none';
-  renderer.domElement.style.filter = 'saturate(1.35) contrast(1.08)';
+  // Умеренный saturate — не пересолить.
+  renderer.domElement.style.filter = 'saturate(1.25) contrast(1.05)';
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   container.appendChild(renderer.domElement);
 
   controls = new OrbitControls(camera, renderer.domElement);
   controls.enableDamping = true;
   controls.dampingFactor = 0.15;
-  controls.rotateSpeed = 0.35;
-  controls.zoomSpeed = 0.55;
+  controls.rotateSpeed = 0.4;
+  controls.zoomSpeed = 0.7;
   controls.minDistance = SPHERE_RADIUS * 1.15;
-  controls.maxDistance = SPHERE_RADIUS * 6;
+  controls.maxDistance = SPHERE_RADIUS * 5;
   controls.enablePan = false;
   controls.target.set(0, 0, 0);
 
@@ -125,8 +99,6 @@ export function initMap3D(containerEl, { onPointTap, myUserId: myId } = {}) {
   scene.add(sphereMesh);
 
   loadEarthTexture(mat);
-
-  // buildCloudLayer();
 
   markersGroup = new THREE.Group();
   scene.add(markersGroup);
@@ -138,130 +110,6 @@ export function initMap3D(containerEl, { onPointTap, myUserId: myId } = {}) {
   running = true;
   animate();
 }
-
-// --- Общие ресурсы для мини-островов --------------------------------------
-
-function ensureIslandResources() {
-  if (GEO_DISC) return;
-
-  GEO_DISC = new THREE.CylinderGeometry(6, 6, 0.6, 20);
-  GEO_BOX = new THREE.BoxGeometry(2.4, 3.0, 2.4);
-  GEO_POLE = new THREE.CylinderGeometry(0.22, 0.22, 5.5, 6);
-
-  MAT_GRASS = new THREE.MeshLambertMaterial({ color: 0x3d6a3f });
-  MAT_BUILDING_WOOD = new THREE.MeshLambertMaterial({ color: 0xb8834a });
-  MAT_BUILDING_IRON = new THREE.MeshLambertMaterial({ color: 0x8e99a3 });
-}
-
-// --- Облака --------------------------------------------------------------
-
-function makeCloudTexture() {
-  const size = 128;
-  const canvas = document.createElement('canvas');
-  canvas.width = canvas.height = size;
-  const ctx = canvas.getContext('2d');
-
-  // Мягкое пятно: несколько перекрывающихся кругов с радиальным градиентом.
-  // Центр плотный, края — прозрачность в ноль.
-  const blobs = [
-    { x: 64, y: 64, r: 40 },
-    { x: 44, y: 70, r: 30 },
-    { x: 86, y: 68, r: 32 },
-    { x: 62, y: 48, r: 26 },
-    { x: 62, y: 82, r: 24 },
-  ];
-  for (const b of blobs) {
-    const g = ctx.createRadialGradient(b.x, b.y, 0, b.x, b.y, b.r);
-    g.addColorStop(0, 'rgba(255,255,255,0.95)');
-    g.addColorStop(0.6, 'rgba(255,255,255,0.55)');
-    g.addColorStop(1, 'rgba(255,255,255,0)');
-    ctx.fillStyle = g;
-    ctx.fillRect(0, 0, size, size);
-  }
-
-  const tex = new THREE.CanvasTexture(canvas);
-  tex.colorSpace = THREE.SRGBColorSpace;
-  tex.needsUpdate = true;
-  return tex;
-}
-
-function buildCloudLayer() {
-  CLOUD_TEXTURE = makeCloudTexture();
-
-  cloudsGroup = new THREE.Group();
-  scene.add(cloudsGroup);
-
-  // Каждое облако — плоский квад, повёрнутый «лицом наружу» от центра сферы.
-  // Позиционируем случайно на полусфере сверху, распределение через
-  // сферические координаты. Размер рандомный — от 0.7 до 1.4 от базового.
-  for (let i = 0; i < CLOUD_COUNT; i++) {
-    // Равномерно по сфере (алгоритм Archimedes).
-    const u = Math.random();
-    const v = Math.random();
-    const theta = 2 * Math.PI * u;
-    const phi = Math.acos(2 * v - 1);
-
-    const x = CLOUD_RADIUS * Math.sin(phi) * Math.cos(theta);
-    const y = CLOUD_RADIUS * Math.cos(phi);
-    const z = CLOUD_RADIUS * Math.sin(phi) * Math.sin(theta);
-
-    const mat = new THREE.SpriteMaterial({
-      map: CLOUD_TEXTURE,
-      transparent: true,
-      opacity: 0.55,
-      depthWrite: false,
-      depthTest: true,
-      blending: THREE.NormalBlending,
-    });
-    const sprite = new THREE.Sprite(mat);
-    const size = CLOUD_QUAD_SIZE * (0.7 + Math.random() * 0.8);
-    sprite.scale.set(size * 1.6, size, 1);
-    sprite.position.set(x, y, z);
-    sprite.userData.angle = theta;
-    sprite.userData.phi = phi;
-    cloudsGroup.add(sprite);
-  }
-}
-
-// Облака вращаются: медленно облетают планету вокруг оси Y.
-function updateClouds(dt) {
-  if (!cloudsGroup) return;
-
-  // Вращение всей группы вокруг оси Y — 0.02 рад/сек, полный оборот
-  // за ~5 минут. Облака сдвигаются друг относительно друга медленно,
-  // как настоящие.
-  cloudsGroup.rotation.y += dt * 0.02;
-
-  // Прозрачность зависит от расстояния камеры.
-  // camDist < 1.6R — облака не мешают, opacity 0.
-  // camDist > 2.4R — облака плотные, opacity 0.6.
-  const camDist = camera.position.length();
-  const t = Math.max(0, Math.min(1, (camDist - SPHERE_RADIUS * 1.6) / (SPHERE_RADIUS * 0.8)));
-  const target = t * 0.6;
-
-  for (const sprite of cloudsGroup.children) {
-    // Каждое облако индивидуально плавно тянется к целевому значению —
-    // при движении камеры облака «тают» почти одновременно.
-    sprite.material.opacity += (target - sprite.material.opacity) * Math.min(1, dt * 2.5);
-  }
-}
-
-// Публичный API: мгновенно выставить прозрачность (для меню).
-export function setCloudOpacity(value) {
-  if (!cloudsGroup) return;
-  const v = Math.max(0, Math.min(1, value));
-  for (const sprite of cloudsGroup.children) {
-    sprite.material.opacity = v * 0.85;
-  }
-  // Отключаем автоматическую логику на время меню.
-  cloudsGroup.userData.forced = v;
-}
-
-export function releaseCloudOpacity() {
-  if (cloudsGroup) cloudsGroup.userData.forced = null;
-}
-
-// --- Текстура Земли -------------------------------------------------------
 
 function loadEarthTexture(material) {
   let idx = 0;
@@ -305,130 +153,202 @@ function latLonToVec3(lat, lon, radius) {
   );
 }
 
-// Ориентация острова: локальная ось Y должна смотреть наружу от центра.
-// Через квотернион из (0,1,0) в нормаль поверхности.
-function orientTowardSphereCenter(obj, position) {
-  const normal = position.clone().normalize();
-  const up = new THREE.Vector3(0, 1, 0);
-  const q = new THREE.Quaternion().setFromUnitVectors(up, normal);
-  obj.quaternion.copy(q);
-}
+// --- Иконка острова -------------------------------------------------------
+// Рисуется на canvas: тень, диск травы, кубики постройки в изометрии,
+// флаг. Один canvas на каждого уникального игрока; переиспользуется
+// спрайтом.
 
-// --- Билборд-текстура для среднего LOD ------------------------------------
+const islandIconCache = new Map();
 
-const islandTexCache = new Map();
+function makeIslandIcon(colorHex, cubes, isMine) {
+  // Цвет флага участвует в кэш-ключе — если игрок сменил цвет флага,
+  // иконка перерисуется. cubes тоже — разный вид для разных размеров.
+  const cubeBucket = cubes <= 5 ? 's' : cubes <= 20 ? 'm' : 'l';
+  const key = `i|${colorHex}|${cubeBucket}|${isMine ? 'm' : ''}`;
+  if (islandIconCache.has(key)) return islandIconCache.get(key);
 
-function makeIslandBillboard(colorHex, cubes) {
-  const key = `b|${colorHex}|${cubes}`;
-  if (islandTexCache.has(key)) return islandTexCache.get(key);
-
-  const W = 200, H = 140;
+  const W = 240, H = 180;
   const canvas = document.createElement('canvas');
-  canvas.width = W; canvas.height = H;
+  canvas.width = W;
+  canvas.height = H;
   const ctx = canvas.getContext('2d');
 
-  // Диск травы внизу.
-  const cx = W / 2, cy = H * 0.75;
-  ctx.beginPath();
-  ctx.ellipse(cx, cy, 62, 22, 0, 0, Math.PI * 2);
-  ctx.fillStyle = '#3d6a3f';
-  ctx.fill();
-  ctx.strokeStyle = 'rgba(0,0,0,.4)';
-  ctx.lineWidth = 3;
-  ctx.stroke();
-
-  // Пара кубиков сверху.
-  const cubeCount = Math.min(3, Math.max(1, Math.ceil(cubes / 8)));
-  for (let i = 0; i < cubeCount; i++) {
-    const ox = (i - (cubeCount - 1) / 2) * 36;
-    const oy = -i * 4;
-    const size = 30;
-    // Изометрия: три грани.
-    ctx.fillStyle = '#b8834a';
-    ctx.beginPath();
-    ctx.moveTo(cx + ox, cy - size + oy);
-    ctx.lineTo(cx + ox + size * 0.7, cy - size + oy + size * 0.4);
-    ctx.lineTo(cx + ox, cy - size + oy + size * 0.8);
-    ctx.lineTo(cx + ox - size * 0.7, cy - size + oy + size * 0.4);
-    ctx.closePath();
-    ctx.fill();
-    ctx.fillStyle = '#8f6338';
-    ctx.beginPath();
-    ctx.moveTo(cx + ox - size * 0.7, cy - size + oy + size * 0.4);
-    ctx.lineTo(cx + ox, cy - size + oy + size * 0.8);
-    ctx.lineTo(cx + ox, cy + oy + size * 0.8);
-    ctx.lineTo(cx + ox - size * 0.7, cy + oy + size * 0.4);
-    ctx.closePath();
-    ctx.fill();
-    ctx.fillStyle = '#d6a062';
-    ctx.beginPath();
-    ctx.moveTo(cx + ox + size * 0.7, cy - size + oy + size * 0.4);
-    ctx.lineTo(cx + ox, cy - size + oy + size * 0.8);
-    ctx.lineTo(cx + ox, cy + oy + size * 0.8);
-    ctx.lineTo(cx + ox + size * 0.7, cy + oy + size * 0.4);
-    ctx.closePath();
-    ctx.fill();
+  // Свечение под своим островом — жёлтая аура.
+  if (isMine) {
+    const glow = ctx.createRadialGradient(W / 2, H * 0.7, 10, W / 2, H * 0.7, W * 0.55);
+    glow.addColorStop(0, 'rgba(253,230,138,.55)');
+    glow.addColorStop(1, 'rgba(253,230,138,0)');
+    ctx.fillStyle = glow;
+    ctx.fillRect(0, 0, W, H);
   }
 
-  // Флажок: тонкая палка и цветной квадратик.
-  const fx = cx + 42;
-  ctx.strokeStyle = '#3a3a3a';
-  ctx.lineWidth = 3;
+  const cx = W / 2;
+  const cy = H * 0.72;
+
+  // --- Диск травы ---
+  // Верх (светлый зелёный) и бок (тёмный) как две эллиптические плиты.
+  const discRX = 82, discRY = 26;
   ctx.beginPath();
-  ctx.moveTo(fx, cy - 10);
-  ctx.lineTo(fx, cy - 70);
+  ctx.ellipse(cx, cy + 8, discRX, discRY, 0, 0, Math.PI * 2);
+  ctx.fillStyle = '#2d5130';
+  ctx.fill();
+
+  ctx.beginPath();
+  ctx.ellipse(cx, cy, discRX, discRY, 0, 0, Math.PI * 2);
+  ctx.fillStyle = '#4a7a4e';
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(20,35,20,.7)';
+  ctx.lineWidth = 2.5;
   ctx.stroke();
 
-  ctx.fillStyle = colorHex;
+  // --- Постройки в изометрии ---
+  // Раскладка кубиков зависит от размера острова: 1 / 2 / 3.
+  const layouts = {
+    s: [[0, 0]],
+    m: [[-22, 0], [22, 6]],
+    l: [[-30, 4], [10, 0], [30, 8]],
+  };
+  const cubesList = layouts[cubeBucket];
+  const cubeSize = 42;
+
+  for (const [ox, oy] of cubesList) {
+    const x = cx + ox;
+    const y = cy - cubeSize / 2 + oy;
+
+    // Цвет: дерево (тёплое) или железо (серое). Определяется по количеству
+    // кубов — крупные острова обычно с железом.
+    const isIron = cubeBucket === 'l';
+    const topColor = isIron ? '#c9d2da' : '#d9a066';
+    const leftColor = isIron ? '#7a848c' : '#a06b3a';
+    const rightColor = isIron ? '#8e99a3' : '#b87e46';
+
+    // Верхняя грань (ромб).
+    ctx.beginPath();
+    ctx.moveTo(x, y - cubeSize * 0.55);
+    ctx.lineTo(x + cubeSize * 0.75, y - cubeSize * 0.15);
+    ctx.lineTo(x, y + cubeSize * 0.25);
+    ctx.lineTo(x - cubeSize * 0.75, y - cubeSize * 0.15);
+    ctx.closePath();
+    ctx.fillStyle = topColor;
+    ctx.fill();
+
+    // Левая грань.
+    ctx.beginPath();
+    ctx.moveTo(x - cubeSize * 0.75, y - cubeSize * 0.15);
+    ctx.lineTo(x, y + cubeSize * 0.25);
+    ctx.lineTo(x, y + cubeSize * 0.85);
+    ctx.lineTo(x - cubeSize * 0.75, y + cubeSize * 0.45);
+    ctx.closePath();
+    ctx.fillStyle = leftColor;
+    ctx.fill();
+
+    // Правая грань.
+    ctx.beginPath();
+    ctx.moveTo(x + cubeSize * 0.75, y - cubeSize * 0.15);
+    ctx.lineTo(x, y + cubeSize * 0.25);
+    ctx.lineTo(x, y + cubeSize * 0.85);
+    ctx.lineTo(x + cubeSize * 0.75, y + cubeSize * 0.45);
+    ctx.closePath();
+    ctx.fillStyle = rightColor;
+    ctx.fill();
+
+    // Обводка.
+    ctx.strokeStyle = 'rgba(20,15,10,.65)';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(x, y - cubeSize * 0.55);
+    ctx.lineTo(x + cubeSize * 0.75, y - cubeSize * 0.15);
+    ctx.lineTo(x + cubeSize * 0.75, y + cubeSize * 0.45);
+    ctx.lineTo(x, y + cubeSize * 0.85);
+    ctx.lineTo(x - cubeSize * 0.75, y + cubeSize * 0.45);
+    ctx.lineTo(x - cubeSize * 0.75, y - cubeSize * 0.15);
+    ctx.closePath();
+    ctx.stroke();
+  }
+
+  // --- Флаг ---
+  // Ставим справа, чтобы не перекрывать постройки.
+  const fx = cx + 78;
+  const fBaseY = cy + 4;
+  const fTopY = cy - 72;
+
+  // Палка.
+  ctx.strokeStyle = '#3a3a3a';
+  ctx.lineWidth = 4;
+  ctx.lineCap = 'round';
   ctx.beginPath();
-  ctx.moveTo(fx, cy - 70);
-  ctx.lineTo(fx + 24, cy - 64);
-  ctx.lineTo(fx, cy - 54);
+  ctx.moveTo(fx, fBaseY);
+  ctx.lineTo(fx, fTopY);
+  ctx.stroke();
+
+  // Полотнище: слегка волнистое, чтобы не выглядело «трубой».
+  ctx.beginPath();
+  ctx.moveTo(fx, fTopY);
+  ctx.quadraticCurveTo(fx + 22, fTopY - 3, fx + 40, fTopY + 6);
+  ctx.lineTo(fx + 40, fTopY + 30);
+  ctx.quadraticCurveTo(fx + 20, fTopY + 22, fx, fTopY + 30);
   ctx.closePath();
+  ctx.fillStyle = colorHex;
   ctx.fill();
+  ctx.strokeStyle = 'rgba(20,15,10,.55)';
+  ctx.lineWidth = 2;
+  ctx.stroke();
 
   const tex = new THREE.CanvasTexture(canvas);
   tex.colorSpace = THREE.SRGBColorSpace;
   tex.needsUpdate = true;
-  islandTexCache.set(key, tex);
+  islandIconCache.set(key, tex);
   return tex;
 }
 
-// --- Мини-остров: 3D модель ----------------------------------------------
+// --- Ник-подпись ---------------------------------------------------------
 
-function buildIsland3D(colorHex, cubes) {
-  ensureIslandResources();
+const labelTexCache = new Map();
 
-  const group = new THREE.Group();
+function makeLabelTexture(username, isMine) {
+  const key = `l|${username}|${isMine ? 'm' : ''}`;
+  if (labelTexCache.has(key)) return labelTexCache.get(key);
 
-  // Диск травы.
-  const disc = new THREE.Mesh(GEO_DISC, MAT_GRASS);
-  disc.position.y = 0;
-  group.add(disc);
+  const FONT_SIZE = 38;
+  const PADDING = 20;
 
-  // Кубы сверху: 1..3 в зависимости от размера острова.
-  const cubeCount = Math.min(3, Math.max(1, Math.ceil(cubes / 8)));
-  const mat = cubes > 20 ? MAT_BUILDING_IRON : MAT_BUILDING_WOOD;
-  for (let i = 0; i < cubeCount; i++) {
-    const cube = new THREE.Mesh(GEO_BOX, mat);
-    const angle = (i / cubeCount) * Math.PI * 2 + 0.3;
-    const r = cubeCount === 1 ? 0 : 1.8;
-    cube.position.set(Math.cos(angle) * r, 2.0, Math.sin(angle) * r);
-    cube.rotation.y = angle;
-    group.add(cube);
-  }
+  const measure = document.createElement('canvas').getContext('2d');
+  measure.font = `800 ${FONT_SIZE}px system-ui,-apple-system,sans-serif`;
+  const tw = Math.ceil(measure.measureText(username).width);
+  const W = tw + PADDING * 2;
+  const H = 56;
 
-  // Флаг: палка + цветной квадратик.
-  const pole = new THREE.Mesh(GEO_POLE, MAT_BUILDING_IRON);
-  pole.position.set(3.5, 2.75, 0);
-  group.add(pole);
+  const canvas = document.createElement('canvas');
+  canvas.width = W;
+  canvas.height = H;
+  const ctx = canvas.getContext('2d');
 
-  const flagMat = new THREE.MeshBasicMaterial({ color: colorHex, side: THREE.DoubleSide });
-  const flag = new THREE.Mesh(new THREE.PlaneGeometry(2.2, 1.4), flagMat);
-  flag.position.set(4.6, 4.7, 0);
-  group.add(flag);
+  // Мягкая тёмная плашка под текстом.
+  const radius = H / 2;
+  ctx.beginPath();
+  ctx.moveTo(radius, 0);
+  ctx.arcTo(W, 0, W, H, radius);
+  ctx.arcTo(W, H, 0, H, radius);
+  ctx.arcTo(0, H, 0, 0, radius);
+  ctx.arcTo(0, 0, W, 0, radius);
+  ctx.closePath();
+  ctx.fillStyle = isMine ? 'rgba(30,41,59,.9)' : 'rgba(11,16,32,.85)';
+  ctx.fill();
+  ctx.strokeStyle = isMine ? 'rgba(253,230,138,.7)' : 'rgba(255,255,255,.2)';
+  ctx.lineWidth = 2;
+  ctx.stroke();
 
-  return group;
+  ctx.font = `800 ${FONT_SIZE}px system-ui,-apple-system,sans-serif`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillStyle = isMine ? '#fde68a' : '#ffffff';
+  ctx.fillText(username, W / 2, H / 2);
+
+  const tex = new THREE.CanvasTexture(canvas);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  tex.needsUpdate = true;
+  labelTexCache.set(key, tex);
+  return tex;
 }
 
 // --- Маркеры --------------------------------------------------------------
@@ -447,204 +367,120 @@ export function setMapPoints(points) {
     const css = '#' + hex.toString(16).padStart(6, '0');
 
     let entry = markers.get(String(p.user_id));
+
     if (!entry) {
-      // Позиция и ориентация.
-      const { lat, lon } = worldToLatLon(p.world_x, p.world_y);
-      const pos = latLonToVec3(lat, lon, SPHERE_RADIUS * 1.005);
+      // Иконка острова.
+      const iconTex = makeIslandIcon(css, p.cube_count || 0, isMine);
+      const iconMat = new THREE.SpriteMaterial({
+        map: iconTex,
+        transparent: true,
+        depthWrite: false,
+        depthTest: false,
+      });
+      const icon = new THREE.Sprite(iconMat);
 
-      // 3D-модель: создаётся лениво. Для одиночных островов это дёшево —
-      // общие геометрии шарятся через ensureIslandResources.
-      const islandGroup = buildIsland3D(hex, p.cube_count || 0);
-      islandGroup.position.copy(pos);
-      orientTowardSphereCenter(islandGroup, pos);
-
-      // Подпись с ником — всегда висит над островом, спрайт-билборд.
+      // Ник-подпись.
       const labelTex = makeLabelTexture(p.username, isMine);
-      const labelSprite = new THREE.Sprite(new THREE.SpriteMaterial({
+      const labelMat = new THREE.SpriteMaterial({
         map: labelTex,
         transparent: true,
         depthWrite: false,
         depthTest: false,
-      }));
+      });
+      const label = new THREE.Sprite(labelMat);
 
-      // Билборд для среднего LOD — скрыт по умолчанию, включается в
-      // updateMarkerLevels. Здесь только создаём.
-      const billboardTex = makeIslandBillboard(css, p.cube_count || 0);
-      const billboard = new THREE.Sprite(new THREE.SpriteMaterial({
-        map: billboardTex,
-        transparent: true,
-        depthWrite: false,
-        depthTest: false,
-      }));
+      const { lat, lon } = worldToLatLon(p.world_x, p.world_y);
+      const basePos = latLonToVec3(lat, lon, SPHERE_RADIUS * 1.01);
+      icon.position.copy(basePos);
 
-      markersGroup.add(islandGroup);
-      markersGroup.add(labelSprite);
-      markersGroup.add(billboard);
-      billboard.visible = false;
+      // Подпись смещаем вдоль радиуса (нормали), чтобы она висела
+      // НАД островом, а не в том же месте.
+      const normal = basePos.clone().normalize();
+      const up = new THREE.Vector3(0, 6.5, 0);
+      // Поворачиваем вектор «вверх» так же, как повёрнута поверхность
+      // в этой точке: это даёт правильное положение для ников на полюсах.
+      const q = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), normal);
+      up.applyQuaternion(q);
+      label.position.copy(basePos).add(up);
+
+      markersGroup.add(icon);
+      markersGroup.add(label);
 
       entry = {
-        group: islandGroup,
-        label: labelSprite,
-        billboard,
-        data: p,
-        isMine,
-        level: 'close',
+        icon, label, data: p, isMine,
+        iconAspect: iconTex.image.width / iconTex.image.height,
+        labelAspect: labelTex.image.width / labelTex.image.height,
+        basePos,
       };
       markers.set(String(p.user_id), entry);
     } else {
       // Обновляем позицию, если игрок переехал.
       const { lat, lon } = worldToLatLon(p.world_x, p.world_y);
-      const newPos = latLonToVec3(lat, lon, SPHERE_RADIUS * 1.005);
-      if (!entry.group.position.equals(newPos)) {
-        entry.group.position.copy(newPos);
-        orientTowardSphereCenter(entry.group, newPos);
+      const newPos = latLonToVec3(lat, lon, SPHERE_RADIUS * 1.01);
+      if (!entry.basePos.equals(newPos)) {
+        entry.icon.position.copy(newPos);
+        const normal = newPos.clone().normalize();
+        const up = new THREE.Vector3(0, 6.5, 0);
+        const q = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), normal);
+        up.applyQuaternion(q);
+        entry.label.position.copy(newPos).add(up);
+        entry.basePos = newPos;
       }
       entry.data = p;
     }
 
-    entry.group.visible = true;
+    entry.icon.visible = true;
     entry.label.visible = true;
   }
 
-  // Удаляем ушедших.
   for (const [id, entry] of markers) {
     if (!seen.has(id)) {
-      markersGroup.remove(entry.group);
+      markersGroup.remove(entry.icon);
       markersGroup.remove(entry.label);
-      markersGroup.remove(entry.billboard);
-      entry.group.traverse((obj) => {
-        if (obj.isMesh && obj.geometry !== GEO_DISC && obj.geometry !== GEO_BOX && obj.geometry !== GEO_POLE) {
-          obj.geometry.dispose();
-        }
-      });
+      entry.icon.material.dispose();
+      entry.label.material.dispose();
       markers.delete(id);
     }
   }
 
-  updateMarkerLevels();
+  updateMarkerSizes();
 }
 
-// Ник-спрайт: canvas с текстом.
-const labelTexCache = new Map();
-function makeLabelTexture(username, isMine) {
-  const key = `l|${username}|${isMine ? 'm' : ''}`;
-  if (labelTexCache.has(key)) return labelTexCache.get(key);
-
-  const FONT_SIZE = 44;
-  const PADDING = 24;
-
-  const measureCanvas = document.createElement('canvas');
-  const mCtx = measureCanvas.getContext('2d');
-  mCtx.font = `700 ${FONT_SIZE}px system-ui,-apple-system,sans-serif`;
-  const textWidth = Math.ceil(mCtx.measureText(username).width);
-  const W = textWidth + PADDING * 2;
-  const H = 72;
-
-  const canvas = document.createElement('canvas');
-  canvas.width = W;
-  canvas.height = H;
-  const ctx = canvas.getContext('2d');
-  ctx.font = `700 ${FONT_SIZE}px system-ui,-apple-system,sans-serif`;
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  ctx.lineWidth = 8;
-  ctx.strokeStyle = 'rgba(0,0,0,.95)';
-  ctx.strokeText(username, W / 2, H / 2);
-  ctx.fillStyle = isMine ? '#fde68a' : '#ffffff';
-  ctx.fillText(username, W / 2, H / 2);
-
-  const tex = new THREE.CanvasTexture(canvas);
-  tex.colorSpace = THREE.SRGBColorSpace;
-  tex.needsUpdate = true;
-  labelTexCache.set(key, tex);
-  return tex;
-}
-
-// LOD: решает, что показывать для каждого острова в зависимости от
-// расстояния камеры.
-function updateMarkerLevels() {
-  if (!camera || !renderer) return;
-
+// Фиксированный размер на экране: остров занимает ~120 пикселей
+// по высоте независимо от зума. Так пользователь всегда может тапнуть.
+function updateMarkerSizes() {
   const h = renderer.domElement.clientHeight;
   const vFov = (camera.fov * Math.PI) / 180;
   const k = (2 * Math.tan(vFov / 2)) / h;
 
-  const camDist = camera.position.length();
-  const ratio = camDist / SPHERE_RADIUS;
-  const camPos = camera.position;
+  for (const entry of markers.values()) {
+    const dist = camera.position.distanceTo(entry.icon.position);
 
-  for (const { group, label, billboard, level } of markers.values()) {
-    const objDist = camPos.distanceTo(group.position);
-    const ratioLocal = objDist / SPHERE_RADIUS;
+    // Остров: 120 пикселей в высоту на экране.
+    const iconPx = 120;
+    const iconScale = k * dist * iconPx;
+    entry.icon.scale.set(iconScale * entry.iconAspect, iconScale, 1);
 
-    if (ratioLocal > LOD_FAR) {
-      // FAR: ничего, слишком мелко.
-      group.visible = false;
-      billboard.visible = false;
-      label.visible = false;
-    } else if (ratioLocal > LOD_MID) {
-      // MID: билборд с изометрией, без ника.
-      group.visible = false;
-      billboard.visible = true;
-      label.visible = false;
-
-      const size = k * objDist * 90;
-      billboard.scale.set(size * 1.43, size, 1);
-    } else {
-      // CLOSE: полная 3D-модель + ник.
-      group.visible = true;
-      billboard.visible = false;
-      label.visible = true;
-
-      // Размер модели масштабируется так, чтобы остров был «крупным» на
-      // экране вне зависимости от зума. 260px ширина на экране при scale=1.
-      const islandScale = k * objDist * 2.6;
-      group.scale.setScalar(islandScale);
-
-      // Подпись над островом, чуть выше флага.
-      const labelDist = objDist * 0.98;
-      const labelSize = k * labelDist * 22;
-      const labelAspect = label.material.map.image.width / label.material.map.image.height;
-      label.scale.set(labelSize * labelAspect, labelSize, 1);
-
-      // Позиция подписи в мировых координатах: смещаем вдоль нормали от
-      // центра сферы на несколько единиц вверх от острова. Применяем
-      // ту же ориентацию, что у острова.
-      const normal = group.position.clone().normalize();
-      const upOffset = new THREE.Vector3(0, 10 * islandScale, 0);
-      const q = group.quaternion;
-      upOffset.applyQuaternion(q);
-      label.position.copy(group.position).add(upOffset);
-    }
+    // Ник: 26 пикселей в высоту.
+    const labelPx = 26;
+    const labelScale = k * dist * labelPx;
+    entry.label.scale.set(labelScale * entry.labelAspect, labelScale, 1);
   }
 }
 
-// --- Цикл рендера ---------------------------------------------------------
-
-let lastTime = 0;
+// --- Цикл ----------------------------------------------------------------
 
 function animate() {
   if (disposed) return;
   animationId = requestAnimationFrame(animate);
   if (!running) return;
 
-  const t = performance.now() / 1000;
-  const dt = Math.min(0.1, t - lastTime);
-  lastTime = t;
-
   controls.update();
-
-  // Облака отключены — спрайты выглядели плохо. См. комментарий в шапке.
-  // if (!cloudsGroup?.userData.forced) {
-  //   updateClouds(dt);
-  // }
-
-  updateMarkerLevels();
-
+  updateMarkerSizes();
   renderer.render(scene, camera);
 }
 
-// --- Тап по острову -------------------------------------------------------
+// --- Тап ----------------------------------------------------------------
 
 let pointerDown = { x: 0, y: 0, t: 0 };
 
@@ -654,7 +490,6 @@ function onPointerDown(ev) {
 
 function onPointerUp(ev) {
   if (!onTapCallback) return;
-
   const dx = ev.clientX - pointerDown.x;
   const dy = ev.clientY - pointerDown.y;
   if (Math.hypot(dx, dy) > 10) return;
@@ -666,44 +501,36 @@ function onPointerUp(ev) {
   const camPos = camera.position;
 
   const candidates = [];
-  for (const [uid, { group, data }] of markers.entries()) {
-    if (!group.visible) continue;
-
-    _projVec.copy(group.position).project(camera);
+  for (const [uid, entry] of markers.entries()) {
+    _projVec.copy(entry.icon.position).project(camera);
     if (_projVec.z > 1) continue;
-
     const sx = (_projVec.x * 0.5 + 0.5) * rect.width;
     const sy = (-_projVec.y * 0.5 + 0.5) * rect.height;
     const screenDist = Math.hypot(sx - tapX, sy - tapY);
     if (screenDist > HIT_RADIUS_PX) continue;
-
-    const camDist = camPos.distanceTo(group.position);
-    candidates.push({ uid, data, screenDist, camDist });
+    candidates.push({ uid, entry, screenDist, camDist: camPos.distanceTo(entry.icon.position) });
   }
 
   if (!candidates.length) return;
-
   candidates.sort((a, b) => (a.camDist - b.camDist) || (a.screenDist - b.screenDist));
   const chosen = candidates[0];
-
-  if (myUserId && String(chosen.uid) === String(myUserId)) return;
-  onTapCallback(chosen.uid, chosen.data.username);
+  if (chosen.entry.isMine) return;
+  onTapCallback(chosen.uid, chosen.entry.data.username);
 }
 
-// --- Публичное API --------------------------------------------------------
+// --- Публичное API -------------------------------------------------------
 
 export function flyToPlayer(userId, username, { zoom = 1 } = {}) {
   if (!camera || !controls) return;
 
   let target = null;
   const m = markers.get(String(userId));
-  if (m) {
-    target = m.group.position.clone();
-  } else {
+  if (m) target = m.icon.position.clone();
+  else {
     for (const p of rawPoints) {
       if (String(p.user_id) === String(userId)) {
         const { lat, lon } = worldToLatLon(p.world_x, p.world_y);
-        target = latLonToVec3(lat, lon, SPHERE_RADIUS * 1.005);
+        target = latLonToVec3(lat, lon, SPHERE_RADIUS * 1.01);
         break;
       }
     }
@@ -716,13 +543,11 @@ export function flyToPlayer(userId, username, { zoom = 1 } = {}) {
     controls.minDistance,
     Math.min(controls.maxDistance, (SPHERE_RADIUS * 2.2) / zoom)
   );
-
   const endPos = dir.clone().multiplyScalar(finalDist);
   const startPos = camera.position.clone();
 
   const startT = performance.now();
   const dur = 900;
-
   const step = () => {
     if (disposed) return;
     const k = Math.min(1, (performance.now() - startT) / dur);
@@ -747,11 +572,9 @@ export function zoomMapBy(factor) {
   const currentDist = camera.position.length();
   let newDist = currentDist / factor;
   newDist = Math.max(controls.minDistance, Math.min(controls.maxDistance, newDist));
-
   const startDist = currentDist;
   const startT = performance.now();
   const dur = 220;
-
   const step = () => {
     if (disposed) return;
     const k = Math.min(1, (performance.now() - startT) / dur);
@@ -764,18 +587,17 @@ export function zoomMapBy(factor) {
   step();
 }
 
-// Для меню: мгновенно поставить камеру на расстояние distance (в единицах
-// радиуса сферы). Используется при показе Play-кнопки — камера отлетает
-// далеко, показывая всю планету.
+export function resizeMap3D() { onResize(); }
+export function setMapRunning(on) {
+  running = on;
+  if (on && camera && controls) onResize();
+}
 export function setMapCameraDistance(distance) {
   if (!camera || !controls) return;
   const dir = camera.position.clone().normalize();
   camera.position.copy(dir.multiplyScalar(distance));
   camera.lookAt(0, 0, 0);
 }
-
-// Для меню: плавный подлёт камеры от текущей позиции до радиуса to.
-// Возвращает Promise, который резолвится по завершении анимации.
 export function tweenMapCamera(from, to, ms) {
   return new Promise((resolve) => {
     if (!camera || !controls) return resolve();
@@ -784,7 +606,6 @@ export function tweenMapCamera(from, to, ms) {
     const step = () => {
       if (disposed) return resolve();
       const k = Math.min(1, (performance.now() - startT) / ms);
-      // ease-in-out cubic: медленно в начале и в конце, быстро в середине.
       const e = k < 0.5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2;
       const d = from + (to - from) * e;
       camera.position.copy(dir.clone().multiplyScalar(d));
@@ -794,17 +615,6 @@ export function tweenMapCamera(from, to, ms) {
     };
     step();
   });
-}
-
-export function resizeMap3D() {
-  onResize();
-}
-
-export function setMapRunning(on) {
-  running = on;
-  if (on && camera && controls) {
-    onResize();
-  }
 }
 
 function onResize() {
@@ -838,5 +648,4 @@ export function disposeMap3D() {
   controls = null;
   sphereMesh = null;
   markersGroup = null;
-  cloudsGroup = null;
     }
