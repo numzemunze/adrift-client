@@ -21,9 +21,9 @@
 // дискретное освещение (3 ступени), как в комиксах, вместо плавного
 // градиента Lambert. Текстуры (дерево/железо) при этом сохраняются.
 //
-// Чёрная рамка по краям текстур рисуется прямо в canvas — при наложении
-// на куб она создаёт чёткую границу между гранями, эффект «нарисованного»
-// куба без второго меша-обводки (который удвоил бы draw calls).
+// Рамка по краям текстур рисуется прямо в canvas — при наложении на куб
+// она создаёт границу между гранями. Тонкая (2.5px), полупрозрачная —
+// грань читается, но не «давит» чёрной заливкой.
 
 import * as THREE from 'three';
 import { BLOCK_COLORS_HEX } from './config.js';
@@ -41,7 +41,8 @@ export function initBlocks(sceneRef) {
 
 //: Хук, который вызывается после любой мутации набора кубов.
 //: По умолчанию ничего не делает. index.html регистрирует здесь
-//: resetMinionPath — чтобы Буй пересчитал маршрут после обрушения.
+//: resetMinionPath — чтобы Буй пересчитал маршрут после обрушения,
+//: и навешивает castShadow/receiveShadow на новые меши.
 let onCubesChanged = () => {};
 export function setOnCubesChanged(fn) {
   onCubesChanged = fn;
@@ -53,9 +54,9 @@ export function setOnCubesChanged(fn) {
 // в репозитории. Стиль намеренно шершавый: у дерева — прожилки, у железа —
 // заклёпки, чтобы материалы различались издалека.
 //
-// В конце каждой текстуры рисуется чёрная рамка по периметру. При
-// наложении на куб она даёт чёткий контур каждой грани — основной
-// элемент cartoony-стиля.
+// В конце каждой текстуры рисуется тонкая полупрозрачная рамка по
+// периметру. Она даёт мягкий контур грани, не превращая куб в чёрный
+// кубик. Толщина 2.5px от размера 128 — примерно 2% ширины грани.
 
 function makeWoodTexture() {
   const size = 128;
@@ -82,13 +83,10 @@ function makeWoodTexture() {
     }
   }
 
-  // Чёрная рамка по краям — контур грани куба.
-  // Толщина 7px от размера 128: при натяжке текстуры на грань рамка
-  // занимает ~5% ширины грани. Достаточно, чтобы быть видимой, но не
-  // съедает сам рисунок.
-  ctx.strokeStyle = 'rgba(26, 20, 16, 0.9)';
-  ctx.lineWidth = 7;
-  ctx.strokeRect(3.5, 3.5, size - 7, size - 7);
+  // Тонкая полупрозрачная рамка по краям — мягкий контур грани.
+  ctx.strokeStyle = 'rgba(26, 20, 16, 0.55)';
+  ctx.lineWidth = 2.5;
+  ctx.strokeRect(1.25, 1.25, size - 2.5, size - 2.5);
 
   const tex = new THREE.CanvasTexture(canvas);
   tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
@@ -136,10 +134,10 @@ function makeIronTexture() {
     ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x + len, y + (Math.random() - 0.5) * 3); ctx.stroke();
   }
 
-  // Та же чёрная рамка, что и у дерева — единый стиль всех кубов.
-  ctx.strokeStyle = 'rgba(26, 20, 16, 0.9)';
-  ctx.lineWidth = 7;
-  ctx.strokeRect(3.5, 3.5, size - 7, size - 7);
+  // Та же тонкая рамка, что и у дерева — единый стиль всех кубов.
+  ctx.strokeStyle = 'rgba(26, 20, 16, 0.55)';
+  ctx.lineWidth = 2.5;
+  ctx.strokeRect(1.25, 1.25, size - 2.5, size - 2.5);
 
   const tex = new THREE.CanvasTexture(canvas);
   tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
@@ -281,6 +279,8 @@ function buildCubeMesh(shape, sxWorld, syWorld, szWorld, material, color, rotati
   const geo = shapeGeometry(shape, sx, sy, sz);
   const mesh = new THREE.Mesh(geo, makeCubeMaterial(material, color));
   if (shape === 'triangle' && rotation) mesh.rotation.y = rotation * Math.PI / 2;
+  mesh.castShadow = true;
+  mesh.receiveShadow = true;
   return mesh;
 }
 
@@ -343,4 +343,4 @@ export function resetCubes() {
 //: забыть обновить после мутации.
 export function refreshCounters() {
   $('cubes').textContent = cubeMeshes.size;
-      }
+}
