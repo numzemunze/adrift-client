@@ -117,12 +117,9 @@
   .island-meta { font-size:13px; color:rgba(255,255,255,.7); }
   .island-badge { font-size:12px; color:#fca5a5; }
   .screen-note { text-align:center; color:rgba(255,255,255,.5); padding:32px 16px; }
-
-  /* Точка «онлайн»: зелёная с подсветкой, серая без. */
   .online-dot { display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:7px; vertical-align:middle; }
   .online-dot.on  { background:#22c55e; box-shadow:0 0 6px #22c55e; }
   .online-dot.off { background:rgba(255,255,255,.25); }
-
   #loot-screen { align-items:center; justify-content:center; }
   .loot-card { background:#111a33; border:1px solid rgba(255,255,255,.15); border-radius:18px; padding:28px 24px; text-align:center; max-width:340px; width:100%; }
   .loot-emoji { font-size:48px; margin-bottom:8px; }
@@ -202,8 +199,6 @@
 .profile-bio.empty { color:rgba(255,255,255,.35); font-style:italic; }
 .profile-actions { display:grid; grid-template-columns:1fr; gap:10px; }
 .profile-actions button { justify-content:center; width:100%; }
-
-/* --- Stats block: карточка статистики в чужом профиле ------------------- */
 .stats-block { background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.08); border-radius:12px; padding:14px 16px; margin-bottom:14px; }
 .stats-group { margin-bottom:14px; }
 .stats-group:last-child { margin-bottom:0; }
@@ -214,8 +209,6 @@
 .stats-row b.gold { color:#fde68a; }
 .stats-row b.danger { color:#fca5a5; }
 .stats-loading { color:rgba(255,255,255,.45); font-size:13px; text-align:center; padding:10px 0; }
-
-/* --- Settings screen: секции внутри карточки --------------------------- */
 .settings-section { background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.08); border-radius:12px; padding:14px 16px; margin-bottom:12px; }
 .settings-section:last-child { margin-bottom:0; }
 .settings-section-title { font-size:11px; color:rgba(255,255,255,.55); text-transform:uppercase; letter-spacing:.9px; margin-bottom:10px; }
@@ -230,8 +223,6 @@
 .settings-link:last-child { border-bottom:none; padding-bottom:0; }
 .settings-link:first-of-type { padding-top:0; }
 .settings-link:active { opacity:.65; }
-
-/* --- История рейдов ---------------------------------------------------- */
 .history-row { display:flex; flex-direction:column; gap:5px; width:100%; text-align:left; background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.1); border-radius:14px; padding:12px 15px; margin-bottom:8px; }
 .history-row:active { background:rgba(255,255,255,.16); }
 .history-head { display:flex; align-items:center; gap:10px; }
@@ -244,8 +235,6 @@
 .history-meta.won { color:#86efac; }
 .history-meta.lost { color:#fca5a5; }
 .history-meta.active { color:#fbbf24; }
-
-/* --- Карта мира: контейнер под 3D-канвас ------------------------------- */
 #map-screen { padding:0; }
 #map-screen .screen-head {
   position:absolute; top:0; left:0; right:0; z-index:3;
@@ -254,13 +243,11 @@
   pointer-events:none;
 }
 #map-screen .screen-head > * { pointer-events:auto; }
-
 #map-container {
   position:absolute; inset:0;
   background:#050810;
-  touch-action:none;   /* чтобы OrbitControls сам управлял жестами */
+  touch-action:none;
 }
-
 #map-controls {
   position:absolute; right:14px; bottom:24px; z-index:3;
   display:flex; flex-direction:column; gap:8px;
@@ -274,12 +261,10 @@
 </head>
 <body>
 <div id="app"></div>
-
 <div id="menu-screen">
   <div class="menu-title">ADRIFT</div>
   <button id="menu-play" class="menu-play" disabled>▶ Play</button>
 </div>
-
 <div id="net-banner" data-i18n="netDown">📡 Нет соединения с сервером…</div>
 <div class="bar" id="top">
   <button class="pill pill-btn" id="claim-btn" title="Claim">⚡ <b id="ether">—</b><span id="claim-hint">…</span></button>
@@ -322,7 +307,6 @@
     <div class="screen-title" data-i18n="mapTitle">🗺️ Карта мира</div>
     <button id="map-close">✕</button>
   </div>
-  <!-- Модуль map3d.js сам создаёт свой canvas внутри этого div. -->
   <div id="map-container"></div>
   <div id="map-controls">
     <button id="map-zoom-in" class="map-zoom-btn">＋</button>
@@ -388,7 +372,6 @@
         </div>
       </div>
     </div>
-    <!-- Статистика игрока: между шапкой и bio. Заполняется loadStatsInto() -->
     <div class="stats-block" id="stats-block">
       <div id="stats-grid"><div class="stats-loading">…</div></div>
     </div>
@@ -426,7 +409,6 @@
     <button id="settings-close">✕</button>
   </div>
   <div class="profile-card">
-
     <div class="settings-section">
       <div class="settings-section-title" data-i18n="settingsSound">Звук</div>
       <div class="settings-row">
@@ -437,7 +419,6 @@
         <button id="sound-btn" title="Sound">🔊</button>
       </div>
     </div>
-
     <div class="settings-section">
       <div class="settings-section-title" data-i18n="pushTitle">Уведомления</div>
       <div class="settings-row">
@@ -447,27 +428,23 @@
         <button id="push-toggle" class="go"></button>
       </div>
     </div>
-
     <div class="settings-section">
       <div class="settings-section-title" data-i18n="settingsPlay">Игра</div>
       <button id="history-open-btn" class="big" style="width:100%;justify-content:center;">
         <span class="ico">📜</span><span data-i18n="historyTitle">История рейдов</span>
       </button>
     </div>
-
     <div class="settings-section">
       <div class="settings-section-title" data-i18n="settingsAbout">О игре</div>
       <a class="settings-link" href="./privacy.html" target="_blank" rel="noopener" data-i18n="privacyLink">Privacy Policy</a>
       <a class="settings-link" href="./terms.html" target="_blank" rel="noopener" data-i18n="termsLink">Terms of Service</a>
     </div>
-
     <div class="settings-section">
       <div class="settings-section-title" data-i18n="settingsAccount">Аккаунт</div>
       <button id="signout-btn" class="danger big" style="width:100%;justify-content:center;">
         <span class="ico">↩</span><span data-i18n="signOut">Выйти из аккаунта</span>
       </button>
     </div>
-
   </div>
 </div>
 <div id="toast" class="hidden"></div>
@@ -481,7 +458,7 @@
 <script type="module">
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
- import {
+import {
   SUPABASE_URL, SUPABASE_ANON_KEY, API_URL,
   MUSIC_URLS, NET_TIMEOUT_MS, FLAG_CLEAR_RADIUS,
   FLAG_COLORS_HEX, FLAG_COLORS_CSS,
@@ -489,17 +466,17 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
   CHARGE_COST, BLOCK_SIZES, SHOP_SHAPES, SHOP_MATERIALS,
   MATERIAL_PALETTE, FALLBACK_PRICES,
 } from './src/config.js';
- import { I18N, lang, t, applyI18n } from './src/i18n.js';
- import {
+import { I18N, lang, t, applyI18n } from './src/i18n.js';
+import {
   SFX, playMusic, stopMusic, scheduleMusicStop,
   pauseMusic, resumeMusic, retryMusic,
   tryUnlockAudio, loadAudioPref, toggleAudio,
 } from './src/audio.js';
- import {
+import {
   $, toast, uid, fmtTime, fail, ok, loading,
   fetchT, humanError, priceEl,
 } from './src/utils.js';
- import {
+import {
   initBlocks, setOnCubesChanged,
   cubeMeshes, blockedGround,
   addCube, removeCube, updateCubeHp, resetCubes, refreshCounters,
@@ -507,14 +484,10 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
   effectiveShape, effectiveMaterial, isFlatHalf,
   effectiveColorHex, makeCubeMaterial,
 } from './src/blocks.js';
- import {
-  initMap3D, setMapPoints, setMapCameraToMe,
+import {
+  initMap3D, setMapPoints, setMapCameraToMe, flyToPlayer,
   zoomMapBy, resizeMap3D, setMapRunning, disposeMap3D,
 } from './src/map3d.js';
-
-
-
-
 
 let token = null, myId = null;
 let mode = 'own';
@@ -540,33 +513,22 @@ let myRaidAlert = false;
 let myWorldX = null, myWorldY = null;
 let menuMode = true;
 
-// Анонимный Supabase-signup больше не используем: единственный вход —
-// Google через redirect-flow. Функция оставлена как заглушка, чтобы
-// старые вызовы (если где-то остались) не падали с «not defined».
 async function signIn() {
   throw new Error('Use signInWithGoogle()');
 }
 
-// Запускает Google-логин. Браузер уйдёт на Google, потом вернётся
-// обратно в игру с токеном в URL — его поймает handleOAuthCallback.
 function signInWithGoogle() {
   const redirectTo = encodeURIComponent(window.location.origin + window.location.pathname);
   const url = `${SUPABASE_URL}/auth/v1/authorize?provider=google&redirect_to=${redirectTo}`;
   window.location.href = url;
 }
 
-// JWT payload — base64url, а не base64. Плюс и слэш в base64url заменены
-// на дефис и подчёркивание, паддинг '=' выброшен. Нативный atob() на таком
-// вводе бросает — отсюда ручная нормализация, как в urlBase64ToUint8Array.
 function base64UrlDecode(str) {
   const padding = '='.repeat((4 - (str.length % 4)) % 4);
   const base64 = (str + padding).replace(/-/g, '+').replace(/_/g, '/');
   return atob(base64);
 }
 
-// Разбирает токен из URL после возврата с Google.
-// Supabase кладёт его в hash: #access_token=...&refresh_token=...&expires_in=...
-// Возвращает true, если токен был найден и сохранён.
 function handleOAuthCallback() {
   const hash = window.location.hash;
   if (!hash || hash.length < 2) return false;
@@ -577,16 +539,11 @@ function handleOAuthCallback() {
 
   token = accessToken;
 
-  // myId достаём из JWT. Ошибку парсинга не превращаем в фатал — токен
-  // уже есть, а myId можно вытащить позже из /me. Просто логируем.
   try {
     const payload = JSON.parse(base64UrlDecode(token.split('.')[1]));
     myId = payload.sub || null;
   } catch (e) { myId = null; }
 
-  // refresh_token — обязательная часть. Без него access-токен умрёт через
-  // час, и всё, что делает игрок, начнёт получать 401. Supabase кладёт его
-  // в тот же hash, но старый код его игнорировал.
   const refreshToken = params.get('refresh_token');
   if (refreshToken) {
     try { localStorage.setItem('adrift_refresh', refreshToken); } catch (e) {}
@@ -599,9 +556,6 @@ function handleOAuthCallback() {
     } catch (e) {}
   }
 
-  // Чистим URL, чтобы токен не висел в адресной строке и не попал в
-  // историю браузера / скриншоты. history.replaceState не перезагружает
-  // страницу, поэтому game-state не теряется.
   history.replaceState(null, '', window.location.pathname + window.location.search);
   return true;
 }
@@ -612,22 +566,12 @@ function clearSession() {
   try {
     localStorage.removeItem('adrift_token');
     localStorage.removeItem('adrift_id');
-    // refresh-токен — тоже секрет сессии. Если его не убрать, следующий
-    // api() попытается обновить токен и войти под старым аккаунтом.
     localStorage.removeItem('adrift_refresh');
   } catch (e) {}
 }
 
 const AUTH_ERRORS = ['TOKEN_EXPIRED','TOKEN_INVALID','TOKEN_MISSING','UNAUTHORIZED'];
 
-// Обновляет access-токен через refresh_token. Возвращает true, если удалось.
-//
-// ВАЖНО ПРО РОТАЦИЮ: Supabase выдаёт НОВЫЙ refresh_token при каждом обновлении,
-// а старый сгорает. Если сохранить только access_token, второй refresh через
-// час упадёт с 401. Поэтому обновляем обе записи в localStorage.
-//
-// Возвращает false на любой ошибке: сеть, 401, отсутствие refresh-токена.
-// Вызывающий (api) сам решает, что делать — обычно показать экран логина.
 async function refreshSession() {
   let refreshToken;
   try { refreshToken = localStorage.getItem('adrift_refresh'); } catch (e) { return false; }
@@ -652,7 +596,7 @@ async function refreshSession() {
     try {
       localStorage.setItem('adrift_token', token);
       if (data.refresh_token) localStorage.setItem('adrift_refresh', data.refresh_token);
-    } catch (e) { /* приватный режим — работаем без персистентности */ }
+    } catch (e) {}
 
     return true;
   } catch (e) {
@@ -673,16 +617,11 @@ async function api(path, options = {}) {
     err.code = body?.error?.code || ('HTTP_' + res.status);
     err.details = body?.error?.details;
 
-    // 401: access-токен протух (Supabase выдаёт их на час). Пробуем обновить
-    // через refresh_token и повторить запрос ОДИН раз. __retried защищает
-    // от петли, если и refresh-токен уже мёртв.
     if (AUTH_ERRORS.includes(err.code) && !options.__retried) {
       const refreshed = await refreshSession();
       if (refreshed) {
         return api(path, { ...options, __retried: true });
       }
-      // Refresh не удался — сессия окончательно мертва. Чистим и показываем
-      // экран логина, чтобы игрок сам решил, входить ли заново.
       clearSession();
       showGoogleLogin();
       throw err;
@@ -693,11 +632,8 @@ async function api(path, options = {}) {
 }
 
 async function auth() {
-  // 1. Только что вернулись от Google? Токен в URL.
   if (handleOAuthCallback()) return;
 
-  // 2. Токен уже есть в localStorage с прошлого визита. Может быть протухшим —
-  //    тогда api() сама обновит его через refresh-токен и повторит запрос.
   const saved = localStorage.getItem('adrift_token');
   const savedId = localStorage.getItem('adrift_id');
   if (saved && savedId) {
@@ -706,15 +642,10 @@ async function auth() {
       await api('/api/v1/build/catalog');
       return;
     } catch (e) {
-      // api() уже попробовала refresh. Если ошибка не про токен — это
-      // настоящий сбой (сервер, сеть), не глотаем.
       if (!AUTH_ERRORS.includes(e.code)) throw e;
-      // Токен мёртв и не обновился — api() уже почистила сессию.
-      // Падаем в ветку показа логина ниже.
     }
   }
 
-  // 3. Сессии нет или она мертва. Показываем кнопку Google на экране меню.
   showGoogleLogin();
   throw new Error('AUTH_REQUIRED');
 }
@@ -751,20 +682,8 @@ ground.position.y = -0.5; scene.add(ground);
 const grid = new THREE.GridHelper(64, 64, 0x3b82f6, 0x1e293b);
 grid.position.y = 0.01; scene.add(grid);
 
-// Запретная зона вокруг Флага — квадрат, а не круг.
-//
-// Сервер запрещает ставить кубы, чей прямоугольник задевает клетки
-// [-R, R] по X и Z (R = FLAG_CLEAR_RADIUS). Клетка (x, z) в мире занимает
-// [x, x+1] × [z, z+1], значит запрет — прямоугольник [-R, R+1] в мировых
-// координатах, его центр (0.5, 0.5), полудлина R + 0.5.
-//
-// Круг радиуса R+0.5 не подходит: он вписан в квадрат, а по диагонали
-// угол квадрата лежит вне круга. Игрок видел бы разрешённую зону там,
-// где сервер запрещает.
-//
-// Рисуем 4 тонких плоских полосы — они образуют квадратный контур.
-const FLAG_CELL_CENTER = 0.5;                    // центр клетки (0, 0, 0)
-const RING_HALF = FLAG_CLEAR_RADIUS + 0.5;       // полудлина квадрата
+const FLAG_CELL_CENTER = 0.5;
+const RING_HALF = FLAG_CLEAR_RADIUS + 0.5;
 const RING_THICK = 0.08;
 
 const ringMat = new THREE.MeshBasicMaterial({
@@ -784,10 +703,6 @@ noBuildRing.position.set(FLAG_CELL_CENTER, 0.03, FLAG_CELL_CENTER);
 noBuildRing.visible = false;
 scene.add(noBuildRing);
 
-// Флаг стоит в ЦЕНТРЕ клетки (0, 0, 0), а не в её углу. Клетка занимает
-// мировые [0, 1] × [0, 1], её центр — (0.5, 0.5). Раньше flagGroup был
-// привязан к мировому (0, 0, 0), и флаг визуально съезжал к границе
-// запретной зоны.
 const flagGroup = new THREE.Group();
 const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.15,0.15,4,8), new THREE.MeshLambertMaterial({ color:0x94a3b8 }));
 pole.position.y = 2;
@@ -798,8 +713,6 @@ flagGroup.position.set(FLAG_CELL_CENTER, 0, FLAG_CELL_CENTER);
 scene.add(flagGroup);
 
 initBlocks(scene);
-
-
 
 function setFlagVisual(hp, maxHp, color) {
   currentFlagHp = hp; currentFlagMax = maxHp;
@@ -1389,16 +1302,12 @@ function closeOnboard() {
   const el = $('onboard-screen'); el.classList.add('closing');
   setTimeout(() => { el.classList.remove('closing'); el.classList.add('hidden'); }, 300);
 }
- 
-// Показываем кнопку «Войти через Google» на экране меню.
-// Вызывается, когда auth() не нашла токена — то есть при первом заходе
-// или после того, как игрок вышел из аккаунта.
+
 function showGoogleLogin() {
   const menu = $('menu-screen');
   menu.classList.remove('hidden');
   menu.classList.remove('fading');
 
-  // Если кнопка уже есть — не дублируем.
   if ($('google-login-btn')) return;
 
   const btn = document.createElement('button');
@@ -1416,7 +1325,6 @@ function showGoogleLogin() {
   btn.addEventListener('click', signInWithGoogle);
   menu.appendChild(btn);
 
-  // Play-кнопку временно выключаем: играть без авторизации нельзя.
   const play = $('menu-play');
   if (play) play.disabled = true;
 }
@@ -1476,7 +1384,7 @@ async function loadMe() {
   currentUsername = me.username || '';
   currentBio = me.bio || null;
   currentAvatar = me.avatar || null;
- }
+}
 async function returnHome() {
   targetUser = null; raidId = null; raidFlagState = null; flagWasOpen = false; hideScreens();
   setDemolish(false); setMode('own'); buildMode = true; updatePanel();
@@ -1675,9 +1583,6 @@ function makeIslandRow(isl) {
   row.className = 'island-row' + (isl.can_raid ? '' : ' locked');
 
   const name = document.createElement('div'); name.className = 'island-name';
-  // Точка «онлайн» — рядом с ником. is_online приходит с сервера (last_seen_at
-  // в пределах 3 минут). Точный статус не гарантируем: игрок мог только что
-  // уйти, а last_seen_at ещё не «остыл».
   const dot = document.createElement('span');
   dot.className = 'online-dot ' + (isl.is_online ? 'on' : 'off');
   name.appendChild(dot);
@@ -1706,30 +1611,22 @@ async function openWorld() {
     list.appendChild(err);
   }
 }
- // Current user's own profile fields, kept in memory so the edit screen
-// can prefill without an extra API round-trip. Refreshed by loadMe().
 let currentUsername = '';
 let currentBio = null;
 let currentAvatar = null;
-// undefined = no change, null = default Buoy, 'preset:key' = chosen preset.
 let pendingAvatar = undefined;
- const AVATAR_PRESETS = {
+const AVATAR_PRESETS = {
   cat: '🐱', dog: '🐶', fox: '🦊', bear: '🐻',
   panda: '🐼', frog: '🐸', lion: '🦁', tiger: '🐯',
 };
 let profileTarget = null;
 
-//: Путь к дефолтному аватару. Лежит в репо клиента, не в БД: менять его —
-//: значит менять всех, кто не задал свой. Файл должен существовать, иначе
-//: сработает onerror и покажется emoji-заглушка.
 const DEFAULT_AVATAR_URL = './assets/Untitled72_20260916105743.png';
 
 function renderAvatar(el, avatar) {
   el.innerHTML = '';
   const img = document.createElement('img');
   img.alt = '';
-  // null — дефолтный Буй; url:<href> — ссылка игрока;
-  // preset:<key> — пока не используется, но оставляем для совместимости.
   if (!avatar) {
     img.src = DEFAULT_AVATAR_URL;
   } else if (avatar.startsWith('url:')) {
@@ -1741,7 +1638,6 @@ function renderAvatar(el, avatar) {
   } else {
     img.src = DEFAULT_AVATAR_URL;
   }
-  // Если ссылка битая — не оставляем пустой квадрат, показываем emoji.
   img.onerror = () => { el.innerHTML = ''; el.textContent = '🙂'; };
   el.appendChild(img);
 }
@@ -1750,11 +1646,8 @@ function paintProfile(isl) {
   profileTarget = isl;
   renderAvatar($('profile-avatar'), isl.avatar);
   $('profile-name').textContent = isl.username;
-  // Полный UUID, не обрезанный: игрок может захотеть скопировать целиком.
   $('profile-id').textContent = String(isl.user_id);
 
-  // Онлайн-статус в карточке. Обновляем через textContent, а не innerHTML,
-  // чтобы не рисковать с ником (хотя он у нас regex-валидируется).
   const statusEl = $('profile-status');
   if (statusEl) {
     statusEl.innerHTML = '';
@@ -1771,14 +1664,10 @@ function paintProfile(isl) {
   if (bio) { bioEl.textContent = bio; bioEl.classList.remove('empty'); }
   else { bioEl.textContent = t('profileNoBio'); bioEl.classList.add('empty'); }
 
-  // Кнопка «Копировать» — визуально сбрасываем «copied» при открытии новой
-  // карточки, чтобы состояние не переезжало между игроками.
   const copyBtn = $('profile-copy');
-copyBtn.classList.remove('copied');
-copyBtn.textContent = '📎';
+  copyBtn.classList.remove('copied');
+  copyBtn.textContent = '📎';
 }
-
-// --- Stats block -------------------------------------------------------
 
 function statsPercent(part, total) {
   if (!total) return '—';
@@ -1811,7 +1700,6 @@ function renderStats(s, gridEl) {
     return g;
   };
 
-  // Отбитых = все обороне минус те, где флаг пал.
   const defendedWon = Math.max(0, s.raids_defended - s.raids_lost);
 
   gridEl.appendChild(makeGroup('statsCubes', [
@@ -1837,9 +1725,6 @@ function renderStats(s, gridEl) {
   ]));
 }
 
-//: Грузит статистику и рисует в gridEl. tokenCheck — опциональная проверка
-//: «мы всё ещё смотрим на того же игрока»: пока летел ответ, игрок мог
-//: закрыть профиль и открыть другой. Без неё в карточку B прилетят цифры A.
 async function loadStatsInto(gridEl, url, tokenCheck) {
   if (!gridEl) return;
   gridEl.innerHTML = '<div class="stats-loading">…</div>';
@@ -1854,28 +1739,16 @@ async function loadStatsInto(gridEl, url, tokenCheck) {
 }
 
 async function openProfile(userId, fallbackUsername) {
-  // Сброс статистики делается ЗДЕСЬ, а не в paintProfile.
-  //
-  // Причина: openProfile вызывает paintProfile дважды (сначала fallback,
-  // потом реальные данные). Если сброс живёт в paintProfile, второй вызов
-  // затирает уже отрисованные цифры обратно в «…». Симптом: статистика
-  // иногда не появляется — выглядит как race condition, но на самом деле
-  // детерминированный баг от двойного вызова.
   const statsGrid = $('stats-grid');
   if (statsGrid) statsGrid.innerHTML = '<div class="stats-loading">…</div>';
 
-  // Пока грузим — рисуем карточку из того, что уже есть в списке: ник и
-  // «—» вместо bio. Так игрок видит мгновенный отклик, а не пустой экран.
   paintProfile({
-  user_id: userId,
-  username: fallbackUsername || '—',
-  bio: null, avatar: null,
-});
+    user_id: userId,
+    username: fallbackUsername || '—',
+    bio: null, avatar: null,
+  });
   showScreen('profile-screen');
 
-  // Статистика грузится параллельно с bio/avatar — карточка появляется
-  // мгновенно, цифры подтягиваются сами. tokenCheck отсекает гонку:
-  // игрок мог закрыть профиль и открыть другого, пока летел ответ.
   loadStatsInto(
     $('stats-grid'),
     '/api/v1/islands/' + userId + '/stats',
@@ -1884,32 +1757,16 @@ async function openProfile(userId, fallbackUsername) {
 
   try {
     const isl = await api(`/api/v1/islands/${userId}/profile`);
-    // Пока мы грузили, игрок мог уже закрыть карточку — не перерисовываем.
     if (!$('profile-screen').classList.contains('hidden')) paintProfile(isl);
   } catch (e) {
     toast(humanError(e), 'error');
   }
 }
 
-// --- Карта мира: интеграция с 3D-модулем --------------------------------
-// Вся логика рендера живёт в src/map3d.js. Здесь только:
-//   * открыть / закрыть экран
-//   * запросить точки у бэка
-//   * передать их в модуль
-//   * связать тап по маркеру с openProfile()
-//
-// Кэширование bbox (как было в плоской карте) убрано: 3D-карта
-// показывает весь мир сразу, точек мало (до нескольких тысяч), запрос
-// один на открытие. Если точки начнут бить по производительности —
-// вернём bbox-запросы, но это далёкое будущее.
-
 let mapOpen = false;
 
 async function loadMapPoints() {
   try {
-    // Весь мир. При 10k игроков это 10000 точек в JSON ≈ 1.5 МБ —
-    // тяжело, но не смертельно при открытии раз в минуту. Когда
-    // перевалит за 5000 — вернём bbox и frustum culling.
     const data = await api('/api/v1/islands/map?x1=-2000&y1=-2000&x2=2000&y2=2000&limit=1000');
     setMapPoints(data.points || []);
   } catch (e) {
@@ -1924,18 +1781,14 @@ async function openMap() {
 
   const container = $('map-container');
   if (!mapOpen) {
-    // Первое открытие: инициализируем модуль.
     initMap3D(container, {
       onPointTap: (userId, username) => {
-        // Переиспользуем существующий экран профиля. Он «выше» в DOM,
-        // так что при закрытии игрок вернётся на карту.
         openProfile(userId, username);
       },
       myUserId: myId,
     });
     mapOpen = true;
   } else {
-    // Повторное открытие — просто снимаем паузу и пересчитываем размер.
     setMapRunning(true);
     resizeMap3D();
   }
@@ -1944,17 +1797,10 @@ async function openMap() {
 }
 
 function closeMap() {
-  setMapRunning(false);   // останавливаем render loop, чтобы не жёг батарею
+  setMapRunning(false);
   $('map-screen').classList.add('hidden');
 }
 
-// --- Push-уведомления -----------------------------------------------------
-// Подписка привязана к УСТРОЙСТВУ, а не к игроку: телефон и ноутбук
-// подписываются отдельно. Поэтому кнопка «Включить» работает для текущего
-// браузера, и на другом устройстве её надо нажать снова.
-
-// iOS Safari даёт push только когда сайт добавлен на домашний экран (PWA).
-// Проверяем это, чтобы показать правильную подсказку вместо «не поддерживается».
 function isIOS() {
   return /iPad|iPhone|iPod/.test(navigator.userAgent);
 }
@@ -1964,14 +1810,10 @@ function isStandalone() {
 }
 
 function pushSupported() {
-  // На iOS без PWA pushManager формально есть, но subscribe() всегда падает.
-  // Считаем это «не поддерживается», чтобы не пугать игрока ошибкой.
   if (isIOS() && !isStandalone()) return false;
   return 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
 }
 
-// Base64url → Uint8Array. applicationServerKey требует BufferSource, а сервер
-// отдаёт ключ строкой (base64url без паддинга, как велит спецификация VAPID).
 function urlBase64ToUint8Array(base64String) {
   const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
   const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
@@ -1990,7 +1832,6 @@ async function registerServiceWorker() {
   }
 }
 
-// Возвращает одно из: 'unsupported' | 'denied' | 'ios' | 'idle' | 'subscribed'
 async function getPushStatus() {
   if (isIOS() && !isStandalone()) return 'ios';
   if (!pushSupported()) return 'unsupported';
@@ -2011,8 +1852,6 @@ async function subscribeToPush() {
   const reg = await registerServiceWorker();
   if (!reg) throw new Error('PUSH_SW_FAILED');
 
-  // Ждём, пока SW станет активным: сразу после регистрации он в состоянии
-  // 'installing', и pushManager.subscribe() на нём упадёт.
   if (!reg.active) {
     await new Promise((resolve) => {
       const sw = reg.installing || reg.waiting;
@@ -2028,8 +1867,6 @@ async function subscribeToPush() {
 
   let sub = await reg.pushManager.getSubscription();
 
-  // Если подписка есть, но с другим VAPID-ключом (ключи на сервере сменили) —
-  // старая недействительна, отписываемся и подписываемся заново.
   if (sub) {
     try {
       const existing = sub.options && sub.options.applicationServerKey;
@@ -2037,7 +1874,7 @@ async function subscribeToPush() {
         await sub.unsubscribe();
         sub = null;
       }
-    } catch (e) { /* не смогли проверить — попробуем переиспользовать */ }
+    } catch (e) {}
   }
 
   if (!sub) {
@@ -2066,13 +1903,13 @@ async function unsubscribeFromPush() {
   const sub = await reg.pushManager.getSubscription();
   if (!sub) return;
   const endpoint = sub.endpoint;
-  try { await sub.unsubscribe(); } catch (e) { /* уже отписана — не наша забота */ }
+  try { await sub.unsubscribe(); } catch (e) {}
   try {
     await api('/api/v1/push/unsubscribe', {
       method: 'DELETE',
       body: JSON.stringify({ endpoint }),
     });
-  } catch (e) { /* сервер почистит при следующем 410 */ }
+  } catch (e) {}
 }
 
 async function paintPushBlock() {
@@ -2142,16 +1979,7 @@ async function togglePush() {
   }
 }
 
-// --- Экран настроек ---------------------------------------------------
-// Отдельный экран вместо блока в профиле: во-первых, так короче edit-profile
-// (только avatar + bio, а не пять секций), во-вторых, сюда же переезжает
-// кнопка звука и sign out, и в-третьих, тут будут жить будущие настройки
-// (язык, регион, приватность), которым не место в профиле.
-
 async function paintSoundBlock() {
-  // Иконка уже обновляется audio.js через updateSoundIcon(), нам важно
-  // добавить текстовую подпись рядом. Раз статус читается из localStorage,
-  // его можно дёрнуть синхронно — без await.
   const statusEl = $('sound-status');
   if (!statusEl) return;
   let muted = false;
@@ -2166,16 +1994,6 @@ function openSettings() {
   showScreen('settings-screen');
 }
 
-// --- История рейдов -------------------------------------------------------
-// Отдельный экран, вызывается из настроек. Показывает последние 50 рейдов
-// в обеих ролях (атакующий и защитник), свежие сверху.
-//
-// Тап по строке открывает профиль оппонента — оттуда можно «Посетить» или
-// «Рейд». Возврат из профиля возвращает в историю (profile-screen лежит
-// выше history в DOM, при закрытии profile history остаётся видимой).
-
-//: Относительное время: «только что», «5м», «3ч», «2д», потом дата.
-//: fmtTime() из utils не подходит — он для таймеров (mm:ss).
 function fmtAgo(iso) {
   const diff = Math.max(0, Date.now() - new Date(iso).getTime());
   const min = Math.floor(diff / 60000);
@@ -2194,8 +2012,6 @@ function makeHistoryRow(r) {
   const isAttacker = r.role === 'attacker';
   const isActive = r.status === 'active';
 
-  // Исход зависит от роли. is_success = «рейд удался для АТАКУЮЩЕГО»,
-  // поэтому у защитника успех рейда = он проиграл.
   let outcomeKey, outcomeCls;
   if (isActive) {
     outcomeKey = 'historyActive'; outcomeCls = 'active';
@@ -2222,8 +2038,6 @@ function makeHistoryRow(r) {
   time.textContent = fmtAgo(r.created_at);
   head.append(role, name, time);
 
-  // Собираем строку метрики. Для активного рейда stolen_ether ещё 0,
-  // ether_spent уже тикает — покажем «Идёт · ⚡-N».
   const parts = [t(outcomeKey)];
   if (r.ether_spent) parts.push('⚡-' + r.ether_spent);
   if (isAttacker && r.stolen_ether) parts.push('⚡+' + r.stolen_ether);
@@ -2236,8 +2050,6 @@ function makeHistoryRow(r) {
 
   row.append(head, meta);
 
-  // Профиль открываем поверх истории: profile-screen лежит выше в DOM,
-  // закрытие ✕ вернёт игрока обратно к списку рейдов.
   row.addEventListener('click', () => openProfile(r.opponent_id, r.opponent_username));
   return row;
 }
@@ -2272,23 +2084,12 @@ async function loadHistoryList() {
 }
 
 function openHistory() {
-  // Скрываем настройки (и всё остальное) — история это отдельный экран.
-  // Возврат через ✕ откроет настройки заново, чтобы игрок не терял контекст.
   hideScreens();
   showScreen('history-screen');
   loadHistoryList();
 }
 
-// Полный выход из аккаунта.
-//
-// Почему reload, а не ручная очистка состояния: после sign out надо сбросить
-// WebGL-сцену, все setInterval, глобальные переменные, подписку Service Worker
-// и localStorage — пять независимых подсистем. Перезагрузка страницы делает
-// всё это атомарно и без риска забыть что-то. Пользователь этого не замечает:
-// игра загружается за секунду.
 async function signOut() {
-  // Отписываемся от push ДО очистки токена: эндпоинт требует авторизации.
-  // Если не успеем — не страшно, сервер почистит подписку при следующем 410.
   try { await unsubscribeFromPush(); } catch (e) {}
   clearSession();
   try {
@@ -2296,8 +2097,6 @@ async function signOut() {
   } catch (e) {}
   window.location.reload();
 }
-
-// --- Edit own profile -------------------------------------------------
 
 function updateBioCounter() {
   const bio = $('edit-bio');
@@ -2309,7 +2108,6 @@ function buildAvatarPicker() {
   grid.innerHTML = '';
   const current = pendingAvatar !== undefined ? pendingAvatar : currentAvatar;
 
-  // Default option — the Buoy image.
   const def = document.createElement('button');
   def.className = 'avatar-option' + (current === null ? ' selected' : '');
   def.innerHTML = '<img src="' + DEFAULT_AVATAR_URL + '" alt="">';
@@ -2320,7 +2118,6 @@ function buildAvatarPicker() {
   });
   grid.appendChild(def);
 
-  // Preset emojis.
   for (const [key, emoji] of Object.entries(AVATAR_PRESETS)) {
     const isSel = current === 'preset:' + key;
     const btn = document.createElement('button');
@@ -2372,7 +2169,7 @@ async function saveEditProfile() {
   } finally {
     btn.disabled = false;
   }
-} 
+}
 async function visitIsland(userId, username) {
   hideScreens(); fail(t('islandLoading') + ' ' + username + '...');
   try {
@@ -2571,20 +2368,18 @@ $('map-close').addEventListener('click', closeMap);
 $('map-zoom-in').addEventListener('click', () => zoomMapBy(1.4));
 $('map-zoom-out').addEventListener('click', () => zoomMapBy(1 / 1.4));
 $('map-center').addEventListener('click', setMapCameraToMe);
- // Профиль закрывается БЕЗ hideScreens: если игрок пришёл сюда из списка
-// соседей, он должен вернуться обратно в список, а не на пустой экран.
 $('profile-close').addEventListener('click', () => $('profile-screen').classList.add('hidden'));
 $('profile-copy').addEventListener('click', async () => {
   if (!profileTarget) return;
   const btn = $('profile-copy');
   try {
     await navigator.clipboard.writeText(String(profileTarget.user_id));
-btn.classList.add('copied');
-btn.textContent = t('copied');
-setTimeout(() => {
-  btn.classList.remove('copied');
-  btn.textContent = t('copy');
-}, 1500);
+    btn.classList.add('copied');
+    btn.textContent = t('copied');
+    setTimeout(() => {
+      btn.classList.remove('copied');
+      btn.textContent = t('copy');
+    }, 1500);
   } catch (e) {
     toast(t('copyFailed'), 'error');
   }
@@ -2610,8 +2405,6 @@ $('settings-btn').addEventListener('click', openSettings);
 $('settings-close').addEventListener('click', hideScreens);
 $('history-open-btn').addEventListener('click', openHistory);
 $('history-close').addEventListener('click', () => {
-  // Возврат в настройки, а не в игру: игрок пришёл сюда оттуда и,
-  // скорее всего, хочет продолжить копаться в настройках.
   $('history-screen').classList.add('hidden');
   showScreen('settings-screen');
 });
@@ -2662,28 +2455,22 @@ animate();
     playMusic('nowhereland');
 
     await auth();
-    // Регистрируем Service Worker при каждом старте. Без регистрации не
-    // заработает ни подписка на push, ни клик по уведомлению. Если игрок
-    // не хочет push — SW всё равно живёт, но ничего не делает.
     registerServiceWorker();
-fail(t('loading'));
-await loadCatalog();
-await loadMe();
-await loadOwnIsland();
-await loadEconomy();
-setMode('own'); buildMode = true; updatePanel(); ok();
+    fail(t('loading'));
+    await loadCatalog();
+    await loadMe();
+    await loadOwnIsland();
+    await loadEconomy();
+    setMode('own'); buildMode = true; updatePanel(); ok();
 
     $('menu-play').disabled = false;
     pollRaidAlert();
   } catch (e) {
-  if (e.message === 'AUTH_REQUIRED') {
-    // Показываем меню с кнопкой Google, ничего не грузим.
-    // Как только игрок войдёт через Google — handleOAuthCallback
-    // сохранит токен, страница перезагрузится, и boot пойдёт с нуля.
-    ok();
-    return;
-  }
-  fail(t('error') + ': ' + humanError(e));
+    if (e.message === 'AUTH_REQUIRED') {
+      ok();
+      return;
+    }
+    fail(t('error') + ': ' + humanError(e));
   }
 })();
 </script>
