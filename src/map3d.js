@@ -1,3 +1,4 @@
+// src/map3d.js
 // Карта мира: 3D-глобус с мини-островами игроков.
 //
 // МИНИ-ОСТРОВА
@@ -12,30 +13,16 @@
 //   MID    (2.5-4R) — билборд: canvas-текстура с изометрией острова
 //   CLOSE  (< 2.5R) — полная 3D-модель: диск + кубы + флаг
 //
-// ОБЛАКА
-// ------
-// Отдельная сфера из инстансированных квадов чуть выше поверхности
-// планеты. Медленно вращаются. Прозрачность зависит от расстояния
-// камеры: подлетаешь — облака тают, отдаляешься — сгущаются.
-//
-// ПУБЛИЧНОЕ API
-// -------------
-//   initMap3D(container, { onPointTap, myUserId })
-//   setMapPoints(points)
-//   flyToPlayer(userId, zoom)
-//   setMapCameraToMe()
-//   zoomMapBy(factor)
-//   setMapRunning(bool)
-//   resizeMap3D()
-//   disposeMap3D()
-//
-// Плюс специально для меню:
-//   setMapCameraDistance(r)  — мгновенно поставить камеру на радиус r
-//   tweenMapCamera(from, to, ms) → Promise  — плавный подлёт
+// ОБЛАКА (ОТКЛЮЧЕНЫ)
+// ------------------
+// Реализация через спрайты оказалась визуально неудачной — серые пятна
+// вместо облаков. Вызов buildCloudLayer() закомментирован, updateClouds
+// не крутится в animate(). Функции и переменные оставлены на будущее —
+// вернёмся к облакам, когда карта стабилизируется.
 
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { FLAG_COLORS_HEX, BLOCK_COLORS_HEX } from './config.js';
+import { FLAG_COLORS_HEX } from './config.js';
 
 const WORLD_TO_DEG = 0.01;
 const WORLD_CENTER_LON = 10;
@@ -139,7 +126,7 @@ export function initMap3D(containerEl, { onPointTap, myUserId: myId } = {}) {
 
   loadEarthTexture(mat);
 
-  buildCloudLayer();
+  // buildCloudLayer();
 
   markersGroup = new THREE.Group();
   scene.add(markersGroup);
@@ -647,10 +634,10 @@ function animate() {
 
   controls.update();
 
-  // Облака обновляются, если не в форсированном режиме (меню).
-  if (!cloudsGroup?.userData.forced) {
-    updateClouds(dt);
-  }
+  // Облака отключены — спрайты выглядели плохо. См. комментарий в шапке.
+  // if (!cloudsGroup?.userData.forced) {
+  //   updateClouds(dt);
+  // }
 
   updateMarkerLevels();
 
@@ -852,4 +839,4 @@ export function disposeMap3D() {
   sphereMesh = null;
   markersGroup = null;
   cloudsGroup = null;
-      }
+    }
