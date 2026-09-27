@@ -418,7 +418,7 @@
 
   #map-screen {
     padding: 0;
-    background: #060b18;
+    background: #05081a;
   }
   #map-screen.menu-bg .screen-head,
   #map-screen.menu-bg #map-controls {
@@ -433,7 +433,7 @@
   #map-screen .screen-head > * { pointer-events:auto; }
   #map-container {
     position:absolute; inset:0;
-    background: #060b18;
+    background: #05081a;
     touch-action:none;
   }
   #map-controls {
@@ -686,10 +686,11 @@ import {
 } from './src/blocks.js';
 import { makeToonMaterial } from './src/style.js';
 import {
-  initMap3D, setMapPoints, setMapCameraToMe, flyToPlayer,
+  initMap3D, setMapPoints, setMapCubes,
+  setMapCameraToMe, flyToPlayer,
   zoomMapBy, resizeMap3D, setMapRunning, disposeMap3D,
   setMapCameraDistance, tweenMapCamera,
-  setCloudsVisible, attachTo, setMapVisible,
+  attachTo, setMapVisible,
 } from './src/map3d.js';
 import { attachRippleToAll, popIn, pulseCounter } from './src/ui.js';
 
@@ -1649,9 +1650,7 @@ function showMenu(on) {
 
 // --- Карта + меню: одна сцена на два экрана -------------------------
 // Canvas живёт постоянно, между меню и картой мы его просто переносим
-// в другой контейнер. В меню это фоновый глобус с далёкой камерой и
-// без управления. На карте — полноэкранный режим с OrbitControls и
-// кнопками зума.
+// в другой контейнер.
 
 let mapInitialized = false;
 
@@ -1660,6 +1659,7 @@ function ensureMapInitialized() {
   const container = $('map-container');
   initMap3D(container, {
     onPointTap: (userId, username) => openProfile(userId, username),
+    onNeedCubes: (ids) => loadMapCubes(ids),
     myUserId: myId,
   });
   mapInitialized = true;
@@ -1698,15 +1698,13 @@ async function showMenuGlobe() {
 
   setMapRunning(true);
   setMapVisible(true);
-  setCloudsVisible(getGraphicsQuality() === 'high');
 
   setMapCameraDistance(SPHERE_RADIUS_FOR_MENU * 3.2);
 
   try { await loadMapPoints(); } catch (e) {}
 }
 
-// Запуск игры: меню fade-out, карта уходит (её canvas просто убираем
-// со глаз — игровой рендерер всё равно перерисует экран).
+// Запуск игры: меню fade-out, карта уходит.
 function startGame() {
   if (!menuMode) return;
   menuMode = false;
@@ -2151,6 +2149,29 @@ async function loadMapPoints() {
   }
 }
 
+// Загрузка кубов для конкретных игроков — вызывается из map3d.js
+// когда камера приближается к островам. Батч-запрос, максимум 20 ids.
+async function loadMapCubes(ids) {
+  if (!ids || !ids.length) return;
+  try {
+    const idsCsv = ids.slice(0, 20).join(',');
+    const data = await api(
+      `/api/v1/islands/map/cubes?ids=${encodeURIComponent(idsCsv)}&limit_per_user=60`
+    );
+    const islands = data.islands || {};
+    for (const [uid, cubes] of Object.entries(islands)) {
+      setMapCubes(uid, cubes);
+    }
+    // Если для какого-то uid вернулся пустой список — тоже помечаем
+    // как «загружено», иначе будем перезапрашивать вечно.
+    for (const uid of ids) {
+      if (!(uid in islands)) setMapCubes(uid, []);
+    }
+  } catch (e) {
+    console.warn('loadMapCubes failed', e);
+  }
+}
+
 function isIOS() {
   return /iPad|iPhone|iPod/.test(navigator.userAgent);
 }
@@ -2338,9 +2359,6 @@ function getGraphicsQuality() {
 function applyGraphicsQuality(q) {
   const high = q === 'high';
   renderer.shadowMap.enabled = high;
-
-  try { setCloudsVisible(high); } catch (e) {}
-
   renderer.shadowMap.needsUpdate = true;
 
   for (const mesh of cubeMeshes.values()) {
