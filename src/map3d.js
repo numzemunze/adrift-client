@@ -1,46 +1,48 @@
-// Карта мира: 3D-глобус с маркерами-островами и облачным слоем.
+// Карта мира: 3D-глобус с реальными островами игроков.
 //
-// ЧТО ЗДЕСЬ
-// ---------
-//   * Сфера Земли с текстурой blue-marble.
-//   * Сфера облаков — вторая сфера чуть большего радиуса, с текстурой
-//     cloud (с альфа-каналом). Медленно вращается вокруг оси Y.
-//   * Маркеры островов — спрайты с canvas-иконкой (трава + кубики + флаг).
-//     Размер 120px на экране фиксированный, тап через screen-space.
-//   * Компактные ники: показываются только при приближении (camDist < 2R)
-//     и висят ВЫСОКО над островом, чтобы не перекрывать постройки.
+// ДВУХУРОВНЕВЫЙ LOD
+// -----------------
+//   ДАЛЕКО (camDist > 1.7R)  — иконка-спрайт с изометрией. Один draw call
+//                              на игрока, дёшево, но силуэт приблизительный.
+//   БЛИЗКО (camDist < 1.7R)  — настоящая 3D-модель, собранная из кубиков
+//                              игрока (эндпоинт /islands/map/cubes).
 //
-// ПЕРЕМЕЩЕНИЕ CANVAS
-// ------------------
-// Один и тот же canvas можно перенести в другой контейнер — просто
-// через appendChild. Это позволяет использовать одну сцену и в меню
-// (фоновый глобус), и на карте (полноэкранный режим), не поднимая
-// второй WebGL-контекст.
+// Кубы запрашиваются лениво: только для игроков, попавших в близкую зону.
+// Кэш на 30 секунд — за это время постройки обычно не меняются.
 //
-// УПРАВЛЕНИЕ ОБЛАКАМИ
-// -------------------
-// setCloudsVisible(bool) — скрыть/показать облака. Вызывается из
-// настроек графики: low = false.
+// СБОРКА МОДЕЛИ
+// -------------
+// Все кубы одного острова собираются в одну BufferGeometry через
+// mergeGeometries, цвет задаётся vertex attributes. Один меш на остров,
+// один draw call, до 60 кубиков внутри — рисуется быстро.
 
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { FLAG_COLORS_HEX } from './config.js';
+import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
+import { FLAG_COLORS_HEX, BLOCK_COLORS_HEX } from './config.js';
 
 const WORLD_TO_DEG = 0.01;
 const WORLD_CENTER_LON = 10;
 const WORLD_CENTER_LAT = 50;
 
 const SPHERE_RADIUS = 100;
-const CLOUD_RADIUS = SPHERE_RADIUS * 1.005;
 
+// Пороги LOD (в радиусах сферы).
+const CLOSE_DIST = 1.7;      // ближе — показываем 3D-модели
+const LABEL_DIST = 2.4;      // ближе — показываем ники
+
+// Масштаб игрового мира на поверхности глобуса. Остров занимает
+// [-32..32] игровых клеток = 64 клетки. При 0.5 это 32 единицы на
+// сфере радиуса 100 — остров читается крупно, но не «прилипает»
+// к другим.
+const CUBE_SCALE = 0.5;
+
+// Рабочие URL для текстуры Земли. Первый — из three.js examples,
+// проверенно рабочий, остальные — на случай падения CDN.
 const EARTH_TEXTURE_SOURCES = [
-  'https://unpkg.com/three-globe/example/img/earth-blue-marble.jpg',
-  'https://unpkg.com/three-globe/example/img/earth-day.jpg',
-];
-
-const CLOUD_TEXTURE_SOURCES = [
-  'https://unpkg.com/three@0.160.0/examples/textures/planets/earth_clouds_1024.png',
-  'https://cdn.jsdelivr.net/npm/three@0.160.0/examples/textures/planets/earth_clouds_1024.png',
+  'https://threejs.org/examples/textures/planets/earth_atmos_2048.jpg',
+  'https://raw.githubusercontent.com/mrdoob/three.js/r160/examples/textures/planets/earth_atmos_2048.jpg',
+  'https://unpkg.com/three@0.160.0/examples/textures/planets/earth_atmos_2048.jpg',
 ];
 
 const HIT_RADIUS_PX = 60;
@@ -50,42 +52,49 @@ let camera = null;
 let renderer = null;
 let controls = null;
 let sphereMesh = null;
-let cloudMesh = null;
 let markersGroup = null;
 
 let container = null;
 let onTapCallback = null;
+let onNeedCubes = null;
 let disposed = false;
 let running = false;
 let animationId = 0;
 
+// user_id → {
+//   icon, label, group,       // объекты сцены
+//   data, isMine, basePos,    // данные
+//   cubes, cubesFetched,      // 3D-модель
+//   iconAspect, labelAspect,
+// }
 const markers = new Map();
 let rawPoints = [];
 let myUserId = null;
 
-// Текущие настройки видимости, чтобы можно было применить их при
-// следующем рендере после setVisible.
-let cloudsVisible = true;
+// Очередь на загрузку кубов: собираем user_id, для которых нужны
+// модели, и раз в 200мс отправляем один батч-запрос.
+const pendingCubeIds = new Set();
+let cubeFetchTimer = null;
 
 const _projVec = new THREE.Vector3();
 
 // --- Инициализация --------------------------------------------------------
 
-export function initMap3D(containerEl, { onPointTap, myUserId: myId } = {}) {
+export function initMap3D(containerEl, { onPointTap, onNeedCubes: needCubes, myUserId: myId } = {}) {
   if (scene) {
-    // Уже инициализирован — просто перемещаем canvas в новый контейнер.
     attachTo(containerEl);
     return;
   }
   container = containerEl;
   onTapCallback = onPointTap;
+  onNeedCubes = needCubes;
   myUserId = myId;
 
   const w = container.clientWidth || window.innerWidth;
   const h = container.clientHeight || window.innerHeight;
 
   scene = new THREE.Scene();
-  scene.background = new THREE.Color(0x060b18);
+  scene.background = new THREE.Color(0x05081a);
 
   camera = new THREE.PerspectiveCamera(45, w / h, 0.1, 10000);
   const startPos = latLonToVec3(WORLD_CENTER_LAT, WORLD_CENTER_LON, SPHERE_RADIUS * 3.0);
@@ -99,7 +108,7 @@ export function initMap3D(containerEl, { onPointTap, myUserId: myId } = {}) {
   renderer.domElement.style.width = '100%';
   renderer.domElement.style.height = '100%';
   renderer.domElement.style.touchAction = 'none';
-  renderer.domElement.style.filter = 'saturate(1.25) contrast(1.05)';
+  renderer.domElement.style.filter = 'saturate(1.15) contrast(1.08)';
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   container.appendChild(renderer.domElement);
 
@@ -109,42 +118,25 @@ export function initMap3D(containerEl, { onPointTap, myUserId: myId } = {}) {
   controls.rotateSpeed = 0.4;
   controls.zoomSpeed = 0.7;
   controls.minDistance = SPHERE_RADIUS * 1.15;
-  controls.maxDistance = SPHERE_RADIUS * 5;
+  controls.maxDistance = SPHERE_RADIUS * 4;
   controls.enablePan = false;
   controls.target.set(0, 0, 0);
 
-  // Сфера Земли.
+  // Сфера Земли. MeshBasicMaterial — не зависит от освещения, цвет
+  // текстуры показывается как есть. Так избегаем багов с шейдерами.
   const earthGeo = new THREE.SphereGeometry(SPHERE_RADIUS, 96, 48);
-  const earthMat = new THREE.MeshBasicMaterial({ color: 0x3a5f8a, toneMapped: false });
+  const earthMat = new THREE.MeshBasicMaterial({ color: 0x2a4a7a, toneMapped: false });
   sphereMesh = new THREE.Mesh(earthGeo, earthMat);
   scene.add(sphereMesh);
-  loadTexture(EARTH_TEXTURE_SOURCES, (tex) => {
-    tex.colorSpace = THREE.SRGBColorSpace;
-    tex.anisotropy = renderer.capabilities.getMaxAnisotropy();
-    earthMat.map = tex;
-    earthMat.color.set(0xffffff);
-    earthMat.needsUpdate = true;
-  });
 
-  // Сфера облаков: чуть больше Земли, transparent, с альфа-текстурой.
-  // NormalBlending — облака и светлее, и тёмнее фона, а не только
-  // «добавляются» к нему. Так они выглядят объёмными.
-  const cloudGeo = new THREE.SphereGeometry(CLOUD_RADIUS, 64, 32);
-  const cloudMat = new THREE.MeshBasicMaterial({
-    transparent: true,
-    opacity: 0.85,
-    depthWrite: false,
-    blending: THREE.NormalBlending,
-    toneMapped: false,
-  });
-  cloudMesh = new THREE.Mesh(cloudGeo, cloudMat);
-  scene.add(cloudMesh);
-  loadTexture(CLOUD_TEXTURE_SOURCES, (tex) => {
-    tex.colorSpace = THREE.SRGBColorSpace;
-    tex.anisotropy = renderer.capabilities.getMaxAnisotropy();
-    cloudMat.map = tex;
-    cloudMat.needsUpdate = true;
-  });
+  loadEarthTexture(earthMat);
+
+  // Свет для 3D-моделей островов. Ambient — чтобы тени не были чёрными,
+  // directional — чтобы у кубиков читались грани.
+  scene.add(new THREE.AmbientLight(0xffffff, 0.75));
+  const sun = new THREE.DirectionalLight(0xffffff, 0.9);
+  sun.position.set(200, 300, 100);
+  scene.add(sun);
 
   markersGroup = new THREE.Group();
   scene.add(markersGroup);
@@ -157,20 +149,34 @@ export function initMap3D(containerEl, { onPointTap, myUserId: myId } = {}) {
   animate();
 }
 
-function loadTexture(sources, onLoad) {
+function loadEarthTexture(material) {
   let idx = 0;
   const tryNext = () => {
-    if (idx >= sources.length) return;
-    const url = sources[idx];
+    if (idx >= EARTH_TEXTURE_SOURCES.length) {
+      console.warn('map3d: все источники текстуры Земли недоступны');
+      return;
+    }
+    const url = EARTH_TEXTURE_SOURCES[idx];
     const loader = new THREE.TextureLoader();
     loader.setCrossOrigin('anonymous');
-    loader.load(url, onLoad, undefined, () => { idx++; tryNext(); });
+    loader.load(
+      url,
+      (tex) => {
+        tex.colorSpace = THREE.SRGBColorSpace;
+        tex.anisotropy = renderer.capabilities.getMaxAnisotropy();
+        material.map = tex;
+        material.color.set(0xffffff);
+        material.needsUpdate = true;
+      },
+      undefined,
+      () => { console.warn('map3d: 404 на', url); idx++; tryNext(); },
+    );
   };
   tryNext();
 }
 
-// Перемещает canvas в другой контейнер. Используется при переходе
-// «меню → карта» и обратно. Один WebGL контекст, разные хозяева.
+// Переместить canvas в другой контейнер. Используется для перехода
+// «меню ↔ карта».
 export function attachTo(el) {
   if (!renderer || !el) return;
   container = el;
@@ -179,8 +185,7 @@ export function attachTo(el) {
 }
 
 export function setMapVisible(visible) {
-  if (!renderer) return;
-  renderer.domElement.style.display = visible ? 'block' : 'none';
+  if (renderer) renderer.domElement.style.display = visible ? 'block' : 'none';
 }
 
 // --- Координаты ----------------------------------------------------------
@@ -202,23 +207,34 @@ function latLonToVec3(lat, lon, radius) {
   );
 }
 
-// --- Иконка острова -------------------------------------------------------
+// Квотернион, поворачивающий локальную ось +Y в направление нормали
+// в данной точке сферы. Нужен, чтобы остров «стоял» на поверхности
+// как надо, а не был приклеен плоско.
+function surfaceQuaternion(position) {
+  const normal = position.clone().normalize();
+  return new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), normal);
+}
+
+// --- Иконка острова (для далёкого LOD) -----------------------------------
 
 const islandIconCache = new Map();
 
+// Иконка: диск травы, кубики постройки в изометрии, флаг ПО ЦЕНТРУ
+// позади построек. Флаг больше не смещён вбок — он стоит за кубиками
+// по оси X, полотнище развевается вправо и видно над постройками.
 function makeIslandIcon(colorHex, cubes, isMine) {
-  const cubeBucket = cubes <= 5 ? 's' : cubes <= 20 ? 'm' : 'l';
-  const key = `i|${colorHex}|${cubeBucket}|${isMine ? 'm' : ''}`;
+  const bucket = cubes <= 5 ? 's' : cubes <= 20 ? 'm' : 'l';
+  const key = `i|${colorHex}|${bucket}|${isMine ? 'm' : ''}`;
   if (islandIconCache.has(key)) return islandIconCache.get(key);
 
-  const W = 240, H = 180;
+  const W = 240, H = 200;
   const canvas = document.createElement('canvas');
   canvas.width = W;
   canvas.height = H;
   const ctx = canvas.getContext('2d');
 
   if (isMine) {
-    const glow = ctx.createRadialGradient(W / 2, H * 0.7, 10, W / 2, H * 0.7, W * 0.55);
+    const glow = ctx.createRadialGradient(W/2, H*0.7, 10, W/2, H*0.7, W*0.55);
     glow.addColorStop(0, 'rgba(253,230,138,.55)');
     glow.addColorStop(1, 'rgba(253,230,138,0)');
     ctx.fillStyle = glow;
@@ -228,8 +244,22 @@ function makeIslandIcon(colorHex, cubes, isMine) {
   const cx = W / 2;
   const cy = H * 0.72;
 
-  // Диск травы.
-  const discRX = 82, discRY = 26;
+  // --- Флаг: палка идёт из-за кубиков по центру ---
+  // Рисуем ДО кубиков, чтобы постройки её частично перекрыли.
+  const poleX = cx + 4;
+  const poleBaseY = cy + 2;
+  const poleTopY = cy - 96;
+
+  ctx.strokeStyle = '#2c2c2c';
+  ctx.lineWidth = 5;
+  ctx.lineCap = 'round';
+  ctx.beginPath();
+  ctx.moveTo(poleX, poleBaseY);
+  ctx.lineTo(poleX, poleTopY);
+  ctx.stroke();
+
+  // --- Диск травы ---
+  const discRX = 84, discRY = 26;
   ctx.beginPath();
   ctx.ellipse(cx, cy + 8, discRX, discRY, 0, 0, Math.PI * 2);
   ctx.fillStyle = '#2d5130';
@@ -238,24 +268,24 @@ function makeIslandIcon(colorHex, cubes, isMine) {
   ctx.ellipse(cx, cy, discRX, discRY, 0, 0, Math.PI * 2);
   ctx.fillStyle = '#4a7a4e';
   ctx.fill();
-  ctx.strokeStyle = 'rgba(20,35,20,.7)';
+  ctx.strokeStyle = 'rgba(20,35,20,.75)';
   ctx.lineWidth = 2.5;
   ctx.stroke();
 
-  // Кубики в изометрии.
+  // --- Кубики ---
   const layouts = {
     s: [[0, 0]],
-    m: [[-22, 0], [22, 6]],
-    l: [[-30, 4], [10, 0], [30, 8]],
+    m: [[-22, 0], [22, 8]],
+    l: [[-32, 8], [4, 0], [34, 14]],
   };
-  const cubesList = layouts[cubeBucket];
-  const cubeSize = 42;
+  const list = layouts[bucket];
+  const cubeSize = 46;
+  const isIron = bucket === 'l';
 
-  for (const [ox, oy] of cubesList) {
+  for (const [ox, oy] of list) {
     const x = cx + ox;
     const y = cy - cubeSize / 2 + oy;
-    const isIron = cubeBucket === 'l';
-    const topColor = isIron ? '#c9d2da' : '#d9a066';
+    const topColor = isIron ? '#c9d2da' : '#e0b07a';
     const leftColor = isIron ? '#7a848c' : '#a06b3a';
     const rightColor = isIron ? '#8e99a3' : '#b87e46';
 
@@ -286,7 +316,7 @@ function makeIslandIcon(colorHex, cubes, isMine) {
     ctx.fillStyle = rightColor;
     ctx.fill();
 
-    ctx.strokeStyle = 'rgba(20,15,10,.65)';
+    ctx.strokeStyle = 'rgba(20,15,10,.7)';
     ctx.lineWidth = 2;
     ctx.beginPath();
     ctx.moveTo(x, y - cubeSize * 0.55);
@@ -299,28 +329,17 @@ function makeIslandIcon(colorHex, cubes, isMine) {
     ctx.stroke();
   }
 
-  // Флаг.
-  const fx = cx + 78;
-  const fBaseY = cy + 4;
-  const fTopY = cy - 72;
-  ctx.strokeStyle = '#3a3a3a';
-  ctx.lineWidth = 4;
-  ctx.lineCap = 'round';
+  // --- Полотнище флага поверх построек ---
   ctx.beginPath();
-  ctx.moveTo(fx, fBaseY);
-  ctx.lineTo(fx, fTopY);
-  ctx.stroke();
-
-  ctx.beginPath();
-  ctx.moveTo(fx, fTopY);
-  ctx.quadraticCurveTo(fx + 22, fTopY - 3, fx + 40, fTopY + 6);
-  ctx.lineTo(fx + 40, fTopY + 30);
-  ctx.quadraticCurveTo(fx + 20, fTopY + 22, fx, fTopY + 30);
+  ctx.moveTo(poleX, poleTopY);
+  ctx.quadraticCurveTo(poleX + 30, poleTopY - 4, poleX + 52, poleTopY + 10);
+  ctx.lineTo(poleX + 52, poleTopY + 40);
+  ctx.quadraticCurveTo(poleX + 28, poleTopY + 28, poleX, poleTopY + 40);
   ctx.closePath();
   ctx.fillStyle = colorHex;
   ctx.fill();
-  ctx.strokeStyle = 'rgba(20,15,10,.55)';
-  ctx.lineWidth = 2;
+  ctx.strokeStyle = 'rgba(20,15,10,.6)';
+  ctx.lineWidth = 2.5;
   ctx.stroke();
 
   const tex = new THREE.CanvasTexture(canvas);
@@ -330,9 +349,7 @@ function makeIslandIcon(colorHex, cubes, isMine) {
   return tex;
 }
 
-// --- Ник: компактный, чтобы не перекрывать иконку ------------------------
-// Шрифт 26px вместо 38, плашка плотная, высота 38 вместо 56. Ник висит
-// на расстоянии 12 единиц от острова — заметно выше кубиков.
+// --- Ник: компактная плашка ----------------------------------------------
 
 const labelTexCache = new Map();
 
@@ -341,26 +358,26 @@ function makeLabelTexture(username, isMine) {
   if (labelTexCache.has(key)) return labelTexCache.get(key);
 
   const FONT_SIZE = 26;
-  const PADDING_X = 14;
-  const HEIGHT = 38;
+  const PAD_X = 14;
+  const H = 38;
 
-  const measure = document.createElement('canvas').getContext('2d');
-  measure.font = `800 ${FONT_SIZE}px system-ui,-apple-system,sans-serif`;
-  const tw = Math.ceil(measure.measureText(username).width);
-  const W = tw + PADDING_X * 2;
+  const m = document.createElement('canvas').getContext('2d');
+  m.font = `800 ${FONT_SIZE}px system-ui,-apple-system,sans-serif`;
+  const tw = Math.ceil(m.measureText(username).width);
+  const W = tw + PAD_X * 2;
 
   const canvas = document.createElement('canvas');
   canvas.width = W;
-  canvas.height = HEIGHT;
+  canvas.height = H;
   const ctx = canvas.getContext('2d');
 
-  const radius = HEIGHT / 2;
+  const r = H / 2;
   ctx.beginPath();
-  ctx.moveTo(radius, 0);
-  ctx.arcTo(W, 0, W, HEIGHT, radius);
-  ctx.arcTo(W, HEIGHT, 0, HEIGHT, radius);
-  ctx.arcTo(0, HEIGHT, 0, 0, radius);
-  ctx.arcTo(0, 0, W, 0, radius);
+  ctx.moveTo(r, 0);
+  ctx.arcTo(W, 0, W, H, r);
+  ctx.arcTo(W, H, 0, H, r);
+  ctx.arcTo(0, H, 0, 0, r);
+  ctx.arcTo(0, 0, W, 0, r);
   ctx.closePath();
   ctx.fillStyle = isMine ? 'rgba(30,41,59,.92)' : 'rgba(11,16,32,.88)';
   ctx.fill();
@@ -372,13 +389,81 @@ function makeLabelTexture(username, isMine) {
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   ctx.fillStyle = isMine ? '#fde68a' : '#ffffff';
-  ctx.fillText(username, W / 2, HEIGHT / 2 + 1);
+  ctx.fillText(username, W / 2, H / 2 + 1);
 
   const tex = new THREE.CanvasTexture(canvas);
   tex.colorSpace = THREE.SRGBColorSpace;
   tex.needsUpdate = true;
   labelTexCache.set(key, tex);
   return tex;
+}
+
+// --- 3D-модель острова из кубиков игрока --------------------------------
+
+function buildIslandMesh(cubes) {
+  const geoms = [];
+
+  for (const c of cubes) {
+    const sx = (c.size_x || 1) * CUBE_SCALE;
+    const sy = (c.size_y || 1) * CUBE_SCALE;
+    const sz = (c.size_z || 1) * CUBE_SCALE;
+
+    const g = new THREE.BoxGeometry(sx, sy, sz);
+    const col = new THREE.Color(BLOCK_COLORS_HEX[c.color] || 0xc9a06a);
+
+    // Закрашиваем vertex colors — так один material может рисовать
+    // кубы разных цветов без переключения.
+    const count = g.attributes.position.count;
+    const colors = new Float32Array(count * 3);
+    for (let i = 0; i < count; i++) {
+      colors[i * 3]     = col.r;
+      colors[i * 3 + 1] = col.g;
+      colors[i * 3 + 2] = col.b;
+    }
+    g.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+
+    // Позиция: центр куба в локальных координатах острова. Ось Y — вверх,
+    // X/Z — стороны. Игровые координаты 0..64 при CUBE_SCALE=0.5 дают
+    // 0..32 — остров шириной 32 единицы.
+    const px = (c.x + (c.size_x || 1) / 2) * CUBE_SCALE;
+    const py = (c.y + (c.size_y || 1) / 2) * CUBE_SCALE;
+    const pz = (c.z + (c.size_z || 1) / 2) * CUBE_SCALE;
+    g.translate(px, py, pz);
+
+    geoms.push(g);
+  }
+
+  // Диск травы под кубами.
+  const discGeo = new THREE.CylinderGeometry(17, 17, 0.8, 32);
+  const discCol = new THREE.Color(0x3d6a3f);
+  const dCount = discGeo.attributes.position.count;
+  const dColors = new Float32Array(dCount * 3);
+  for (let i = 0; i < dCount; i++) {
+    dColors[i * 3]     = discCol.r;
+    dColors[i * 3 + 1] = discCol.g;
+    dColors[i * 3 + 2] = discCol.b;
+  }
+  discGeo.setAttribute('color', new THREE.BufferAttribute(dColors, 3));
+  discGeo.translate(0, -0.4, 0);
+  geoms.push(discGeo);
+
+  if (geoms.length === 0) return null;
+
+  // mergeGeometries: объединяет все кубы в одну геометрию. Один draw call.
+  // Если merge не сработал (несовместимые атрибуты) — вернём null,
+  // клиент откатится на иконку.
+  let merged;
+  try {
+    merged = mergeGeometries(geoms, false);
+  } catch (e) {
+    console.warn('map3d: mergeGeometries failed', e);
+    return null;
+  }
+  if (!merged) return null;
+
+  const mat = new THREE.MeshLambertMaterial({ vertexColors: true });
+  const mesh = new THREE.Mesh(merged, mat);
+  return mesh;
 }
 
 // --- Маркеры --------------------------------------------------------------
@@ -390,111 +475,174 @@ export function setMapPoints(points) {
   const seen = new Set();
 
   for (const p of rawPoints) {
-    seen.add(String(p.user_id));
+    const uid = String(p.user_id);
+    seen.add(uid);
 
-    const isMine = myUserId && String(p.user_id) === String(myUserId);
+    const isMine = myUserId && uid === String(myUserId);
     const hex = FLAG_COLORS_HEX[p.flag_color] ?? 0xef4444;
     const css = '#' + hex.toString(16).padStart(6, '0');
 
-    let entry = markers.get(String(p.user_id));
+    let entry = markers.get(uid);
 
     if (!entry) {
       const iconTex = makeIslandIcon(css, p.cube_count || 0, isMine);
-      const iconMat = new THREE.SpriteMaterial({
+      const icon = new THREE.Sprite(new THREE.SpriteMaterial({
         map: iconTex, transparent: true, depthWrite: false, depthTest: false,
-      });
-      const icon = new THREE.Sprite(iconMat);
+      }));
 
       const labelTex = makeLabelTexture(p.username, isMine);
-      const labelMat = new THREE.SpriteMaterial({
+      const label = new THREE.Sprite(new THREE.SpriteMaterial({
         map: labelTex, transparent: true, depthWrite: false, depthTest: false,
-      });
-      const label = new THREE.Sprite(labelMat);
+      }));
 
       const { lat, lon } = worldToLatLon(p.world_x, p.world_y);
-      const basePos = latLonToVec3(lat, lon, SPHERE_RADIUS * 1.01);
-      icon.position.copy(basePos);
+      const basePos = latLonToVec3(lat, lon, SPHERE_RADIUS * 1.005);
 
-      const normal = basePos.clone().normalize();
-      const up = new THREE.Vector3(0, 14, 0);
-      const q = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), normal);
-      up.applyQuaternion(q);
+      const q = surfaceQuaternion(basePos);
+
+      icon.position.copy(basePos);
+      // Ник — на 10 единиц выше вдоль нормали.
+      const up = new THREE.Vector3(0, 10, 0).applyQuaternion(q);
       label.position.copy(basePos).add(up);
+
+      // Группа для 3D-модели. Пустая, пока не загрузим кубы.
+      const group = new THREE.Group();
+      group.position.copy(basePos);
+      group.quaternion.copy(q);
+      group.visible = false;
 
       markersGroup.add(icon);
       markersGroup.add(label);
+      markersGroup.add(group);
 
       entry = {
-        icon, label, data: p, isMine,
+        uid, icon, label, group,
+        data: p, isMine, basePos,
         iconAspect: iconTex.image.width / iconTex.image.height,
         labelAspect: labelTex.image.width / labelTex.image.height,
-        basePos,
+        cubes: null, cubesFetched: false,
       };
-      markers.set(String(p.user_id), entry);
+      markers.set(uid, entry);
     } else {
       const { lat, lon } = worldToLatLon(p.world_x, p.world_y);
-      const newPos = latLonToVec3(lat, lon, SPHERE_RADIUS * 1.01);
+      const newPos = latLonToVec3(lat, lon, SPHERE_RADIUS * 1.005);
       if (!entry.basePos.equals(newPos)) {
+        entry.basePos.copy(newPos);
         entry.icon.position.copy(newPos);
-        const normal = newPos.clone().normalize();
-        const up = new THREE.Vector3(0, 14, 0);
-        const q = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), normal);
-        up.applyQuaternion(q);
+        const q = surfaceQuaternion(newPos);
+        const up = new THREE.Vector3(0, 10, 0).applyQuaternion(q);
         entry.label.position.copy(newPos).add(up);
-        entry.basePos = newPos;
+        entry.group.position.copy(newPos);
+        entry.group.quaternion.copy(q);
       }
       entry.data = p;
     }
-
-    entry.icon.visible = true;
-    // Ник виден только когда остров близко. На дальнем плане иконка
-    // мелкая, ник только мешает.
-    entry.label.visible = false;
   }
 
-  for (const [id, entry] of markers) {
-    if (!seen.has(id)) {
+  // Убираем исчезнувших.
+  for (const [uid, entry] of markers) {
+    if (!seen.has(uid)) {
       markersGroup.remove(entry.icon);
       markersGroup.remove(entry.label);
+      markersGroup.remove(entry.group);
       entry.icon.material.dispose();
       entry.label.material.dispose();
-      markers.delete(id);
+      if (entry.group.children[0]) {
+        entry.group.children[0].geometry.dispose();
+        entry.group.children[0].material.dispose();
+      }
+      markers.delete(uid);
     }
   }
 
-  updateMarkerSizes();
+  updateMarkerLOD();
 }
 
-function updateMarkerSizes() {
+// Принимает данные от бэкенда, строит 3D-модели. Вызывается из
+// index.html когда /islands/map/cubes вернул результат.
+export function setMapCubes(userId, cubes) {
+  const entry = markers.get(String(userId));
+  if (!entry) return;
+
+  // Убираем старую модель, если была (на случай обновления).
+  if (entry.cubes) {
+    const oldMesh = entry.group.children[0];
+    if (oldMesh) {
+      entry.group.remove(oldMesh);
+      oldMesh.geometry.dispose();
+      oldMesh.material.dispose();
+    }
+  }
+
+  const mesh = buildIslandMesh(cubes || []);
+  if (mesh) {
+    entry.group.add(mesh);
+    entry.cubes = cubes;
+  } else {
+    entry.cubes = [];
+  }
+  entry.cubesFetched = true;
+}
+
+// LOD-решение: иконка или 3D. Иконка дешевле, 3D точнее.
+function updateMarkerLOD() {
   const h = renderer.domElement.clientHeight;
   const vFov = (camera.fov * Math.PI) / 180;
   const k = (2 * Math.tan(vFov / 2)) / h;
 
-  const camDist = camera.position.length();
-  const showLabels = camDist < SPHERE_RADIUS * 2.0;
+  const camPos = camera.position;
+  const camDist = camPos.length();
 
   for (const entry of markers.values()) {
-    const dist = camera.position.distanceTo(entry.icon.position);
+    const dist = camPos.distanceTo(entry.basePos);
+    const ratio = dist / SPHERE_RADIUS;
 
-    // Иконка острова: 120 пикселей по высоте.
-    const iconPx = 120;
-    const iconScale = k * dist * iconPx;
-    entry.icon.scale.set(iconScale * entry.iconAspect, iconScale, 1);
+    const isClose = ratio < CLOSE_DIST;
+    const showLabel = ratio < LABEL_DIST;
 
-    // Компактный ник.
-    const labelPx = 20;
-    const labelScale = k * dist * labelPx;
-    entry.label.scale.set(labelScale * entry.labelAspect, labelScale, 1);
+    // Иконка — всегда видна, но не пересекается с моделью.
+    entry.icon.visible = !isClose;
+    entry.label.visible = showLabel;
 
-    entry.label.visible = showLabels;
+    // 3D-модель: видима только когда загружена и камера близко.
+    entry.group.visible = isClose && !!entry.cubes;
+
+    // Запрашиваем кубы, если близко и ещё нет.
+    if (isClose && !entry.cubesFetched) {
+      queueCubeFetch(entry.uid);
+    }
+
+    // Размеры иконки и подписи — фиксированные на экране.
+    if (!isClose) {
+      const iconPx = 120;
+      const s = k * dist * iconPx;
+      entry.icon.scale.set(s * entry.iconAspect, s, 1);
+    }
+
+    if (showLabel) {
+      const labelPx = 20;
+      const ls = k * dist * labelPx;
+      entry.label.scale.set(ls * entry.labelAspect, ls, 1);
+    }
   }
 }
 
-// --- Облака ---------------------------------------------------------------
+// Очередь на загрузку кубов. Батчим несколько игроков в один запрос,
+// чтобы при движении камеры не летело 50 HTTP-запросов в секунду.
+function queueCubeFetch(userId) {
+  if (!onNeedCubes) return;
+  if (pendingCubeIds.has(userId)) return;
+  pendingCubeIds.add(userId);
 
-export function setCloudsVisible(visible) {
-  cloudsVisible = !!visible;
-  if (cloudMesh) cloudMesh.visible = cloudsVisible;
+  if (cubeFetchTimer) return;
+  cubeFetchTimer = setTimeout(() => {
+    const ids = [...pendingCubeIds];
+    pendingCubeIds.clear();
+    cubeFetchTimer = null;
+    if (ids.length > 0) {
+      try { onNeedCubes(ids); } catch (e) { console.warn('onNeedCubes failed', e); }
+    }
+  }, 150);
 }
 
 // --- Цикл ----------------------------------------------------------------
@@ -505,13 +653,7 @@ function animate() {
   if (!running) return;
 
   controls.update();
-
-  // Облака вращаются медленно, 0.015 рад/сек — полный оборот ~7 минут.
-  if (cloudMesh && cloudsVisible) {
-    cloudMesh.rotation.y += 0.0004;
-  }
-
-  updateMarkerSizes();
+  updateMarkerLOD();
   renderer.render(scene, camera);
 }
 
@@ -537,13 +679,13 @@ function onPointerUp(ev) {
 
   const candidates = [];
   for (const [uid, entry] of markers.entries()) {
-    _projVec.copy(entry.icon.position).project(camera);
+    _projVec.copy(entry.basePos).project(camera);
     if (_projVec.z > 1) continue;
     const sx = (_projVec.x * 0.5 + 0.5) * rect.width;
     const sy = (-_projVec.y * 0.5 + 0.5) * rect.height;
     const screenDist = Math.hypot(sx - tapX, sy - tapY);
     if (screenDist > HIT_RADIUS_PX) continue;
-    candidates.push({ uid, entry, screenDist, camDist: camPos.distanceTo(entry.icon.position) });
+    candidates.push({ uid, entry, screenDist, camDist: camPos.distanceTo(entry.basePos) });
   }
 
   if (!candidates.length) return;
@@ -557,25 +699,16 @@ function onPointerUp(ev) {
 
 export function flyToPlayer(userId, username, { zoom = 1 } = {}) {
   if (!camera || !controls) return;
+  const entry = markers.get(String(userId));
   let target = null;
-  const m = markers.get(String(userId));
-  if (m) target = m.icon.position.clone();
-  else {
-    for (const p of rawPoints) {
-      if (String(p.user_id) === String(userId)) {
-        const { lat, lon } = worldToLatLon(p.world_x, p.world_y);
-        target = latLonToVec3(lat, lon, SPHERE_RADIUS * 1.01);
-        break;
-      }
-    }
-  }
+  if (entry) target = entry.basePos.clone();
   if (!target) return;
 
   const dir = target.clone().normalize();
   const currentDist = camera.position.length();
   const finalDist = Math.max(
     controls.minDistance,
-    Math.min(controls.maxDistance, (SPHERE_RADIUS * 2.2) / zoom)
+    Math.min(controls.maxDistance, (SPHERE_RADIUS * 1.6) / zoom)
   );
   const endPos = dir.clone().multiplyScalar(finalDist);
   const startPos = camera.position.clone();
@@ -604,8 +737,10 @@ export function zoomMapBy(factor) {
   if (!camera || !controls) return;
   const dir = camera.position.clone().normalize();
   const currentDist = camera.position.length();
-  let newDist = currentDist / factor;
-  newDist = Math.max(controls.minDistance, Math.min(controls.maxDistance, newDist));
+  let newDist = Math.max(
+    controls.minDistance,
+    Math.min(controls.maxDistance, currentDist / factor)
+  );
   const startDist = currentDist;
   const startT = performance.now();
   const dur = 220;
@@ -654,6 +789,10 @@ export function setMapRunning(on) {
   if (on && camera && controls) onResize();
 }
 
+// Заглушка для совместимости — облака убраны.
+export function setCloudsVisible(_v) {}
+export function setCloudOpacity(_v) {}
+
 function onResize() {
   if (!container || !renderer || !camera) return;
   const w = container.clientWidth || window.innerWidth;
@@ -684,6 +823,5 @@ export function disposeMap3D() {
   renderer = null;
   controls = null;
   sphereMesh = null;
-  cloudMesh = null;
   markersGroup = null;
-    }
+      }
