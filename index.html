@@ -135,13 +135,12 @@
   #menu-screen {
     position: fixed; inset: 0; z-index: 90;
     background:
-      radial-gradient(circle at 30% 20%, rgba(125,211,252,.15) 0%, transparent 45%),
-      radial-gradient(circle at 75% 75%, rgba(59,130,246,.18) 0%, transparent 50%),
-      linear-gradient(180deg, #0b1020 0%, #111a33 55%, #0a0816 100%);
-    transition: opacity .6s ease;
+      radial-gradient(ellipse at 50% 35%, transparent 0%, rgba(6,11,24,0.5) 55%, rgba(6,11,24,0.92) 100%);
+    transition: opacity .8s ease;
     padding: 24px;
     text-align: center;
     overflow:hidden;
+    pointer-events:none;
   }
   #menu-screen.hidden { display: none; }
   #menu-screen.fading { opacity: 0; pointer-events: none; }
@@ -416,7 +415,15 @@
   .history-meta.won { color:#86efac; }
   .history-meta.lost { color:#fca5a5; }
   .history-meta.active { color:#fbbf24; }
-  #map-screen { padding:0; }
+
+  #map-screen {
+    padding: 0;
+    background: #060b18;
+  }
+  #map-screen.menu-bg .screen-head,
+  #map-screen.menu-bg #map-controls {
+    display: none;
+  }
   #map-screen .screen-head {
     position:absolute; top:0; left:0; right:0; z-index:3;
     padding:14px;
@@ -426,7 +433,7 @@
   #map-screen .screen-head > * { pointer-events:auto; }
   #map-container {
     position:absolute; inset:0;
-    background: var(--bg-0);
+    background: #060b18;
     touch-action:none;
   }
   #map-controls {
@@ -443,7 +450,7 @@
 <body>
 <div id="app"></div>
 
-<div id="menu-screen" class="hidden">
+<div id="menu-screen">
   <div class="menu-title">ADRIFT</div>
   <button id="menu-play" class="menu-play" disabled>▶ Play</button>
 </div>
@@ -681,6 +688,8 @@ import { makeToonMaterial } from './src/style.js';
 import {
   initMap3D, setMapPoints, setMapCameraToMe, flyToPlayer,
   zoomMapBy, resizeMap3D, setMapRunning, disposeMap3D,
+  setMapCameraDistance, tweenMapCamera,
+  setCloudsVisible, attachTo, setMapVisible,
 } from './src/map3d.js';
 import { attachRippleToAll, popIn, pulseCounter } from './src/ui.js';
 
@@ -706,6 +715,7 @@ let displayFlagColor = 'red';
 let currentFlagHp = 0, currentFlagMax = 0;
 let myRaidAlert = false;
 let myWorldX = null, myWorldY = null;
+const SPHERE_RADIUS_FOR_MENU = 100;   // синхронно с map3d.js
 let menuMode = true;
 
 async function signIn() {
@@ -1637,6 +1647,66 @@ function showMenu(on) {
   }
 }
 
+// --- Карта + меню: одна сцена на два экрана -------------------------
+// Canvas живёт постоянно, между меню и картой мы его просто переносим
+// в другой контейнер. В меню это фоновый глобус с далёкой камерой и
+// без управления. На карте — полноэкранный режим с OrbitControls и
+// кнопками зума.
+
+let mapInitialized = false;
+
+function ensureMapInitialized() {
+  if (mapInitialized) return;
+  const container = $('map-container');
+  initMap3D(container, {
+    onPointTap: (userId, username) => openProfile(userId, username),
+    myUserId: myId,
+  });
+  mapInitialized = true;
+}
+
+async function openMap() {
+  closeAllPalettes();
+  ensureMapInitialized();
+
+  const mapScreen = $('map-screen');
+  mapScreen.classList.remove('menu-bg');
+  mapScreen.classList.remove('hidden');
+  setMapRunning(true);
+  setMapVisible(true);
+  setMapCameraDistance(SPHERE_RADIUS_FOR_MENU * 3.0);
+
+  setTimeout(() => {
+    resizeMap3D();
+    loadMapPoints();
+  }, 100);
+}
+
+function closeMap() {
+  setMapRunning(false);
+  $('map-screen').classList.add('hidden');
+}
+
+// В меню карта работает как фон: контейнер виден, но UI скрыт,
+// камера отлетает далеко и медленно вращается.
+async function showMenuGlobe() {
+  ensureMapInitialized();
+
+  const mapScreen = $('map-screen');
+  mapScreen.classList.remove('hidden');
+  mapScreen.classList.add('menu-bg');
+
+  setMapRunning(true);
+  setMapVisible(true);
+  setCloudsVisible(getGraphicsQuality() === 'high');
+
+  setMapCameraDistance(SPHERE_RADIUS_FOR_MENU * 3.2);
+
+  try { await loadMapPoints(); } catch (e) {}
+}
+
+// Запуск игры: меню fade-out, карта уходит (её canvas просто убираем
+// со глаз — игровой рендерер всё равно перерисует экран).
 function startGame() {
   if (!menuMode) return;
   menuMode = false;
@@ -1648,6 +1718,13 @@ function startGame() {
   setTimeout(() => {
     ms.classList.add('hidden');
     ms.classList.remove('fading');
+  }, 700);
+
+  setTimeout(() => {
+    $('map-screen').classList.add('hidden');
+    $('map-screen').classList.remove('menu-bg');
+    setMapRunning(false);
+    setMapVisible(false);
   }, 700);
 
   renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
@@ -2065,42 +2142,13 @@ async function openProfile(userId, fallbackUsername) {
   }
 }
 
-let mapOpen = false;
-
 async function loadMapPoints() {
   try {
     const data = await api('/api/v1/islands/map?x1=-2000&y1=-2000&x2=2000&y2=2000&limit=1000');
     setMapPoints(data.points || []);
   } catch (e) {
     console.warn('map load failed', e);
-    toast(humanError(e), 'error');
   }
-}
-
-async function openMap() {
-  closeAllPalettes();
-  showScreen('map-screen');
-
-  const container = $('map-container');
-  if (!mapOpen) {
-    initMap3D(container, {
-      onPointTap: (userId, username) => {
-        openProfile(userId, username);
-      },
-      myUserId: myId,
-    });
-    mapOpen = true;
-  } else {
-    setMapRunning(true);
-    resizeMap3D();
-  }
-
-  await loadMapPoints();
-}
-
-function closeMap() {
-  setMapRunning(false);
-  $('map-screen').classList.add('hidden');
 }
 
 function isIOS() {
@@ -2290,6 +2338,9 @@ function getGraphicsQuality() {
 function applyGraphicsQuality(q) {
   const high = q === 'high';
   renderer.shadowMap.enabled = high;
+
+  try { setCloudsVisible(high); } catch (e) {}
+
   renderer.shadowMap.needsUpdate = true;
 
   for (const mesh of cubeMeshes.values()) {
@@ -2813,6 +2864,8 @@ animate();
 
     showMenu(true);
     playMusic('nowhereland');
+
+    showMenuGlobe();
 
     applyGraphicsQuality(getGraphicsQuality());
 
