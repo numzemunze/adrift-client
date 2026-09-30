@@ -1,2912 +1,1716 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="en">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-<title>ADRIFT</title>
-<link rel="manifest" href="./manifest.json">
-<link rel="icon" href="./favicon.png">
-<link rel="apple-touch-icon" href="./assets/Untitled72_20260916105743.png">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#050507">
+<title>Testroum</title>
 <style>
-  :root {
-    --bg-0: #0b1020;
-    --bg-1: #111a33;
-    --bg-2: #1a2540;
-    --fg-0: #ffffff;
-    --fg-1: rgba(255,255,255,.75);
-    --fg-2: rgba(255,255,255,.5);
-    --accent: #7dd3fc;
-    --accent-soft: rgba(125,211,252,.15);
-    --accent-glow: rgba(125,211,252,.5);
-    --success: #22c55e;
-    --danger: #dc2626;
-    --border: rgba(255,255,255,.10);
-    --border-strong: rgba(255,255,255,.16);
-    --btn-bg: linear-gradient(180deg, rgba(255,255,255,.14), rgba(255,255,255,.06));
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+  html, body {
+    width: 100%; height: 100%; overflow: hidden;
+    background: #050507;
+    font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', Roboto, sans-serif;
+    color: #eaeaf0;
+    font-weight: 400;
+    letter-spacing: 0.2px;
   }
 
-  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
-  html,body { width:100%; height:100%; overflow:hidden; background: var(--bg-0); color: var(--fg-0); font-family:system-ui,-apple-system,sans-serif; }
-  #app { position:fixed; inset:0; }
+  canvas { display: block; touch-action: none; }
 
-  .ui-ripple {
-    position:absolute; border-radius:50%; pointer-events:none;
-    transform:translate(-50%,-50%) scale(0);
-    animation: uiRipple 0.55s cubic-bezier(0.22,0.61,0.36,1) forwards;
+  #hud {
+    position: fixed;
+    top: 18px; left: 18px; right: 18px;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    pointer-events: none;
+    z-index: 4;
   }
-  @keyframes uiRipple {
-    to { transform: translate(-50%,-50%) scale(1); opacity: 0; }
+
+  #hud-stats {
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 1.2px;
+    text-transform: uppercase;
+    opacity: 0.45;
+    line-height: 1.8;
+    font-variant-numeric: tabular-nums;
   }
-  .ui-pop { animation: uiPop 0.4s cubic-bezier(0.34,1.56,0.64,1); }
-  @keyframes uiPop {
-    0% { transform: scale(0.94); }
-    60% { transform: scale(1.04); }
-    100% { transform: scale(1); }
+
+  #hud-buttons {
+    display: flex;
+    gap: 8px;
+    pointer-events: auto;
   }
-  .ui-pulse { animation: uiPulse 0.5s cubic-bezier(0.34,1.56,0.64,1); }
-  @keyframes uiPulse {
-    0% { transform: scale(1); }
-    40% { transform: scale(1.35); color: var(--accent); }
-    100% { transform: scale(1); }
+
+  #hud-reset, #hud-fly {
+    width: 40px;
+    height: 40px;
+    flex: 0 0 40px;
+    padding: 0;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(14px) saturate(1.4);
+    -webkit-backdrop-filter: blur(14px) saturate(1.4);
+    color: rgba(255, 255, 255, 0.7);
+    cursor: pointer;
+    transition: all 0.15s;
   }
-  .ui-stagger { animation: uiStagger 0.4s cubic-bezier(0.22,0.61,0.36,1) both; }
-  @keyframes uiStagger {
-    from { opacity: 0; transform: translateY(8px); }
+  #hud-reset svg, #hud-fly svg {
+    width: 14px;
+    height: 14px;
+  }
+  #hud-reset:active, #hud-fly:active {
+    background: rgba(255, 255, 255, 0.12);
+    color: #ffffff;
+    transform: scale(0.94);
+  }
+  #hud-fly.active {
+    background: rgba(255, 255, 255, 0.15);
+    color: #ffffff;
+  }
+
+  #group-bar {
+    position: fixed;
+    top: 78px;
+    left: 0; right: 0;
+    display: flex;
+    gap: 8px;
+    padding: 4px 14px 14px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+    z-index: 3;
+    pointer-events: auto;
+    mask-image: linear-gradient(to right, transparent, black 14px, black calc(100% - 14px), transparent);
+    -webkit-mask-image: linear-gradient(to right, transparent, black 14px, black calc(100% - 14px), transparent);
+  }
+  #group-bar::-webkit-scrollbar { display: none; }
+
+  .group-pill {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 14px;
+    border-radius: 20px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(14px) saturate(1.4);
+    -webkit-backdrop-filter: blur(14px) saturate(1.4);
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.7);
+    cursor: pointer;
+    transition: all 0.15s;
+    font-family: inherit;
+    white-space: nowrap;
+  }
+  .group-pill:active {
+    background: rgba(255, 255, 255, 0.12);
+    color: #ffffff;
+    transform: scale(0.96);
+  }
+  .group-pill.active {
+    background: rgba(255, 255, 255, 0.14);
+    border-color: rgba(255, 255, 255, 0.35);
+    color: #ffffff;
+  }
+  .group-pill .count {
+    opacity: 0.5;
+    font-variant-numeric: tabular-nums;
+    font-size: 9px;
+  }
+
+  #group-panel {
+    position: fixed;
+    bottom: 104px;
+    left: 14px; right: 14px;
+    background: linear-gradient(155deg, rgba(22, 22, 28, 0.9), rgba(12, 12, 16, 0.95));
+    backdrop-filter: blur(24px) saturate(1.4);
+    -webkit-backdrop-filter: blur(24px) saturate(1.4);
+    border-radius: 20px;
+    padding: 18px 20px 20px;
+    display: none;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+    z-index: 6;
+    animation: slideUp 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  #group-panel .gp-title {
+    font-size: 15px;
+    font-weight: 600;
+    color: #ffffff;
+    margin-bottom: 4px;
+  }
+  #group-panel .gp-sub {
+    font-size: 10px;
+    letter-spacing: 1.2px;
+    text-transform: uppercase;
+    opacity: 0.4;
+    margin-bottom: 12px;
+  }
+  #group-panel .gp-slider {
+    margin-top: 12px;
+    padding-top: 10px;
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+  }
+  #group-panel .gp-label {
+    display: flex;
+    justify-content: space-between;
+    font-size: 10px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    opacity: 0.55;
+    margin-bottom: 4px;
+  }
+  #group-panel .gp-value {
+    color: #ffffff;
+    font-variant-numeric: tabular-nums;
+    font-weight: 500;
+    font-size: 11px;
+    opacity: 0.9;
+  }
+  #group-panel input[type="range"] {
+    width: 100%;
+    margin: 6px 0 2px;
+    -webkit-appearance: none;
+    background: transparent;
+    height: 20px;
+  }
+  #group-panel input[type="range"]::-webkit-slider-runnable-track {
+    height: 2px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 1px;
+  }
+  #group-panel input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 16px; height: 16px;
+    margin-top: -7px;
+    border-radius: 50%;
+    background: #ffffff;
+    box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.08), 0 2px 8px rgba(0, 0, 0, 0.4);
+  }
+  #group-panel .gp-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 16px;
+  }
+  #group-panel .gp-btn {
+    flex: 1;
+    padding: 11px;
+    font-size: 10px;
+    letter-spacing: 1.2px;
+    text-transform: uppercase;
+    font-weight: 500;
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: rgba(255, 255, 255, 0.04);
+    color: rgba(255, 255, 255, 0.7);
+    cursor: pointer;
+    transition: all 0.15s;
+    font-family: inherit;
+  }
+  #group-panel .gp-btn:active {
+    background: rgba(255, 255, 255, 0.12);
+    color: #ffffff;
+  }
+  #group-panel .gp-close {
+    position: absolute;
+    top: 14px; right: 16px;
+    width: 24px; height: 24px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    font-size: 13px;
+    color: rgba(255, 255, 255, 0.5);
+    cursor: pointer;
+  }
+
+  #info {
+    position: fixed;
+    bottom: 104px;
+    left: 14px; right: 14px;
+    background: linear-gradient(155deg, rgba(22, 22, 28, 0.85), rgba(12, 12, 16, 0.92));
+    backdrop-filter: blur(24px) saturate(1.4);
+    -webkit-backdrop-filter: blur(24px) saturate(1.4);
+    border-radius: 20px;
+    padding: 18px 20px 20px;
+    font-size: 13px;
+    display: none;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow:
+      0 20px 60px rgba(0, 0, 0, 0.6),
+      inset 0 1px 0 rgba(255, 255, 255, 0.06),
+      0 0 0 1px rgba(255, 255, 255, 0.02);
+    max-height: 46vh;
+    overflow-y: auto;
+    animation: slideUp 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+    touch-action: pan-y;
+    will-change: transform;
+  }
+
+  @keyframes slideUp {
+    from { opacity: 0; transform: translateY(12px); }
     to { opacity: 1; transform: translateY(0); }
   }
 
-  button {
-    position:relative;
-    background: var(--btn-bg);
-    border: 1px solid var(--border-strong);
-    color: var(--fg-0);
-    padding:11px 14px; border-radius:14px;
-    font-size:14px; font-weight:600;
-    font-family:inherit; cursor:pointer;
-    box-shadow: 0 2px 8px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.15);
-    transition: transform .12s cubic-bezier(.2,.7,.3,1.4),
-                background .18s ease,
-                box-shadow .22s ease,
-                border-color .18s ease;
-    overflow:hidden;
-  }
-  button:active { transform:scale(.93); background: rgba(255,255,255,.18); }
-  button.on {
-    background: linear-gradient(180deg,#3b82f6,#2563eb);
-    border-color:#60a5fa;
-    box-shadow: 0 4px 18px rgba(59,130,246,.55), inset 0 1px 0 rgba(255,255,255,.25);
-  }
-  button.locked { opacity:.5; }
-  button:disabled { opacity:.45; cursor:not-allowed; }
-  button.danger {
-    background: linear-gradient(180deg,#dc2626,#b91c1c);
-    border-color:#ef4444;
-    box-shadow: 0 4px 14px rgba(220,38,38,.45);
-  }
-  button.go {
-    background: linear-gradient(180deg,#22c55e,#15803d);
-    border-color:#4ade80;
-    box-shadow: 0 4px 14px rgba(34,197,94,.45);
-  }
-  button.primary {
-    background: linear-gradient(180deg,#3b82f6,#1d4ed8);
-    border-color:#60a5fa;
-    font-weight:700;
-    box-shadow: 0 4px 20px rgba(59,130,246,.55);
-  }
-  button.icon { padding:10px 12px; }
-  button.big { padding:14px 22px; font-size:15px; display:flex; align-items:center; gap:9px; }
-  button.big .ico { font-size:19px; line-height:1; }
-  button.rot-on {
-    background: linear-gradient(180deg,#3b82f6,#2563eb);
-    border-color:#60a5fa;
-  }
-  button.demolish-on {
-    background: linear-gradient(180deg,#dc2626,#7f1d1d);
-    border-color:#ef4444;
-  }
-  button * { position:relative; z-index:1; }
-
-  .pill {
-    background: rgba(17,26,51,.75);
-    backdrop-filter:blur(10px);
-    padding:7px 13px; border-radius:22px; font-size:14px; font-weight:600;
-    font-variant-numeric:tabular-nums; color: var(--fg-0);
-    border: 1px solid var(--border);
-    box-shadow: 0 3px 14px rgba(0,0,0,.4), inset 0 1px 0 rgba(255,255,255,.14);
-    font-family:inherit;
-    transition: transform .15s ease, background .2s ease;
-  }
-  .pill:active { transform:scale(.95); }
-  .pill b { color: var(--accent); font-weight:700; }
-  .pill-btn { display:flex; gap:8px; align-items:center; cursor:pointer; }
-  .pill-btn.ready {
-    background: linear-gradient(180deg,#22c55e,#15803d);
-    border-color:#22c55e;
-    box-shadow: 0 4px 20px rgba(34,197,94,.6), inset 0 1px 0 rgba(255,255,255,.25);
-    animation: readyPulse 2s ease-in-out infinite;
-  }
-  .pill-btn.ready b { color:#fff; }
-  @keyframes readyPulse {
-    0%,100% { box-shadow: 0 4px 20px rgba(34,197,94,.6), inset 0 1px 0 rgba(255,255,255,.25); }
-    50% { box-shadow: 0 4px 30px rgba(34,197,94,.9), inset 0 1px 0 rgba(255,255,255,.35); }
+  #info .title {
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: 0.4px;
+    color: #ffffff;
+    margin-bottom: 4px;
   }
 
-  #menu-screen {
-    position: fixed; inset: 0; z-index: 90;
-    background:
-      radial-gradient(ellipse at 50% 35%, transparent 0%, rgba(6,11,24,0.5) 55%, rgba(6,11,24,0.92) 100%);
-    transition: opacity .8s ease;
-    padding: 24px;
-    text-align: center;
-    overflow:hidden;
-    pointer-events:none;
+  #info .subtitle {
+    font-size: 10px;
+    letter-spacing: 1.2px;
+    text-transform: uppercase;
+    opacity: 0.4;
+    margin-bottom: 10px;
   }
-  #menu-screen.hidden { display: none; }
-  #menu-screen.fading { opacity: 0; pointer-events: none; }
-  #menu-screen > * { pointer-events:auto; }
 
-  .menu-title {
-    position:absolute; top:22%; left:50%; transform:translateX(-50%);
-    font-size: clamp(48px, 14vw, 110px);
-    font-weight: 900;
-    letter-spacing: 0.18em;
+  #info .row {
+    font-size: 12px;
+    margin-top: 5px;
+    opacity: 0.7;
+    line-height: 1.5;
+    display: flex;
+    justify-content: space-between;
+  }
+
+  #info .row b {
+    color: #ffffff;
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+  }
+
+  #info .close {
+    position: absolute;
+    top: 14px; right: 16px;
+    width: 24px; height: 24px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    font-size: 13px;
+    color: rgba(255, 255, 255, 0.5);
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  #info .close:active {
+    background: rgba(255, 255, 255, 0.12);
     color: #fff;
-    line-height: 1;
-    user-select: none;
-    text-shadow: 0 0 30px rgba(125,211,252,0.7), 0 0 60px rgba(125,211,252,.35), 0 8px 32px rgba(0,0,0,.9);
-    will-change: opacity, transform;
-    animation: menuTitleIn 1.2s cubic-bezier(.2,.7,.3,1.2);
   }
-  @keyframes menuTitleIn {
-    0% { opacity:0; transform:translateX(-50%) translateY(30px) scale(.85); }
-    100% { opacity:1; transform:translateX(-50%) translateY(0) scale(1); }
+
+  #info .handle {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 100px;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: grab;
+    touch-action: none;
   }
-  .menu-title::before {
-    content: 'ADRIFT';
-    position: absolute; inset: 0;
-    color: var(--accent);
-    letter-spacing: 0.18em;
-    filter: blur(22px);
-    opacity: 0.65;
-    z-index: -1;
-    animation: glowBreath 4s ease-in-out infinite;
+
+  #info .handle::before {
+    content: '';
+    width: 44px;
+    height: 4px;
+    border-radius: 2px;
+    background: rgba(255, 255, 255, 0.18);
+    transition: background 0.15s, width 0.15s;
+  }
+
+  #info .handle:active::before {
+    background: rgba(255, 255, 255, 0.55);
+    width: 60px;
+  }
+
+  #info input[type="range"] {
+    width: 100%;
+    margin: 6px 0 2px;
+    -webkit-appearance: none;
+    background: transparent;
+    height: 20px;
+  }
+
+  #info input[type="range"]::-webkit-slider-runnable-track {
+    height: 2px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 1px;
+  }
+
+  #info input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 16px;
+    height: 16px;
+    margin-top: -7px;
+    border-radius: 50%;
+    background: #ffffff;
+    box-shadow:
+      0 0 0 4px rgba(255, 255, 255, 0.08),
+      0 2px 8px rgba(0, 0, 0, 0.4);
+    transition: box-shadow 0.15s;
+  }
+
+  #info input[type="range"]:active::-webkit-slider-thumb {
+    box-shadow:
+      0 0 0 6px rgba(255, 255, 255, 0.14),
+      0 2px 12px rgba(0, 0, 0, 0.5);
+  }
+
+  #info .val {
+    color: #ffffff;
+    font-variant-numeric: tabular-nums;
+    font-weight: 500;
+    font-size: 11px;
+    opacity: 0.9;
+  }
+
+  #info .slider-row {
+    margin-top: 14px;
+    padding-top: 12px;
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+  }
+
+  #info .slider-label {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    font-size: 10px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    opacity: 0.55;
+    margin-bottom: 4px;
+  }
+
+  #info .reset-btn {
+    margin-top: 16px;
+    padding: 11px;
+    width: 100%;
+    font-size: 10px;
+    letter-spacing: 1.2px;
+    text-transform: uppercase;
+    font-weight: 500;
+    background: rgba(255, 255, 255, 0.04);
+    color: rgba(255, 255, 255, 0.6);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  #info .reset-btn:active {
+    background: rgba(255, 255, 255, 0.1);
+    color: #fff;
+  }
+
+  #controls {
+    position: fixed;
+    bottom: 18px;
+    left: 14px; right: 14px;
+    display: flex;
+    gap: 10px;
+    align-items: stretch;
+  }
+
+  button {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 16px 12px;
+    border-radius: 16px;
+    background: linear-gradient(155deg, rgba(28, 28, 34, 0.8), rgba(16, 16, 20, 0.9));
+    backdrop-filter: blur(20px) saturate(1.4);
+    -webkit-backdrop-filter: blur(20px) saturate(1.4);
+    color: rgba(255, 255, 255, 0.85);
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 1.2px;
+    text-transform: uppercase;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow:
+      0 8px 24px rgba(0, 0, 0, 0.4),
+      inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    cursor: pointer;
+    transition: all 0.15s;
+    font-family: inherit;
+  }
+
+  button svg {
+    width: 12px;
+    height: 12px;
+    opacity: 0.85;
+    flex-shrink: 0;
+  }
+
+  button:active {
+    background: linear-gradient(155deg, rgba(40, 40, 48, 0.9), rgba(24, 24, 30, 0.95));
+    color: #ffffff;
+    transform: scale(0.98);
+  }
+
+  #panel-pull {
+    position: fixed;
+    bottom: 96px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 80px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(14px) saturate(1.4);
+    -webkit-backdrop-filter: blur(14px) saturate(1.4);
+    cursor: pointer;
+    transition: opacity 0.25s, transform 0.25s;
+    touch-action: none;
+    z-index: 5;
+  }
+
+  #panel-pull.hidden {
+    opacity: 0;
+    transform: translateX(-50%) translateY(8px);
     pointer-events: none;
   }
-  @keyframes glowBreath { 0%, 100% { opacity: 0.4; } 50% { opacity: 0.85; } }
 
-  .menu-play {
-    position:absolute; bottom:20%; left:50%; transform:translateX(-50%);
-    padding: 18px 62px; font-size: 18px; font-weight: 800;
-    letter-spacing: 0.18em; text-transform: uppercase;
-    background: linear-gradient(180deg, #22c55e, #15803d);
-    border: 2px solid #4ade80; border-radius: 999px; color: #fff; cursor: pointer;
-    box-shadow: 0 12px 40px rgba(34,197,94,0.6), inset 0 2px 0 rgba(255,255,255,.25);
-    transition: transform 0.18s cubic-bezier(.2,.7,.3,1.6),
-                box-shadow 0.25s ease, opacity 0.3s ease;
-    animation: menuPlayFloat 3s ease-in-out infinite;
-    will-change: transform;
-  }
-  @keyframes menuPlayFloat {
-    0%,100% { transform:translateX(-50%) translateY(0); }
-    50% { transform:translateX(-50%) translateY(-6px); }
-  }
-  .menu-play:not(:disabled):active { transform: translateX(-50%) scale(0.94); }
-  .menu-play:disabled { opacity: 0.55; cursor: not-allowed; animation:none; }
-  .menu-play::after {
-    content:''; position:absolute; inset:-6px; border-radius:999px;
-    border:2px solid rgba(74,222,128,.4); pointer-events:none;
-    animation: playRing 2.4s ease-out infinite;
-  }
-  @keyframes playRing {
-    0% { transform:scale(1); opacity:1; }
-    100% { transform:scale(1.25); opacity:0; }
+  #panel-pull .pull-inner {
+    width: 32px;
+    height: 3px;
+    border-radius: 2px;
+    background: rgba(255, 255, 255, 0.3);
+    transition: all 0.15s;
   }
 
-  .screen {
-    position:fixed; inset:0; background:linear-gradient(180deg,#111a33 0%,#0b1020 100%);
-    z-index:50; display:flex; flex-direction:column; padding:14px; overflow-y:auto;
-    animation: screenIn .32s cubic-bezier(.2,.7,.3,1.2);
-  }
-  .screen.closing {
-    animation: screenOut .22s ease-in forwards;
-    pointer-events: none;
-  }
-  @keyframes screenIn {
-    from { opacity:0; transform:translateY(14px) scale(.97); }
-    to { opacity:1; transform:translateY(0) scale(1); }
-  }
-  @keyframes screenOut {
-    to { opacity:0; transform:translateY(-6px) scale(.98); }
+  #panel-pull:active .pull-inner {
+    background: rgba(255, 255, 255, 0.7);
+    width: 44px;
   }
 
-  .screen-head {
-    display:flex; align-items:center; justify-content:space-between; margin-bottom:12px;
-    padding-bottom:12px;
-    border-bottom:1px solid var(--border);
-  }
-  .screen-title { font-size:22px; font-weight:800; letter-spacing:.02em; color: var(--fg-0); }
-  .screen-title:has(+ button) { padding-right:8px; }
-  .screen-head > button:last-child {
-    width:42px; height:42px; padding:0; font-size:18px; line-height:1;
-    border-radius:50%;
+  #loading {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    align-items: center;
+    justify-content: center;
+    background: #050507;
+    z-index: 10;
+    font-size: 10px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    transition: opacity 0.4s;
+    color: rgba(255, 255, 255, 0.5);
   }
 
-  #toast {
-    position:fixed; top:70px; left:50%;
-    transform:translateX(-50%) translateY(-16px) scale(.9);
-    background:linear-gradient(180deg,rgba(30,41,59,.98),rgba(15,23,42,.98));
-    backdrop-filter:blur(12px);
-    border:1px solid var(--border-strong);
-    border-radius:16px; padding:14px 22px;
-    font-size:14px; font-weight:600;
-    color: var(--fg-0);
-    max-width:88vw; text-align:center; pointer-events:none;
-    z-index:200;
-    box-shadow:0 12px 40px rgba(0,0,0,.6), inset 0 1px 0 rgba(255,255,255,.15);
-    opacity:0; transition: opacity .28s cubic-bezier(.34,1.56,.64,1),
-                            transform .28s cubic-bezier(.34,1.56,.64,1);
+  #loading .bar {
+    width: 180px;
+    height: 1px;
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: 1px;
+    overflow: hidden;
   }
-  #toast.show { opacity:1; transform:translateX(-50%) translateY(0) scale(1); }
-  #toast.error { background:linear-gradient(180deg,rgba(127,29,29,.98),rgba(69,10,10,.98)); border-color:rgba(239,68,68,.55); }
-  #toast.tip { background:linear-gradient(180deg,rgba(21,128,61,.98),rgba(6,78,59,.98)); border-color:rgba(74,222,128,.55); }
-  #toast.warn { background:linear-gradient(180deg,rgba(120,53,15,.98),rgba(67,20,7,.98)); border-color:rgba(245,158,11,.6); }
 
-  .settings-section {
-    background: linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.02));
-    border:1px solid var(--border);
-    border-radius:16px; padding:16px 18px; margin-bottom:14px;
-    box-shadow: 0 4px 20px rgba(0,0,0,.25), inset 0 1px 0 rgba(255,255,255,.06);
-    transition: transform .18s ease, border-color .2s ease;
+  #loading .bar div {
+    height: 100%;
+    width: 0%;
+    background: #ffffff;
+    transition: width 0.3s;
   }
-  .settings-section:active { transform:scale(.995); }
-  .settings-section:last-child { margin-bottom:0; }
-  .settings-section-title {
-    font-size:11px; color: var(--accent);
-    text-transform:uppercase; letter-spacing:1.2px; margin-bottom:12px;
-    font-weight:700;
-  }
-  .settings-row { display:flex; align-items:center; justify-content:space-between; gap:12px; }
-  .settings-row-label { font-size:15px; font-weight:600; }
-  .settings-row-sub { font-size:12px; color: var(--fg-2); margin-top:3px; line-height:1.4; }
-  .settings-row-sub.on { color:#86efac; }
-  .settings-row-sub.warn { color:#fbbf24; }
-  .settings-row-sub.err { color:#fca5a5; }
-  .settings-row button { padding:10px 18px; font-size:13px; }
 
-  .settings-link {
-    display:block; padding:12px 0; color: var(--accent); text-decoration:none;
-    font-size:14px; font-weight:600;
-    border-bottom:1px solid var(--border);
-    transition:opacity .15s, padding-left .15s;
+  #loading .pct {
+    opacity: 0.4;
+    font-variant-numeric: tabular-nums;
   }
-  .settings-link:last-child { border-bottom:none; padding-bottom:0; }
-  .settings-link:first-of-type { padding-top:0; }
-  .settings-link:active { opacity:.65; padding-left:6px; }
-
-  .bar { position:fixed; left:0; right:0; padding:10px 12px; display:flex; gap:8px; align-items:center; z-index:10; pointer-events:none; flex-wrap:wrap; justify-content:center; }
-  .bar * { pointer-events:auto; }
-  #top { top:0; justify-content:flex-start; background:linear-gradient(180deg,rgba(11,16,32,.9),rgba(11,16,32,0)); }
-  #bottom, #bottom-visit, #bottom-raid { bottom:0; background:linear-gradient(0deg,rgba(11,16,32,.92),rgba(11,16,32,0)); padding-bottom:14px; }
-  .bar.reveal { animation: barSlide .28s cubic-bezier(.2,.7,.3,1); }
-  @keyframes barSlide { from { opacity:0; transform: translateY(18px); } to   { opacity:1; transform: translateY(0); } }
-  #claim-hint { font-size:12px; opacity:.8; }
-  #target-pill b { color: var(--danger); }
-  .swatch { display:block; width:22px; height:22px; border-radius:6px; border:2px solid rgba(255,255,255,.5); box-shadow: inset 0 1px 3px rgba(0,0,0,.4); transition: background .15s ease; }
-  #btn-shop { position:relative; padding:10px 14px; }
-  #btn-shop .shop-ico { font-size:16px; line-height:1; display:inline-block; vertical-align:middle; }
-  #shop-mini { position:absolute; right:-2px; bottom:-2px; width:16px; height:16px; border-radius:4px; border:1.5px solid rgba(255,255,255,.7); box-shadow:0 1px 4px rgba(0,0,0,.5); background:#c9a06a; transition: background .15s ease; overflow:hidden; }
-  #shop-mini svg { display:block; width:100%; height:100%; }
-  #net-banner { position:fixed; top:0; left:0; right:0; background:rgba(120,53,15,.96); border-bottom:1px solid rgba(245,158,11,.55); color:#fde68a; padding:6px 12px; font-size:13px; font-weight:600; text-align:center; z-index:150; transform: translateY(-100%); transition: transform .25s ease; pointer-events:none; }
-  #net-banner.show { transform: translateY(0); }
-  #price-tag { position:fixed; top:0; left:0; background:rgba(17,26,51,.94); backdrop-filter:blur(6px); padding:4px 10px; border-radius:10px; font-size:13px; font-weight:600; color:#fde68a; border:1px solid var(--border-strong); pointer-events:none; z-index:9; white-space:nowrap; box-shadow:0 4px 14px rgba(0,0,0,.45); }
-  #price-tag.bad { color:#fca5a5; }
-  #status { position:fixed; inset:0; display:flex; align-items:center; justify-content:center; text-align:center; padding:24px; background: var(--bg-0); z-index:100; font-size:16px; line-height:1.5; }
-  #status.hidden { display:none; }
-  #err { color:#fca5a5; font-size:13px; }
-  .island-row { display:flex; flex-direction:column; gap:4px; width:100%; text-align:left; background:rgba(255,255,255,.06); border:1px solid var(--border); border-radius:14px; padding:13px 15px; margin-bottom:8px; }
-  .island-row:active { background:rgba(255,255,255,.16); }
-  .island-row.locked { opacity:.55; }
-  .island-name { font-size:16px; font-weight:600; }
-  .island-meta { font-size:13px; color: var(--fg-1); }
-  .island-badge { font-size:12px; color:#fca5a5; }
-  .screen-note { text-align:center; color: var(--fg-2); padding:32px 16px; }
-  .online-dot { display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:7px; vertical-align:middle; }
-  .online-dot.on  { background:#22c55e; box-shadow:0 0 6px #22c55e; }
-  .online-dot.off { background:rgba(255,255,255,.25); }
-  #loot-screen { align-items:center; justify-content:center; }
-  .loot-card { background: var(--bg-2); border:1px solid var(--border-strong); border-radius:18px; padding:28px 24px; text-align:center; max-width:340px; width:100%; }
-  .loot-emoji { font-size:48px; margin-bottom:8px; }
-  .loot-title { font-size:20px; font-weight:700; margin-bottom:16px; }
-  .loot-row { font-size:15px; color: var(--fg-1); margin-bottom:8px; }
-  .loot-row b { color: var(--accent); font-size:18px; }
-  .loot-card button { width:100%; margin-top:16px; }
-  #onboard-screen { align-items:center; justify-content:center; }
-  .onboard-card { background: var(--bg-2); border:1px solid var(--border-strong); border-radius:18px; padding:24px 22px; max-width:360px; width:100%; transition: transform .28s cubic-bezier(.3,.8,.4,1), opacity .28s ease; }
-  #onboard-screen.closing .onboard-card { transform: scale(.94) translateY(6px); opacity: 0; }
-  #onboard-screen.closing { background: transparent; }
-  .onboard-emoji { font-size:44px; text-align:center; margin-bottom:6px; }
-  .onboard-title { font-size:19px; font-weight:700; text-align:center; margin-bottom:18px; }
-  .onboard-step { font-size:14px; line-height:1.5; color: var(--fg-1); margin-bottom:12px; }
-  .onboard-step b { color: var(--accent); }
-  .onboard-card button { width:100%; margin-top:6px; }
-  #tip-screen { background:linear-gradient(0deg, rgba(11,16,32,.95) 0%, rgba(11,16,32,.55) 45%, rgba(11,16,32,0) 100%); justify-content:flex-end; align-items:center; padding-bottom:36px; }
-  .tip-card { background:rgba(17,26,51,.97); border:1px solid var(--border-strong); border-radius:18px; padding:18px 20px 16px; width:100%; max-width:440px; box-shadow:0 14px 44px rgba(0,0,0,.6); }
-  .tip-head { display:flex; align-items:center; gap:10px; margin-bottom:10px; }
-  .tip-dot { width:10px; height:10px; border-radius:50%; background: var(--accent); box-shadow:0 0 10px var(--accent); animation: tipPulse 1.6s ease-in-out infinite; }
-  @keyframes tipPulse { 0%,100% { transform:scale(1); opacity:1; } 50% { transform:scale(1.35); opacity:.6; } }
-  .tip-title { font-size:15px; font-weight:700; color: var(--accent); letter-spacing:.3px; }
-  .tip-text { font-size:15px; line-height:1.5; color: var(--fg-0); margin-bottom:16px; min-height:44px; }
-  .tip-word { display:inline-block; white-space:nowrap; }
-  .tip-char { display:inline-block; opacity:0; animation: tipChar .32s ease-out forwards; }
-  @keyframes tipChar { from { opacity:0; transform: translateY(7px) scale(.9); } to { opacity:1; transform: none; } }
-  .tip-card button { width:100%; }
-  #palette, #block-palette, #size-palette { position:fixed; bottom:78px; left:50%; transform:translateX(-50%); background:rgba(17,26,51,.98); backdrop-filter:blur(12px); border:1px solid var(--border-strong); border-radius:16px; padding:14px; z-index:60; box-shadow:0 12px 40px rgba(0,0,0,.6); animation:popIn .18s ease-out; }
-  @keyframes popIn { from { opacity:0; transform:translateX(-50%) scale(.92); } to { opacity:1; transform:translateX(-50%) scale(1); } }
-  .palette-title { font-size:12px; color: var(--fg-1); margin-bottom:10px; text-align:center; letter-spacing:.5px; text-transform:uppercase; }
-  .palette-grid { display:grid; grid-template-columns:repeat(4, 1fr); gap:10px; }
-  .color-dot { width:46px; height:46px; border-radius:12px; border:2px solid rgba(255,255,255,.2); cursor:pointer; padding:0; }
-  .color-dot:active { transform:scale(.86); }
-  .color-dot.selected { border-color:#fff; border-width:3px; }
-  .size-grid { display:grid; grid-template-columns:repeat(2, 1fr); gap:10px; }
-  .size-btn { display:flex; flex-direction:column; align-items:center; gap:4px; min-width:100px; padding:12px 10px; }
-  .size-btn .glyph { font-family:ui-monospace,monospace; font-size:15px; font-weight:700; }
-  .size-btn .price { font-size:11px; opacity:.75; }
-  .size-btn.selected { background:linear-gradient(180deg,#3b82f6,#2563eb); border-color:#60a5fa; }
-  .shop-section { margin-bottom:18px; }
-  .shop-label { font-size:12px; color: var(--fg-2); text-transform:uppercase; letter-spacing:.9px; margin-bottom:10px; }
-  .shop-grid { display:grid; grid-template-columns:repeat(2, 1fr); gap:10px; }
-  .shop-card { display:flex; flex-direction:column; align-items:center; gap:6px; background:rgba(255,255,255,.05); border:2px solid var(--border); border-radius:14px; padding:12px 10px 10px; cursor:pointer; font-family:inherit; color: var(--fg-0); transition: transform .12s ease, border-color .15s, background .15s; }
-  .shop-card:active { transform: scale(.96); }
-  .shop-card.selected { border-color:#3b82f6; background:rgba(59,130,246,.15); }
-  .card-preview { width:72px; height:72px; display:flex; align-items:center; justify-content:center; animation: cardFloat 3.6s ease-in-out infinite; }
-  .card-preview svg { width:100%; height:100%; filter: drop-shadow(0 4px 8px rgba(0,0,0,.45)); }
-  @keyframes cardFloat { 0%,100% { transform: translateY(0) rotate(-2deg); } 50% { transform: translateY(-5px) rotate(2deg); } }
-  .card-name { font-size:14px; font-weight:600; }
-  .card-info { font-size:11px; color: var(--fg-2); text-align:center; line-height:1.3; min-height:28px; }
-  .card-price { font-size:12px; color:#fde68a; font-weight:600; }
-  .shop-summary { text-align:center; font-size:15px; padding:12px; background:rgba(255,255,255,.05); border-radius:12px; margin-bottom:12px; color: var(--fg-1); }
-  .shop-summary b { color:#fde68a; }
-  .avatar-grid { display:grid; grid-template-columns:repeat(5,1fr); gap:8px; }
-  .avatar-option { aspect-ratio:1; border-radius:12px; background:rgba(255,255,255,.06); border:2px solid var(--border); display:flex; align-items:center; justify-content:center; font-size:26px; cursor:pointer; padding:0; overflow:hidden; transition:border-color .15s, background .15s; }
-  .avatar-option:active { transform:scale(.94); }
-  .avatar-option.selected { border-color:#3b82f6; background:rgba(59,130,246,.15); }
-  .avatar-option img { width:100%; height:100%; object-fit:cover; display:block; }
-  .edit-bio { width:100%; background:rgba(255,255,255,.04); border:1px solid var(--border-strong); border-radius:12px; padding:12px 14px; color: var(--fg-0); font-family:inherit; font-size:14px; line-height:1.5; resize:vertical; min-height:88px; }
-  .edit-bio:focus { outline:none; border-color:#3b82f6; }
-  .edit-bio-counter { font-size:11px; color: var(--fg-2); text-align:right; margin-top:4px; }
-  .edit-label { font-size:12px; color: var(--fg-2); text-transform:uppercase; letter-spacing:.9px; margin-bottom:8px; margin-top:4px; }
-  .hidden { display:none !important; }
-  .profile-card { background: var(--bg-2); border:1px solid var(--border-strong); border-radius:18px; padding:20px; margin-top:12px; max-width:440px; width:100%; align-self:center; }
-  .profile-head { display:flex; gap:14px; align-items:center; margin-bottom:16px; }
-  .profile-avatar { width:64px; height:64px; border-radius:16px; background:rgba(255,255,255,.08); display:flex; align-items:center; justify-content:center; font-size:34px; overflow:hidden; flex-shrink:0; border:1px solid var(--border); }
-  .profile-avatar img { width:100%; height:100%; object-fit:cover; display:block; }
-  .profile-meta { min-width:0; flex:1; }
-  .profile-name { font-size:18px; font-weight:700; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-  .profile-status { font-size:12px; color: var(--fg-2); margin-top:3px; }
-  .profile-id-row { display:flex; align-items:center; gap:8px; margin-top:4px; }
-  .profile-id { font-size:11px; color: var(--fg-2); font-family:ui-monospace,monospace; }
-  .profile-copy { padding:3px 8px; font-size:11px; line-height:1.2; border-radius:6px; background:rgba(255,255,255,.08); border:1px solid var(--border-strong); cursor:pointer; color: var(--fg-1); font-family:inherit; }
-  .profile-copy:active { transform:scale(.92); background:rgba(255,255,255,.18); }
-  .profile-copy.copied { background:rgba(34,197,94,.35); border-color:rgba(74,222,128,.6); color:#fff; }
-  .profile-bio { font-size:14px; line-height:1.5; color: var(--fg-1); background:rgba(255,255,255,.04); border-radius:12px; padding:12px 14px; margin-bottom:14px; min-height:64px; white-space:pre-wrap; word-break:break-word; }
-  .profile-bio.empty { color: var(--fg-2); font-style:italic; }
-  .profile-actions { display:grid; grid-template-columns:1fr; gap:10px; }
-  .profile-actions button { justify-content:center; width:100%; }
-  .stats-block { background:rgba(255,255,255,.04); border:1px solid var(--border); border-radius:12px; padding:14px 16px; margin-bottom:14px; }
-  .stats-group { margin-bottom:14px; }
-  .stats-group:last-child { margin-bottom:0; }
-  .stats-group-title { font-size:11px; color: var(--fg-2); text-transform:uppercase; letter-spacing:.9px; margin-bottom:6px; }
-  .stats-row { display:flex; justify-content:space-between; align-items:baseline; font-size:14px; padding:4px 0; }
-  .stats-row span { color: var(--fg-1); }
-  .stats-row b { color: var(--accent); font-variant-numeric:tabular-nums; font-weight:600; }
-  .stats-row b.gold { color:#fde68a; }
-  .stats-row b.danger { color:#fca5a5; }
-  .stats-loading { color: var(--fg-2); font-size:13px; text-align:center; padding:10px 0; }
-  .history-row { display:flex; flex-direction:column; gap:5px; width:100%; text-align:left; background:rgba(255,255,255,.06); border:1px solid var(--border); border-radius:14px; padding:12px 15px; margin-bottom:8px; }
-  .history-row:active { background:rgba(255,255,255,.16); }
-  .history-head { display:flex; align-items:center; gap:10px; }
-  .history-role { font-size:15px; line-height:1; }
-  .history-role.attacker { color:#fca5a5; }
-  .history-role.defender { color: var(--accent); }
-  .history-name { flex:1; font-size:15px; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-  .history-time { font-size:12px; color: var(--fg-2); font-variant-numeric:tabular-nums; }
-  .history-meta { font-size:13px; color: var(--fg-1); font-variant-numeric:tabular-nums; }
-  .history-meta.won { color:#86efac; }
-  .history-meta.lost { color:#fca5a5; }
-  .history-meta.active { color:#fbbf24; }
-
-  #map-screen {
-    padding: 0;
-    background: #05081a;
-  }
-  #map-screen.menu-bg .screen-head,
-  #map-screen.menu-bg #map-controls {
-    display: none;
-  }
-  #map-screen .screen-head {
-    position:absolute; top:0; left:0; right:0; z-index:3;
-    padding:14px;
-    background:linear-gradient(180deg, rgba(11,16,32,.85), rgba(11,16,32,0));
-    pointer-events:none;
-  }
-  #map-screen .screen-head > * { pointer-events:auto; }
-  #map-container {
-    position:absolute; inset:0;
-    background: #05081a;
-    touch-action:none;
-  }
-  #map-controls {
-    position:absolute; right:14px; bottom:24px; z-index:3;
-    display:flex; flex-direction:column; gap:8px;
-  }
-  .map-zoom-btn, .map-center-btn {
-    width:44px; height:44px; padding:0; font-size:20px; line-height:1;
-    border-radius:12px;
-  }
-  .map-center-btn { font-size:18px; }
 </style>
 </head>
 <body>
-<div id="app"></div>
-
-<div id="menu-screen">
-  <div class="menu-title">ADRIFT</div>
-  <button id="menu-play" class="menu-play" disabled>▶ Play</button>
+<div id="loading">
+  <div>Loading MaleCNS connectome</div>
+  <div class="bar"><div id="loadbar"></div></div>
+  <div class="pct" id="loadpct">0 MB</div>
 </div>
-
-<div id="net-banner" data-i18n="netDown">📡 Нет соединения с сервером…</div>
-<div class="bar" id="top">
-  <button class="pill pill-btn" id="claim-btn" title="Claim">⚡ <b id="ether">—</b><span id="claim-hint">…</span></button>
-  <div class="pill">🧱 <b id="cubes">—</b></div>
-  <div class="pill">🚩 <b id="flag">—</b></div>
-  <div class="pill hidden" id="target-pill">👁 <b id="target-name">—</b></div>
-  <button class="pill pill-btn" id="profile-btn" title="Profile">👤</button>
-  <button class="pill pill-btn" id="settings-btn" title="Settings">⚙️</button>
-</div>
-<div id="price-tag" class="hidden">10⚡</div>
-<div class="bar hidden" id="bottom">
-  <button id="btn-build" class="primary icon" title="Build">🔨</button>
-  <button id="btn-size" class="hidden">📐 <span id="size-label">1×1</span></button>
-  <button id="btn-rotate" class="hidden icon" title="Rotate">↔️</button>
-  <button id="btn-vertical" class="hidden icon" title="Rotate V">↕️</button>
-  <button id="btn-block-color" class="hidden icon" title="Block color"><span class="swatch" id="swatch-block"></span></button>
-  <button id="btn-palette" class="hidden icon" title="Flag color"><span class="swatch" id="swatch-flag"></span></button>
-  <button id="btn-demolish" class="hidden icon" title="Demolish">🗑</button>
-  <button id="btn-shop" class="hidden" title="Shop"><span class="shop-ico">🛒</span><span id="shop-mini"></span></button>
-  <button id="btn-map" class="icon" title="Map">🗺️</button>
-  <button id="reload" class="icon" title="Reload">↻</button>
-</div>
-<div class="bar hidden" id="bottom-visit">
-  <button id="btn-back" class="big"><span class="ico">↩</span><span data-i18n="back">Назад</span></button>
-  <button id="btn-raid" class="danger big"><span class="ico">⚔️</span><span data-i18n="raid">Рейд</span></button>
-</div>
-<div class="bar hidden" id="bottom-raid">
-  <button id="btn-flag" class="danger big"><span id="btn-flag-ico" class="ico">🚩</span><span id="btn-flag-label" data-i18n="flag">Флаг</span></button>
-  <button id="btn-leave" class="big"><span class="ico">🏳</span><span data-i18n="leave">Выйти</span></button>
-</div>
-<div id="palette" class="hidden"><div class="palette-title" data-i18n="flagColor">Цвет флага</div><div class="palette-grid" id="palette-grid"></div></div>
-<div id="block-palette" class="hidden"><div class="palette-title" data-i18n="blockColor">Цвет блока</div><div class="palette-grid" id="block-palette-grid"></div></div>
-<div id="size-palette" class="hidden"><div class="palette-title" data-i18n="sizeTitle">Размер блока</div><div class="size-grid" id="size-grid"></div></div>
-<div class="screen hidden" id="world-screen">
-  <div class="screen-head"><div class="screen-title" data-i18n="worldTitle">🌍 Мир</div><button id="world-close">✕</button></div>
-  <div id="world-list"></div>
-</div>
-<div class="screen hidden" id="map-screen">
-  <div class="screen-head">
-    <div class="screen-title" data-i18n="mapTitle">🗺️ Карта мира</div>
-    <button id="map-close">✕</button>
-  </div>
-  <div id="map-container"></div>
-  <div id="map-controls">
-    <button id="map-zoom-in" class="map-zoom-btn">＋</button>
-    <button id="map-zoom-out" class="map-zoom-btn">－</button>
-    <button id="map-center" class="map-center-btn">🎯</button>
-  </div>
-</div>
-<div class="screen hidden" id="history-screen">
-  <div class="screen-head">
-    <div class="screen-title" data-i18n="historyTitle">📜 История рейдов</div>
-    <button id="history-close">✕</button>
-  </div>
-  <div id="history-list"></div>
-</div>
-<div class="screen hidden" id="loot-screen">
-  <div class="loot-card">
-    <div class="loot-emoji">🏆</div>
-    <div class="loot-title" data-i18n="lootTitle">Флаг разрушен!</div>
-    <div class="loot-row"><span data-i18n="lootStolen">Украдено:</span> <b id="loot-stolen">0</b></div>
-    <div class="loot-row"><span data-i18n="lootBalance">Баланс:</span> <b id="loot-balance">0</b></div>
-    <button id="loot-ok" class="go" data-i18n="returnHome">Вернуться</button>
-  </div>
-</div>
-<div class="screen hidden" id="tip-screen">
-  <div class="tip-card">
-    <div class="tip-head"><div class="tip-dot"></div><div class="tip-title" id="tip-title" data-i18n="tipTitle">Буй говорит</div></div>
-    <div class="tip-text" id="tip-text"></div>
-    <button id="tip-ok" class="go" data-i18n="tipOk">Ок</button>
-  </div>
-</div>
-<div class="screen hidden" id="onboard-screen">
-  <div class="onboard-card">
-    <div class="onboard-emoji">🏝️</div>
-    <div class="onboard-title" data-i18n="onboardTitle">Добро пожаловать в ADRIFT</div>
-    <div class="onboard-step" data-i18n-html="onboard1"></div>
-    <div class="onboard-step" data-i18n-html="onboard2"></div>
-    <div class="onboard-step" data-i18n-html="onboard3"></div>
-    <div class="onboard-step" data-i18n-html="onboard4"></div>
-    <button id="onboard-ok" class="go" data-i18n="onboardOk">Понятно, играем</button>
-  </div>
-</div>
-<div class="screen hidden" id="shop-screen">
-  <div class="screen-head"><div class="screen-title" data-i18n="shopTitle">🛒 Магазин</div><button id="shop-close">✕</button></div>
-  <div class="shop-section"><div class="shop-label" data-i18n="shopShape">1. Форма</div><div class="shop-grid" id="shop-shapes"></div></div>
-  <div class="shop-section"><div class="shop-label" data-i18n="shopMaterial">2. Материал</div><div class="shop-grid" id="shop-materials"></div></div>
-  <div class="shop-summary" id="shop-summary"></div>
-  <button class="go big" id="shop-confirm" style="width:100%;justify-content:center;"><span class="ico">🔨</span><span data-i18n="shopBuild">Строить</span></button>
-</div>
-<div class="screen hidden" id="profile-screen">
-  <div class="screen-head">
-    <div class="screen-title" data-i18n="profileTitle">Профиль</div>
-    <button id="profile-close">✕</button>
-  </div>
-  <div class="profile-card">
-    <div class="profile-head">
-      <div class="profile-avatar" id="profile-avatar">?</div>
-      <div class="profile-meta">
-        <div class="profile-name" id="profile-name">—</div>
-        <div class="profile-status" id="profile-status"></div>
-        <div class="profile-id-row">
-          <span class="profile-id" id="profile-id">#—</span>
-          <button class="profile-copy" id="profile-copy">📎</button>
-        </div>
-      </div>
-    </div>
-    <div class="stats-block" id="stats-block">
-      <div id="stats-grid"><div class="stats-loading">…</div></div>
-    </div>
-    <div class="profile-bio empty" id="profile-bio"></div>
-    <div class="profile-actions">
-      <button id="profile-visit" class="primary big"><span class="ico">🏝️</span><span data-i18n="visit">Посетить</span></button>
-    </div>
-  </div>
-</div>
-<div class="screen hidden" id="edit-profile-screen">
-  <div class="screen-head">
-    <div class="screen-title" data-i18n="editProfileTitle">Edit profile</div>
-    <button id="edit-profile-close">✕</button>
-  </div>
-  <div class="profile-card">
-    <div class="profile-head">
-      <div class="profile-avatar" id="edit-profile-avatar">?</div>
-      <div class="profile-meta">
-        <div class="profile-name" id="edit-profile-name">—</div>
-      </div>
-    </div>
-    <div class="edit-label" data-i18n="avatarLabel">Avatar</div>
-    <div class="avatar-grid" id="avatar-grid"></div>
-    <div class="edit-label" style="margin-top:18px" data-i18n="bioLabel">About</div>
-    <textarea class="edit-bio" id="edit-bio" maxlength="280" rows="4" placeholder="Tell others about you..."></textarea>
-    <div class="edit-bio-counter" id="edit-bio-counter">0 / 280</div>
-    <button class="go big" id="edit-save" style="width:100%;justify-content:center;margin-top:16px;">
-      <span class="ico">✓</span><span data-i18n="save">Save</span>
+<div id="hud">
+  <div id="hud-stats">-</div>
+  <div id="hud-buttons">
+    <button id="hud-reset" aria-label="Reset simulation">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M3 12a9 9 0 1 0 3-6.7L3 8"/>
+        <path d="M3 3v5h5"/>
+      </svg>
+    </button>
+    <button id="hud-fly" class="active" aria-label="Toggle fly shell">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+        <ellipse cx="12" cy="14" rx="3" ry="6"/>
+        <circle cx="12" cy="4.5" r="2"/>
+        <path d="M9.5 10 Q4 6 2.5 8.5"/>
+        <path d="M14.5 10 Q20 6 21.5 8.5"/>
+        <path d="M9.5 14 Q3 14 2 17"/>
+        <path d="M14.5 14 Q21 14 22 17"/>
+      </svg>
     </button>
   </div>
 </div>
-<div class="screen hidden" id="settings-screen">
-  <div class="screen-head">
-    <div class="screen-title" data-i18n="settingsTitle">⚙ Настройки</div>
-    <button id="settings-close">✕</button>
-  </div>
-  <div class="profile-card">
-    <div class="settings-section">
-      <div class="settings-section-title" data-i18n="settingsGraphics">Графика</div>
-      <div class="settings-row">
-        <div>
-          <div class="settings-row-label" data-i18n="settingsGraphicsLabel">Качество</div>
-          <div class="settings-row-sub" id="graphics-status"></div>
-        </div>
-        <button id="graphics-toggle" class="go"></button>
-      </div>
-    </div>
-    <div class="settings-section">
-      <div class="settings-section-title" data-i18n="settingsSound">Звук</div>
-      <div class="settings-row">
-        <div>
-          <div class="settings-row-label" data-i18n="settingsSoundLabel">Эффекты и музыка</div>
-          <div class="settings-row-sub" id="sound-status"></div>
-        </div>
-        <button id="sound-btn" title="Sound">🔊</button>
-      </div>
-    </div>
-    <div class="settings-section">
-      <div class="settings-section-title" data-i18n="pushTitle">Уведомления</div>
-      <div class="settings-row">
-        <div>
-          <div class="settings-row-sub" id="push-status"></div>
-        </div>
-        <button id="push-toggle" class="go"></button>
-      </div>
-    </div>
-    <div class="settings-section">
-      <div class="settings-section-title" data-i18n="settingsPlay">Игра</div>
-      <button id="history-open-btn" class="big" style="width:100%;justify-content:center;">
-        <span class="ico">📜</span><span data-i18n="historyTitle">История рейдов</span>
-      </button>
-    </div>
-    <div class="settings-section">
-      <div class="settings-section-title" data-i18n="settingsAbout">О игре</div>
-      <a class="settings-link" href="./privacy.html" target="_blank" rel="noopener" data-i18n="privacyLink">Privacy Policy</a>
-      <a class="settings-link" href="./terms.html" target="_blank" rel="noopener" data-i18n="termsLink">Terms of Service</a>
-    </div>
-    <div class="settings-section">
-      <div class="settings-section-title" data-i18n="settingsAccount">Аккаунт</div>
-      <button id="signout-btn" class="danger big" style="width:100%;justify-content:center;">
-        <span class="ico">↩</span><span data-i18n="signOut">Выйти из аккаунта</span>
-      </button>
-    </div>
-  </div>
+<div id="group-bar"></div>
+<div id="group-panel"></div>
+<div id="info"></div>
+<div id="controls">
+  <button id="btn-stim">
+    <svg viewBox="0 0 24 24" fill="currentColor" stroke="none">
+      <path d="M13 2L4.5 13.5H11L10 22L19.5 10.5H13L13 2Z"/>
+    </svg>
+    <span>Stimulate</span>
+  </button>
 </div>
-<div id="toast" class="hidden"></div>
-<div id="status">Loading...<br><span id="err"></span></div>
+<div id="panel-pull" class="hidden"><div class="pull-inner"></div></div>
+
 <script type="importmap">
-{ "imports": {
-  "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
-  "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
-}}
+{
+  "imports": {
+    "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+  }
+}
 </script>
+
 <script type="module">
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import {
-  SUPABASE_URL, SUPABASE_ANON_KEY, API_URL,
-  MUSIC_URLS, NET_TIMEOUT_MS, FLAG_CLEAR_RADIUS,
-  FLAG_COLORS_HEX, FLAG_COLORS_CSS,
-  BLOCK_COLORS_HEX, BLOCK_COLORS_CSS,
-  CHARGE_COST, BLOCK_SIZES, SHOP_SHAPES, SHOP_MATERIALS,
-  MATERIAL_PALETTE, FALLBACK_PRICES,
-} from './src/config.js';
-import { I18N, lang, t, applyI18n } from './src/i18n.js';
-import {
-  SFX, playMusic, stopMusic, scheduleMusicStop,
-  pauseMusic, resumeMusic, retryMusic,
-  tryUnlockAudio, loadAudioPref, toggleAudio,
-} from './src/audio.js';
-import {
-  $, toast, uid, fmtTime, fail, ok, loading,
-  fetchT, humanError, priceEl,
-} from './src/utils.js';
-import {
-  initBlocks, setOnCubesChanged,
-  cubeMeshes, blockedGround,
-  addCube, removeCube, updateCubeHp, resetCubes, refreshCounters,
-  shapeGeometry, localDims, cubeCenter,
-  effectiveShape, effectiveMaterial, isFlatHalf,
-  effectiveColorHex, makeCubeMaterial,
-} from './src/blocks.js';
-import { makeToonMaterial } from './src/style.js';
-import {
-  initMap3D, setMapPoints, setMapCubes,
-  setMapCameraToMe, flyToPlayer,
-  zoomMapBy, resizeMap3D, setMapRunning, disposeMap3D,
-  setMapCameraDistance, tweenMapCamera,
-  attachTo, setMapVisible,
-} from './src/map3d.js';
-import { attachRippleToAll, popIn, pulseCounter } from './src/ui.js';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 
-let token = null, myId = null;
-let mode = 'own';
-let buildMode = true;
-let demolishMode = false;
-let rotationStep = 0;
-let vertical = false;
-let selectedBlockColor = 'wood';
-let selectedSize = BLOCK_SIZES[0];
-let selectedShape = 'block';
-let selectedMaterial = 'wood';
-let catalog = {};
-let raidId = null;
-let raidFlagState = null;
-let flagWasOpen = false;
-let targetUser = null;
-let attacking = false;
-let econ = { accrued_now: 0, seconds_to_next: 0, ether_balance: 0 };
-let myFlagColor = 'red';
-let displayFlagColor = 'red';
-let currentFlagHp = 0, currentFlagMax = 0;
-let myRaidAlert = false;
-let myWorldX = null, myWorldY = null;
-const SPHERE_RADIUS_FOR_MENU = 100;   // синхронно с map3d.js
-let menuMode = true;
-
-async function signIn() {
-  throw new Error('Use signInWithGoogle()');
-}
-
-function signInWithGoogle() {
-  const redirectTo = encodeURIComponent(window.location.origin + window.location.pathname);
-  const url = `${SUPABASE_URL}/auth/v1/authorize?provider=google&redirect_to=${redirectTo}`;
-  window.location.href = url;
-}
-
-function base64UrlDecode(str) {
-  const padding = '='.repeat((4 - (str.length % 4)) % 4);
-  const base64 = (str + padding).replace(/-/g, '+').replace(/_/g, '/');
-  return atob(base64);
-}
-
-function handleOAuthCallback() {
-  const hash = window.location.hash;
-  if (!hash || hash.length < 2) return false;
-
-  const params = new URLSearchParams(hash.slice(1));
-  const accessToken = params.get('access_token');
-  if (!accessToken) return false;
-
-  token = accessToken;
-
-  try {
-    const payload = JSON.parse(base64UrlDecode(token.split('.')[1]));
-    myId = payload.sub || null;
-  } catch (e) { myId = null; }
-
-  const refreshToken = params.get('refresh_token');
-  if (refreshToken) {
-    try { localStorage.setItem('adrift_refresh', refreshToken); } catch (e) {}
-  }
-
-  if (myId) {
-    try {
-      localStorage.setItem('adrift_token', token);
-      localStorage.setItem('adrift_id', myId);
-    } catch (e) {}
-  }
-
-  history.replaceState(null, '', window.location.pathname + window.location.search);
-  return true;
-}
-
-function clearSession() {
-  token = null;
-  myId = null;
-  try {
-    localStorage.removeItem('adrift_token');
-    localStorage.removeItem('adrift_id');
-    localStorage.removeItem('adrift_refresh');
-  } catch (e) {}
-}
-
-const AUTH_ERRORS = ['TOKEN_EXPIRED','TOKEN_INVALID','TOKEN_MISSING','UNAUTHORIZED'];
-
-async function refreshSession() {
-  let refreshToken;
-  try { refreshToken = localStorage.getItem('adrift_refresh'); } catch (e) { return false; }
-  if (!refreshToken) return false;
-
-  try {
-    const res = await fetchT(`${SUPABASE_URL}/auth/v1/token?grant_type=refresh_token`, {
-      method: 'POST',
-      headers: {
-        'apikey': SUPABASE_ANON_KEY,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ refresh_token: refreshToken }),
-    });
-
-    if (!res.ok) return false;
-
-    const data = await res.json();
-    if (!data.access_token) return false;
-
-    token = data.access_token;
-    try {
-      localStorage.setItem('adrift_token', token);
-      if (data.refresh_token) localStorage.setItem('adrift_refresh', data.refresh_token);
-    } catch (e) {}
-
-    return true;
-  } catch (e) {
-    return false;
-  }
-}
-
-async function api(path, options = {}) {
-  const res = await fetchT(API_URL + path, {
-    ...options,
-    headers: { 'Authorization':`Bearer ${token}`, 'Content-Type':'application/json', ...(options.headers||{}) },
-  });
-  const text = await res.text();
-  let body = null;
-  if (text) { try { body = JSON.parse(text); } catch (e) { body = null; } }
-  if (!res.ok) {
-    const err = new Error(body?.error?.message || res.statusText);
-    err.code = body?.error?.code || ('HTTP_' + res.status);
-    err.details = body?.error?.details;
-
-    if (AUTH_ERRORS.includes(err.code) && !options.__retried) {
-      const refreshed = await refreshSession();
-      if (refreshed) {
-        return api(path, { ...options, __retried: true });
-      }
-      clearSession();
-      showGoogleLogin();
-      throw err;
-    }
-    throw err;
-  }
-  return body;
-}
-
-async function auth() {
-  if (handleOAuthCallback()) return;
-
-  const saved = localStorage.getItem('adrift_token');
-  const savedId = localStorage.getItem('adrift_id');
-  if (saved && savedId) {
-    token = saved; myId = savedId;
-    try {
-      await api('/api/v1/build/catalog');
-      return;
-    } catch (e) {
-      if (!AUTH_ERRORS.includes(e.code)) throw e;
-    }
-  }
-
-  showGoogleLogin();
-  throw new Error('AUTH_REQUIRED');
-}
-
+// ---------------------------------------------------------------
+// Scene setup
+// ---------------------------------------------------------------
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x070f22);
-scene.fog = new THREE.Fog(0x1c3054, 80, 220);
-const camera = new THREE.PerspectiveCamera(55, innerWidth/innerHeight, 0.1, 500);
-camera.position.set(26, 44, 26);
-const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
-renderer.setPixelRatio(1);
+scene.background = new THREE.Color(0x050507);
+
+const camera = new THREE.PerspectiveCamera(60, innerWidth / innerHeight, 1, 5000);
+camera.position.set(0, 0, 1200);
+
+const renderer = new THREE.WebGLRenderer({
+  antialias: false,
+  powerPreference: 'high-performance',
+  precision: 'mediump'
+});
+renderer.setPixelRatio(1.0);
 renderer.setSize(innerWidth, innerHeight);
-renderer.domElement.style.filter = 'saturate(1.18) contrast(1.06)';
-renderer.shadowMap.enabled = true;
-renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-$('app').appendChild(renderer.domElement);
+document.body.appendChild(renderer.domElement);
+
+// Post-processing with bloom
+const composer = new EffectComposer(renderer);
+composer.setPixelRatio(1.0);
+composer.setSize(innerWidth, innerHeight);
+
+const renderPass = new RenderPass(scene, camera);
+composer.addPass(renderPass);
+
+const bloomPass = new UnrealBloomPass(
+  new THREE.Vector2(innerWidth, innerHeight),
+  0.20,
+  0.35,
+  0.75
+);
+composer.addPass(bloomPass);
+
 const controls = new OrbitControls(camera, renderer.domElement);
-controls.target.set(0, 0, 3);
 controls.enableDamping = true;
-controls.maxPolarAngle = Math.PI / 2.6;
-controls.minDistance = 10;
-controls.maxDistance = 90;
-controls.enabled = false;
+controls.dampingFactor = 0.08;
+controls.rotateSpeed = 0.7;
+controls.zoomSpeed = 0.8;
+controls.minDistance = 150;
+controls.maxDistance = 3000;
 
-const skyGeo = new THREE.SphereGeometry(320, 32, 16);
-const skyMat = new THREE.ShaderMaterial({
-  uniforms: {
-    topColor:    { value: new THREE.Color(0x0d1b3d) },
-    midColor:    { value: new THREE.Color(0x4a6a9c) },
-    bottomColor: { value: new THREE.Color(0xa8b8d0) },
-  },
-  vertexShader: `
-    varying vec3 vWorldPos;
-    void main() {
-      vec4 wp = modelMatrix * vec4(position, 1.0);
-      vWorldPos = wp.xyz;
-      gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-    }
-  `,
-  fragmentShader: `
-    uniform vec3 topColor;
-    uniform vec3 midColor;
-    uniform vec3 bottomColor;
-    varying vec3 vWorldPos;
-    void main() {
-      float h = normalize(vWorldPos).y;
-      vec3 color;
-      if (h < 0.0) {
-        color = mix(bottomColor, midColor, smoothstep(-0.4, 0.0, h));
-      } else {
-        color = mix(midColor, topColor, smoothstep(0.0, 0.6, h));
-      }
-      gl_FragColor = vec4(color, 1.0);
-    }
-  `,
-  side: THREE.BackSide,
-  depthWrite: false,
-  fog: false,
-});
-const skyMesh = new THREE.Mesh(skyGeo, skyMat);
-skyMesh.renderOrder = -1000;
-skyMesh.frustumCulled = false;
-scene.add(skyMesh);
-
-scene.add(new THREE.AmbientLight(0xffffff, 0.35));
-const sun = new THREE.DirectionalLight(0xffffff, 1.25);
-sun.position.set(30, 50, 20);
-sun.castShadow = true;
-sun.shadow.mapSize.width = 1024;
-sun.shadow.mapSize.height = 1024;
-sun.shadow.camera.left = -45;
-sun.shadow.camera.right = 45;
-sun.shadow.camera.top = 45;
-sun.shadow.camera.bottom = -45;
-sun.shadow.camera.near = 10;
-sun.shadow.camera.far = 150;
-sun.shadow.bias = -0.0003;
-sun.shadow.normalBias = 0.02;
-scene.add(sun);
-scene.add(sun.target);
-
-const ground = new THREE.Mesh(
-  new THREE.BoxGeometry(66,1,66),
-  makeToonMaterial({ color: 0x1e3a2f, flatShading: true })
-);
-ground.position.y = -0.5;
-ground.receiveShadow = true;
-ground.castShadow = false;
-scene.add(ground);
-const grid = new THREE.GridHelper(64, 64, 0x3b82f6, 0x1e293b);
-grid.position.y = 0.01;
-scene.add(grid);
-
-const FLAG_CELL_CENTER = 0.5;
-const RING_HALF = FLAG_CLEAR_RADIUS + 0.5;
-const RING_THICK = 0.08;
-
-const ringMat = new THREE.MeshBasicMaterial({
-  color: 0xef4444, transparent: true, opacity: 0.5, depthWrite: false,
-});
-const noBuildRing = new THREE.Group();
-const ringN = new THREE.Mesh(new THREE.BoxGeometry(RING_HALF * 2, 0.02, RING_THICK), ringMat);
-ringN.position.set(0, 0, -RING_HALF);
-const ringS = new THREE.Mesh(new THREE.BoxGeometry(RING_HALF * 2, 0.02, RING_THICK), ringMat);
-ringS.position.set(0, 0, RING_HALF);
-const ringW = new THREE.Mesh(new THREE.BoxGeometry(RING_THICK, 0.02, RING_HALF * 2), ringMat);
-ringW.position.set(-RING_HALF, 0, 0);
-const ringE = new THREE.Mesh(new THREE.BoxGeometry(RING_THICK, 0.02, RING_HALF * 2), ringMat);
-ringE.position.set(RING_HALF, 0, 0);
-noBuildRing.add(ringN, ringS, ringW, ringE);
-noBuildRing.position.set(FLAG_CELL_CENTER, 0.03, FLAG_CELL_CENTER);
-noBuildRing.visible = false;
-scene.add(noBuildRing);
-
-const flagGroup = new THREE.Group();
-const pole = new THREE.Mesh(
-  new THREE.CylinderGeometry(0.15,0.15,4,8),
-  makeToonMaterial({ color: 0x94a3b8 })
-);
-pole.position.y = 2;
-pole.castShadow = true;
-pole.receiveShadow = true;
-const banner = new THREE.Mesh(
-  new THREE.BoxGeometry(1.6,1,0.1),
-  makeToonMaterial({ color: 0xef4444 })
-);
-banner.position.set(0.8, 3.3, 0);
-banner.castShadow = true;
-banner.receiveShadow = true;
-flagGroup.add(pole, banner);
-flagGroup.position.set(FLAG_CELL_CENTER, 0, FLAG_CELL_CENTER);
-scene.add(flagGroup);
-
-initBlocks(scene);
-
-function setFlagVisual(hp, maxHp, color) {
-  currentFlagHp = hp; currentFlagMax = maxHp;
-  if (color) displayFlagColor = color;
-  const ratio = maxHp > 0 ? Math.max(0, Math.min(1, hp/maxHp)) : 0;
-  const base = new THREE.Color(FLAG_COLORS_HEX[displayFlagColor] || FLAG_COLORS_HEX.red);
-  banner.material.color.copy(base).lerp(new THREE.Color(0x7f1d1d), 1 - ratio);
-  $('flag').textContent = Math.max(0, hp) + ' / ' + maxHp;
-  setMinionFlagColor(displayFlagColor);
-}
-
-const emojiTexCache = new Map();
-function emojiTexture(char) {
-  if (emojiTexCache.has(char)) return emojiTexCache.get(char);
-  const px = 96;
+// ---------------------------------------------------------------
+// Circle texture shared by main points and glow
+// ---------------------------------------------------------------
+function makeCircleTexture() {
+  const size = 64;
   const canvas = document.createElement('canvas');
-  canvas.width = canvas.height = px;
+  canvas.width = size;
+  canvas.height = size;
   const ctx = canvas.getContext('2d');
-  ctx.font = `${Math.floor(px * 0.76)}px "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif`;
-  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-  ctx.fillText(char, px/2, px/2 + px*0.04);
+  const gradient = ctx.createRadialGradient(size/2, size/2, 0, size/2, size/2, size/2);
+  gradient.addColorStop(0, 'rgba(255,255,255,1)');
+  gradient.addColorStop(0.55, 'rgba(255,255,255,0.9)');
+  gradient.addColorStop(1, 'rgba(255,255,255,0)');
+  ctx.fillStyle = gradient;
+  ctx.fillRect(0, 0, size, size);
   const tex = new THREE.CanvasTexture(canvas);
-  tex.colorSpace = THREE.SRGBColorSpace;
-  emojiTexCache.set(char, tex);
+  tex.minFilter = THREE.LinearFilter;
+  tex.magFilter = THREE.LinearFilter;
   return tex;
 }
-function makeSprite(char, size) {
-  const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: emojiTexture(char), transparent: true, depthWrite: false, opacity: 0 }));
-  sp.scale.set(size, size, 1); sp.userData.char = char;
-  return sp;
-}
-function setSpriteChar(sp, char, size) {
-  if (sp.userData.char !== char) { sp.material.map = emojiTexture(char); sp.userData.char = char; sp.material.needsUpdate = true; }
-  sp.scale.set(size, size, 1);
-}
 
-const MINION_RADIUS_MIN = 4, MINION_RADIUS_MAX = 12;
-const PANIC_RADIUS_MIN = 3, PANIC_RADIUS_MAX = 9;
-const THINK_TIME = 1.4;
-const MINION_BUBBLES = ['💬', '💭', '✨', '🎵', '❤️', '🎉', '😎', '🗿', '⚡', '🧠', '🥱', '😴'];
-const IDLE_ACTS = ['stretch', 'tapFoot', 'scratchHead', 'lookAround', 'dance', 'kick', 'whistle', 'think'];
+const circleTexture = makeCircleTexture();
 
-const minionGroup = new THREE.Group();
-const minionParts = {};
-let minionFlagMat = null;
-const minionHitMeshes = [];
-let bubbleSprite = null;
-const droplets = [];
+// ---------------------------------------------------------------
+// Load fly head model — EdgesGeometry outline (sharp ridges only)
+// ---------------------------------------------------------------
+function loadFlyModel() {
+  const loader = new GLTFLoader();
+  const url = 'head.glb';
 
-(function buildMinion() {
-  const SKIN = 0xe8dcc8, CLOTH = 0x9c9184, DARK = 0x6b6152, EYE = 0x241f19;
-  const matSkin = makeToonMaterial({ color: SKIN, flatShading: true });
-  const matCloth = makeToonMaterial({ color: CLOTH, flatShading: true });
-  const matDark = makeToonMaterial({ color: DARK, flatShading: true });
-  const matEye = new THREE.MeshBasicMaterial({ color: EYE });
-  minionFlagMat = makeToonMaterial({ color: 0xef4444, flatShading: true });
-  const bodyGroup = new THREE.Group();
-  const torso = new THREE.Mesh(new THREE.BoxGeometry(0.52, 0.6, 0.38), matCloth); torso.position.y = 0.8; bodyGroup.add(torso);
-  const head = new THREE.Mesh(new THREE.BoxGeometry(0.58, 0.54, 0.52), matSkin); head.position.y = 1.38;
-  const eyeGeo = new THREE.BoxGeometry(0.1, 0.14, 0.02);
-  const eyeL = new THREE.Mesh(eyeGeo, matEye); eyeL.position.set(-0.13, 0.03, 0.27);
-  const eyeR = new THREE.Mesh(eyeGeo, matEye); eyeR.position.set( 0.13, 0.03, 0.27);
-  head.add(eyeL, eyeR); bodyGroup.add(head);
-  const armGeo = new THREE.BoxGeometry(0.17, 0.46, 0.17);
-  const handGeo = new THREE.BoxGeometry(0.19, 0.14, 0.19);
-  const armLPivot = new THREE.Group(); armLPivot.position.set(-0.35, 1.02, 0);
-  const armL = new THREE.Mesh(armGeo, matDark); armL.position.y = -0.23;
-  const handL = new THREE.Mesh(handGeo, matSkin); handL.position.y = -0.5;
-  armLPivot.add(armL, handL); bodyGroup.add(armLPivot);
-  const armRPivot = new THREE.Group(); armRPivot.position.set(0.35, 1.02, 0); armRPivot.rotation.x = Math.PI;
-  const armR = new THREE.Mesh(armGeo, matDark); armR.position.y = -0.23;
-  const handR = new THREE.Mesh(handGeo, matSkin); handR.position.y = -0.5;
-  armRPivot.add(armR, handR); bodyGroup.add(armRPivot);
-  const mPole = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, 1.0, 6), matDark); mPole.position.set(0.35, 1.72, 0);
-  const mFlag = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.3, 0.02), minionFlagMat); mFlag.position.set(0.58, 2.02, 0);
-  bodyGroup.add(mPole, mFlag);
-  const legGeo = new THREE.BoxGeometry(0.2, 0.5, 0.2);
-  const footGeo = new THREE.BoxGeometry(0.22, 0.1, 0.28);
-  const legLPivot = new THREE.Group(); legLPivot.position.set(-0.13, 0.5, 0);
-  const legL = new THREE.Mesh(legGeo, matDark); legL.position.y = -0.25;
-  const footL = new THREE.Mesh(footGeo, matDark); footL.position.set(0, -0.45, 0.03);
-  legLPivot.add(legL, footL);
-  const legRPivot = new THREE.Group(); legRPivot.position.set(0.13, 0.5, 0);
-  const legR = new THREE.Mesh(legGeo, matDark); legR.position.y = -0.25;
-  const footR = new THREE.Mesh(footGeo, matDark); footR.position.set(0, -0.45, 0.03);
-  legRPivot.add(legR, footR);
-  minionGroup.add(bodyGroup, legLPivot, legRPivot);
-  minionHitMeshes.push(torso, head, armL, armR, legL, legR, mPole, mFlag, handL, handR);
-  Object.assign(minionParts, { bodyGroup, torso, head, armLPivot, armRPivot, legLPivot, legRPivot });
-  bubbleSprite = makeSprite('💬', 1.1); bubbleSprite.position.set(0, 2.55, 0); minionGroup.add(bubbleSprite);
-  for (let i = 0; i < 3; i++) {
-    const d = makeSprite('💦', 0.55); d.userData.phase = i / 3; d.position.set(0, 1.2, 0);
-    minionGroup.add(d); droplets.push(d);
-  }
-  minionGroup.traverse((obj) => {
-    if (obj.isMesh) {
-      obj.castShadow = true;
-      obj.receiveShadow = true;
+  loader.load(url, (gltf) => {
+    console.log('[fly] gltf loaded');
+    const model = gltf.scene;
+
+    const box = new THREE.Box3().setFromObject(model);
+    const size = new THREE.Vector3();
+    const center = new THREE.Vector3();
+    box.getSize(size);
+    box.getCenter(center);
+
+    console.log('[fly] size', size.x.toFixed(1), size.y.toFixed(1), size.z.toFixed(1));
+
+    const targetSize = 950;
+    const maxDim = Math.max(size.x, size.y, size.z);
+    flyScale = targetSize / maxDim;
+
+    // Inner group: center + rotate
+    const inner = new THREE.Group();
+    model.position.sub(center);
+    inner.add(model);
+    inner.rotation.set(0, Math.PI, 0);
+
+    // Wrapper: scale + position offset
+    const wrapper = new THREE.Group();
+    wrapper.add(inner);
+    wrapper.scale.setScalar(flyScale);
+    // Head sits above brain after centering; pull it back down.
+    // Tweak this value if it is still off.
+    wrapper.position.set(0, -60, 0);
+
+    // Replace each mesh with an EdgesGeometry outline
+    let lineCount = 0;
+    const meshes = [];
+    model.traverse((node) => {
+      if (node.isMesh) meshes.push(node);
+    });
+
+    for (const node of meshes) {
+      // High threshold = only sharp ridges survive
+      const edges = new THREE.EdgesGeometry(node.geometry, 38);
+      const line = new THREE.LineSegments(
+        edges,
+        new THREE.LineBasicMaterial({
+          color: 0x6fb7d9,
+          transparent: true,
+          opacity: 0.55,
+          depthWrite: false,
+          blending: THREE.AdditiveBlending
+        })
+      );
+      line.position.copy(node.position);
+      line.rotation.copy(node.rotation);
+      line.scale.copy(node.scale);
+      inner.add(line);
+      lineCount++;
+
+      // Hide the original solid mesh
+      node.visible = false;
     }
-  });
-  scene.add(minionGroup);
-})();
 
-const minion = {
-  x: 3, z: 3, path: [], phase: 0, idleUntil: 0, facing: 0, lastTip: -1, lastTipText: null,
-  mood: 'calm', frozen: false, thinking: false, thinkUntil: 0, panicBoost: 0, nextTalk: 0,
-  talkUntil: 0, bubbleChar: '💬', nextIdleAct: 0, idleAct: null, idleActUntil: 0, pendingTip: null,
-  nextChirp: 0,
+    flyModel = wrapper;
+    scene.add(wrapper);
+    console.log('[fly] added, outlines:', lineCount);
+  }, (progress) => {
+    if (progress.total) {
+      loadpct.textContent = 'Model ' + Math.round((progress.loaded / progress.total) * 100) + '%';
+    }
+  }, (error) => {
+    console.error('[fly] load failed:', error);
+  });
+}
+
+// ---------------------------------------------------------------
+// Type colors
+// ---------------------------------------------------------------
+function hashStringToHue(s) {
+  let h = 0;
+  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0;
+  return (Math.abs(h) % 360) / 360;
+}
+
+const typeColorCache = new Map();
+function colorForType(type) {
+  if (typeColorCache.has(type)) return typeColorCache.get(type);
+  const hue = hashStringToHue(type);
+  const color = new THREE.Color().setHSL(hue, 0.65, 0.6);
+  typeColorCache.set(type, color);
+  return color;
+}
+
+// ---------------------------------------------------------------
+// State
+// ---------------------------------------------------------------
+let neurons = null;
+let points = null;
+let colorAttr = null;
+let adjacency = null;
+let reverseAdjacency = null;
+let baseColors = null;
+let currentEdgeMesh = null;
+let highlightedIdx = -1;
+let activeStim = null;
+let flyModel = null;
+let flyScale = 1;
+
+// LIF simulation state
+let v = null;
+let threshold = null;
+let decay = null;
+let outWeight = null;
+let refractory = null;
+let spiked = null;
+let adjStart = null;
+let adjTarget = null;
+let adjWeight = null;
+
+// Realistic LIF additions: inhibition + axonal delay
+let inhibitory = null;
+let axonDelay = null;
+let spikeBuffer = null;
+let bufferHead = 0;
+const BUFFER_SIZE = 6;
+
+const SIM_STEP_MS = 33;
+const REFRACTORY_STEPS = 5;
+const WEIGHT_SCALE = 0.55;
+const SPONTANEOUS_PER_STEP = 4;
+let simAccum = 0;
+let lastSimTime = 0;
+
+// Aggressive fatigue + hard cap on spikes
+let globalFatigue = 0;
+const FATIGUE_PER_SPIKE = 0.015;
+const FATIGUE_DECAY = 0.82;
+const FATIGUE_MAX = 8.0;
+const MAX_SPIKES_PER_STEP = 60;
+
+let settleSteps = 0;
+
+// ---------------------------------------------------------------
+// Load brain.json
+// ---------------------------------------------------------------
+const loadbar = document.getElementById('loadbar');
+const loadpct = document.getElementById('loadpct');
+const loadingEl = document.getElementById('loading');
+
+async function loadBrain() {
+  const response = await fetch('brain.json');
+  if (!response.ok) throw new Error('Failed to fetch brain.json: ' + response.status);
+
+  const reader = response.body.getReader();
+  const chunks = [];
+  let received = 0;
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    chunks.push(value);
+    received += value.length;
+    loadpct.textContent = (received / 1024 / 1024).toFixed(1) + ' MB';
+    loadbar.style.width = Math.min(100, received / 250000) + '%';
+  }
+
+  const blob = new Blob(chunks);
+  const text = await blob.text();
+  return JSON.parse(text);
+}
+
+// ---------------------------------------------------------------
+// Build neurons
+// ---------------------------------------------------------------
+function buildNeurons(data) {
+  neurons = data.nodes;
+  const count = neurons.length;
+
+  const positions = new Float32Array(count * 3);
+  const colors = new Float32Array(count * 3);
+  baseColors = new Float32Array(count * 3);
+
+  for (let i = 0; i < count; i++) {
+    const n = neurons[i];
+    positions[i * 3] = n.x;
+    positions[i * 3 + 1] = n.y;
+    positions[i * 3 + 2] = n.z;
+
+    const c = colorForType(n.type);
+    colors[i * 3] = c.r;
+    colors[i * 3 + 1] = c.g;
+    colors[i * 3 + 2] = c.b;
+    baseColors[i * 3] = c.r;
+    baseColors[i * 3 + 1] = c.g;
+    baseColors[i * 3 + 2] = c.b;
+  }
+
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+  geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+
+  const mat = new THREE.PointsMaterial({
+    size: 7,
+    sizeAttenuation: true,
+    vertexColors: true,
+    map: circleTexture,
+    transparent: true,
+    alphaTest: 0.1,
+    depthWrite: false
+  });
+
+  points = new THREE.Points(geo, mat);
+  points.frustumCulled = false;
+  scene.add(points);
+
+  colorAttr = geo.attributes.color;
+}
+
+// ---------------------------------------------------------------
+// Adjacency + flat arrays for simulation
+// ---------------------------------------------------------------
+function buildAdjacency(data) {
+  const edges = data.edges;
+  const n = neurons.length;
+
+  adjacency = new Array(n);
+  reverseAdjacency = new Array(n);
+  const outCount = new Int32Array(n);
+  for (let i = 0; i < n; i++) {
+    adjacency[i] = [];
+    reverseAdjacency[i] = [];
+  }
+
+  for (let i = 0; i < edges.length; i++) {
+    const e = edges[i];
+    adjacency[e.source].push({ target: e.target, weight: e.weight });
+    reverseAdjacency[e.target].push({ source: e.source, weight: e.weight });
+    outCount[e.source]++;
+  }
+
+  for (let i = 0; i < n; i++) {
+    adjacency[i].sort((a, b) => b.weight - a.weight);
+    reverseAdjacency[i].sort((a, b) => b.weight - a.weight);
+  }
+
+  adjStart = new Int32Array(n + 1);
+  let total = 0;
+  for (let i = 0; i < n; i++) {
+    adjStart[i] = total;
+    total += outCount[i];
+  }
+  adjStart[n] = total;
+
+  adjTarget = new Int32Array(total);
+  adjWeight = new Float32Array(total);
+
+  const cursor = new Int32Array(n);
+  for (let i = 0; i < edges.length; i++) {
+    const e = edges[i];
+    const pos = adjStart[e.source] + cursor[e.source];
+    adjTarget[pos] = e.target;
+    adjWeight[pos] = (e.weight / (1 + e.weight)) * WEIGHT_SCALE;
+    cursor[e.source]++;
+  }
+}
+
+// ---------------------------------------------------------------
+// Group by type prefix
+// ---------------------------------------------------------------
+let groupMap = null;
+let groupNames = null;
+let selectedGroup = null;
+let groupSet = null;
+const groupBar = document.getElementById('group-bar');
+const groupPanel = document.getElementById('group-panel');
+
+function buildGroups() {
+  groupMap = new Map();
+  for (let i = 0; i < neurons.length; i++) {
+    const type = neurons[i].type || 'unknown';
+    const match = type.match(/^[A-Za-z]+/);
+    const prefix = match ? match[0].slice(0, 4) : 'OTHER';
+    if (!groupMap.has(prefix)) groupMap.set(prefix, []);
+    groupMap.get(prefix).push(i);
+  }
+  groupNames = Array.from(groupMap.keys()).sort((a, b) => groupMap.get(b).length - groupMap.get(a).length);
+
+  groupBar.innerHTML = '';
+  for (const name of groupNames) {
+    const count = groupMap.get(name).length;
+    const pill = document.createElement('button');
+    pill.className = 'group-pill';
+    pill.dataset.group = name;
+    pill.innerHTML = `<span>${name}</span><span class="count">${count}</span>`;
+    pill.addEventListener('click', () => selectGroup(name));
+    groupBar.appendChild(pill);
+  }
+}
+
+function selectGroup(name) {
+  if (selectedGroup === name) {
+    clearGroupSelection();
+    return;
+  }
+  selectedGroup = name;
+  groupSet = new Set(groupMap.get(name));
+
+  infoEl.style.display = 'none';
+
+  document.querySelectorAll('.group-pill').forEach((p) => {
+    p.classList.toggle('active', p.dataset.group === name);
+  });
+
+  updateActivityColors();
+  showGroupPanel(name);
+}
+
+function clearGroupSelection() {
+  selectedGroup = null;
+  groupSet = null;
+  document.querySelectorAll('.group-pill').forEach((p) => p.classList.remove('active'));
+  groupPanel.style.display = 'none';
+
+  const arr = colorAttr.array;
+  for (let i = 0; i < neurons.length; i++) {
+    arr[i * 3]     = baseColors[i * 3];
+    arr[i * 3 + 1] = baseColors[i * 3 + 1];
+    arr[i * 3 + 2] = baseColors[i * 3 + 2];
+  }
+  colorAttr.needsUpdate = true;
+}
+
+function showGroupPanel(name) {
+  const members = groupMap.get(name);
+  const sample = members[0];
+  const th = threshold[sample];
+  const dc = decay[sample];
+  const ow = outWeight[sample];
+
+  groupPanel.innerHTML = `
+    <div class="gp-close" id="gp-close">x</div>
+    <div class="gp-title">${name}</div>
+    <div class="gp-sub">${members.length.toLocaleString('en')} neurons</div>
+    <div class="gp-slider">
+      <div class="gp-label"><span>Threshold</span><span class="gp-value" id="gp-th-val">${th.toFixed(2)}</span></div>
+      <input type="range" id="gp-th" min="0.2" max="3.0" step="0.05" value="${th}">
+    </div>
+    <div class="gp-slider">
+      <div class="gp-label"><span>Decay</span><span class="gp-value" id="gp-dc-val">${dc.toFixed(2)}</span></div>
+      <input type="range" id="gp-dc" min="0.5" max="0.99" step="0.01" value="${dc}">
+    </div>
+    <div class="gp-slider">
+      <div class="gp-label"><span>Outgoing strength</span><span class="gp-value" id="gp-ow-val">${ow.toFixed(2)}</span></div>
+      <input type="range" id="gp-ow" min="0.1" max="3.0" step="0.05" value="${ow}">
+    </div>
+    <div class="gp-actions">
+      <button class="gp-btn" id="gp-apply">Apply to all</button>
+      <button class="gp-btn" id="gp-reset">Reset group</button>
+    </div>
+  `;
+  groupPanel.style.display = 'block';
+
+  document.getElementById('gp-th').addEventListener('input', (e) => {
+    document.getElementById('gp-th-val').textContent = parseFloat(e.target.value).toFixed(2);
+  });
+  document.getElementById('gp-dc').addEventListener('input', (e) => {
+    document.getElementById('gp-dc-val').textContent = parseFloat(e.target.value).toFixed(2);
+  });
+  document.getElementById('gp-ow').addEventListener('input', (e) => {
+    document.getElementById('gp-ow-val').textContent = parseFloat(e.target.value).toFixed(2);
+  });
+  document.getElementById('gp-apply').addEventListener('click', () => {
+    const t = parseFloat(document.getElementById('gp-th').value);
+    const d = parseFloat(document.getElementById('gp-dc').value);
+    const o = parseFloat(document.getElementById('gp-ow').value);
+    for (const idx of members) {
+      threshold[idx] = t;
+      decay[idx] = d;
+      outWeight[idx] = o;
+    }
+    showGroupPanel(name);
+  });
+  document.getElementById('gp-reset').addEventListener('click', () => {
+    for (const idx of members) {
+      threshold[idx] = 1.0;
+      decay[idx] = 0.90;
+      outWeight[idx] = 1.0;
+    }
+    showGroupPanel(name);
+  });
+  document.getElementById('gp-close').addEventListener('click', clearGroupSelection);
+}
+
+// Initialize simulation arrays
+function initSimulation() {
+  const n = neurons.length;
+  v = new Float32Array(n);
+  threshold = new Float32Array(n).fill(1.0);
+  decay = new Float32Array(n).fill(0.90);
+  outWeight = new Float32Array(n).fill(1.0);
+  refractory = new Int32Array(n);
+  spiked = new Uint8Array(n);
+  inhibitory = new Uint8Array(n);
+  axonDelay = new Int8Array(n);
+
+  let inhCount = 0;
+  for (let i = 0; i < n; i++) {
+    if (Math.random() < 0.20) {
+      inhibitory[i] = 1;
+      inhCount++;
+    }
+    axonDelay[i] = 1 + ((Math.random() * 4) | 0);
+  }
+  console.log('Inhibitory neurons:', inhCount, '/', n);
+
+  spikeBuffer = new Array(BUFFER_SIZE);
+  for (let i = 0; i < BUFFER_SIZE; i++) spikeBuffer[i] = [];
+  bufferHead = 0;
+}
+
+// Debug reset — callable from console via resetSim()
+window.resetSim = function () {
+  if (!v) return;
+  v.fill(0);
+  refractory.fill(0);
+  spiked.fill(0);
+  for (let i = 0; i < BUFFER_SIZE; i++) spikeBuffer[i].length = 0;
+  bufferHead = 0;
+  console.log('Simulation reset');
 };
-function setMinionFlagColor(color) { minionFlagMat.color.set(FLAG_COLORS_HEX[color] || FLAG_COLORS_HEX.red); }
-function refreshMinionMood() {
-  if (minion.frozen || minion.thinking) return;
-  if (mode === 'raid') minion.mood = 'panic';
-  else if (mode === 'own' && myRaidAlert) minion.mood = 'alert';
-  else minion.mood = 'calm';
-}
-function cellFree(x, z) {
-  if (x < -32 || x > 32 || z < -32 || z > 32) return false;
-  if (x === 0 && z === 0) return false;
-  return !blockedGround.has(x + ',' + z);
-}
-function bfsPath(sx, sz, tx, tz) {
-  if (!cellFree(tx, tz)) return null;
-  const key = (x, z) => x + ',' + z;
-  const queue = [[sx, sz]]; const prev = new Map(); prev.set(key(sx, sz), null);
-  let head = 0;
-  while (head < queue.length) {
-    const [x, z] = queue[head++];
-    if (x === tx && z === tz) {
-      const path = []; let cur = key(x, z);
-      while (cur !== null) { const [px, pz] = cur.split(',').map(Number); path.push([px, pz]); cur = prev.get(cur); }
-      return path.reverse();
-    }
-    for (const [dx, dz] of [[1,0],[-1,0],[0,1],[0,-1]]) {
-      const nx = x + dx, nz = z + dz; const k = key(nx, nz);
-      if (prev.has(k)) continue; if (!cellFree(nx, nz)) continue;
-      prev.set(k, key(x, z)); queue.push([nx, nz]);
-    }
-  }
-  return null;
-}
-function resetMinionPath() { minion.path = []; }
-setOnCubesChanged(resetMinionPath);
-function pickMinionTarget() {
-  const panic = minion.mood === 'panic';
-  const rMin = panic ? PANIC_RADIUS_MIN : MINION_RADIUS_MIN;
-  const rMax = panic ? PANIC_RADIUS_MAX : MINION_RADIUS_MAX;
-  for (let i = 0; i < 14; i++) {
-    const angle = Math.random() * Math.PI * 2;
-    const r = rMin + Math.random() * (rMax - rMin);
-    const tx = Math.round(Math.cos(angle) * r);
-    const tz = Math.round(Math.sin(angle) * r);
-    if (!cellFree(tx, tz)) continue;
-    if (tx === minion.x && tz === minion.z) continue;
-    const path = bfsPath(minion.x, minion.z, tx, tz);
-    if (path && path.length > 1) { minion.path = path.slice(1); return; }
-  }
-}
-function placeMinionInitial() {
-  for (let r = 2; r <= 10; r++) {
-    for (let a = 0; a < 16; a++) {
-      const ang = (a / 16) * Math.PI * 2;
-      const x = Math.round(Math.cos(ang) * r);
-      const z = Math.round(Math.sin(ang) * r);
-      if (cellFree(x, z)) { minion.x = x; minion.z = z; minionGroup.position.set(x + 0.5, 0, z + 0.5); resetMinionPath(); return; }
-    }
-  }
-  minionGroup.position.set(2.5, 0, 2.5);
-}
-function approach(current, target, dt, k) { return current + (target - current) * Math.min(1, dt * k); }
-function pickIdleAct(now) { minion.idleAct = IDLE_ACTS[Math.floor(Math.random() * IDLE_ACTS.length)]; minion.idleActUntil = now + 1.8; }
 
-function updateBubbles(now, dt) {
-  let char = null, size = 1.1;
-  if (minion.thinking) { char = '🤔'; size = 1.15; }
-  else if (minion.frozen) { char = '👋'; size = 1.15; }
-  else if (minion.mood === 'panic') { char = '💦'; size = 0.95; }
-  else if (minion.mood === 'alert') { char = '⚠️'; size = 1.0; }
-  else if (now < minion.talkUntil) { char = minion.bubbleChar || '💬'; size = 1.0; }
-  if (char) {
-    setSpriteChar(bubbleSprite, char, size);
-    const pulse = char === '⚠️' ? 1 + Math.sin(now * 5) * 0.1 : 1 + Math.sin(now * 2.4) * 0.04;
-    bubbleSprite.scale.set(size * pulse, size * pulse, 1);
-    bubbleSprite.position.y = 2.55 + Math.sin(now * 2.1) * 0.07;
-    bubbleSprite.material.opacity = 1;
-  } else { bubbleSprite.material.opacity = 0; }
-  for (const d of droplets) {
-    if (minion.mood !== 'panic') { d.material.opacity = 0; continue; }
-    const t = ((now * 0.75 + d.userData.phase) % 1);
-    const ang = d.userData.phase * Math.PI * 2 + now * 2.2;
-    d.position.set(Math.cos(ang) * 0.42, 1.15 + t * 1.1, Math.sin(ang) * 0.32);
-    d.material.opacity = Math.sin(t * Math.PI) * 0.95;
-    d.scale.setScalar(0.45 + t * 0.25);
-  }
-}
+// One simulation step
+function simulateStep() {
+  const n = neurons.length;
 
-function idleMinion(now, dt) {
-  const panic = minion.mood === 'panic', alert = minion.mood === 'alert';
-  const breath = Math.sin(now * 1.7);
-  let legLx = 0, legRx = 0, armLx = breath * 0.06, armRx = Math.PI;
-  let headZ = Math.sin(now * 0.7) * 0.05, headY = Math.sin(now * 0.45) * 0.16;
-  let rootY = breath * 0.015, bodyY = 0;
-  if (panic) { armLx = Math.PI * 0.85 + Math.sin(now * 8) * 0.35; headZ = Math.sin(now * 9) * 0.1; headY = Math.sin(now * 7) * 0.12; bodyY = Math.abs(Math.sin(now * 6)) * 0.03; }
-  else if (alert) { armLx = 0.5 + Math.sin(now * 3) * 0.12; headZ = Math.sin(now * 2.2) * 0.05; headY = Math.sin(now * 1.1) * 0.28; bodyY = breath * 0.012; }
-  else if (minion.idleAct && now < minion.idleActUntil) {
-    const t = now - (minion.idleActUntil - 1.8);
-    switch (minion.idleAct) {
-      case 'stretch': armLx = -2.4; armRx = Math.PI - 0.4; headZ = -0.1; rootY = Math.sin(t * 2.5) * 0.03; break;
-      case 'tapFoot': armLx = 0.3; legLx = -0.1; rootY = Math.abs(Math.sin(t * 9)) * 0.02; break;
-      case 'scratchHead': armLx = -2.55; headZ = 0.1; headY = Math.sin(t * 1.2) * 0.1; break;
-      case 'lookAround': headY = Math.sin(t * 2.5) * 0.5; break;
-      case 'dance': armLx = -2.2 + Math.sin(t * 6) * 0.3; armRx = Math.PI - 0.5 + Math.cos(t * 6) * 0.3; headZ = Math.sin(t * 6) * 0.15; rootY = Math.abs(Math.sin(t * 6)) * 0.06; break;
-      case 'kick': legLx = -0.8; armLx = -0.4; armRx = Math.PI + 0.3; break;
-      case 'whistle': armLx = -1.9; headZ = 0.06; headY = Math.sin(t * 3) * 0.05; break;
-      case 'think': armLx = -1.7; headZ = 0.08; headY = 0.1; break;
+  // 1. Decay potentials
+  for (let i = 0; i < n; i++) {
+    if (refractory[i] > 0) {
+      refractory[i]--;
+      v[i] = 0;
+      continue;
     }
+    v[i] *= decay[i];
   }
-  minionParts.legLPivot.rotation.x = approach(minionParts.legLPivot.rotation.x, legLx, dt, 8);
-  minionParts.legRPivot.rotation.x = approach(minionParts.legRPivot.rotation.x, legRx, dt, 8);
-  minionParts.armLPivot.rotation.x = approach(minionParts.armLPivot.rotation.x, armLx, dt, 9);
-  minionParts.armRPivot.rotation.x = approach(minionParts.armRPivot.rotation.x, armRx, dt, 9);
-  minionParts.head.rotation.z = approach(minionParts.head.rotation.z, headZ, dt, 8);
-  minionParts.head.rotation.y = approach(minionParts.head.rotation.y, headY, dt, 6);
-  minionParts.bodyGroup.rotation.x = approach(minionParts.bodyGroup.rotation.x, 0, dt, 6);
-  minionParts.bodyGroup.position.y = bodyY;
-  minionGroup.position.y = approach(minionGroup.position.y, rootY, dt, 10);
-}
 
-function updateMinion(dt) {
-  const now = performance.now() / 1000;
-  if (!menuMode && !minion.frozen && !minion.thinking && now > minion.nextChirp) {
-    if (minion.mood === 'panic') {
-      SFX.buoyPanic();
-      minion.nextChirp = now + 0.45 + Math.random() * 0.7;
-    } else if (minion.mood === 'alert') {
-      SFX.buoyChirp();
-      minion.nextChirp = now + 2.5 + Math.random() * 3;
-    } else {
-      SFX.buoyChirp();
-      minion.nextChirp = now + 5 + Math.random() * 8;
+  // 2. Deliver scheduled spikes
+  const incoming = spikeBuffer[bufferHead];
+  for (let k = 0; k < incoming.length; k++) {
+    const src = incoming[k];
+    const start = adjStart[src];
+    const end = adjStart[src + 1];
+    const w = outWeight[src];
+    const sign = inhibitory[src] ? -1 : 1;
+    for (let e = start; e < end; e++) {
+      v[adjTarget[e]] += adjWeight[e] * w * sign;
     }
   }
-  if (!minion.frozen && !cellFree(minion.x, minion.z)) placeMinionInitial();
-  if (minion.idleAct && now >= minion.idleActUntil) minion.idleAct = null;
-  if (minion.thinking) {
-    minionParts.armLPivot.rotation.x = approach(minionParts.armLPivot.rotation.x, -1.9, dt, 7);
-    minionParts.armRPivot.rotation.x = Math.PI;
-    minionParts.head.rotation.x = approach(minionParts.head.rotation.x, -0.22, dt, 6);
-    minionParts.head.rotation.z = approach(minionParts.head.rotation.z, 0.06, dt, 6);
-    minionParts.legLPivot.rotation.x = approach(minionParts.legLPivot.rotation.x, 0, dt, 8);
-    minionParts.legRPivot.rotation.x = approach(minionParts.legRPivot.rotation.x, 0, dt, 8);
-    minionParts.bodyGroup.rotation.x = approach(minionParts.bodyGroup.rotation.x, 0, dt, 6);
-    minionGroup.position.y = approach(minionGroup.position.y, 0, dt, 10);
-    return;
-  }
-  if (minion.frozen) {
-    minionParts.armLPivot.rotation.x = Math.PI * 0.7 + Math.sin(now * 5) * 0.3;
-    minionParts.armRPivot.rotation.x = Math.PI;
-    minionParts.legLPivot.rotation.x = approach(minionParts.legLPivot.rotation.x, 0, dt, 8);
-    minionParts.legRPivot.rotation.x = approach(minionParts.legRPivot.rotation.x, 0, dt, 8);
-    minionParts.bodyGroup.rotation.x = approach(minionParts.bodyGroup.rotation.x, 0, dt, 6);
-    minionParts.head.rotation.x = approach(minionParts.head.rotation.x, 0, dt, 6);
-    minionParts.head.rotation.z = Math.sin(now * 1.4) * 0.09;
-    minionParts.head.rotation.y = approach(minionParts.head.rotation.y, 0, dt, 6);
-    minionParts.bodyGroup.position.y = Math.sin(now * 2.2) * 0.02;
-    minionGroup.position.y = approach(minionGroup.position.y, 0, dt, 10);
-    return;
-  }
-  const panic = minion.mood === 'panic', alert = minion.mood === 'alert';
-  minion.panicBoost = Math.max(0, minion.panicBoost - dt * 0.6);
-  if (minion.path.length === 0) {
-    if (now < minion.idleUntil) {
-      idleMinion(now, dt);
-      if (now > minion.nextIdleAct) { minion.nextIdleAct = now + 5 + Math.random() * 8; if (Math.random() < 0.7) pickIdleAct(now); }
-      return;
-    }
-    pickMinionTarget();
-    if (minion.path.length === 0) { minion.idleUntil = now + 1.0; return; }
-    const basePause = panic ? 0.1 + Math.random() * 0.3 : (alert ? 0.5 + Math.random() * 1.2 : 0.9 + Math.random() * 2.6);
-    minion.idleUntil = now + basePause;
-  }
-  const [nx, nz] = minion.path[0];
-  const tx = nx + 0.5, tz = nz + 0.5;
-  const px = minionGroup.position.x, pz = minionGroup.position.z;
-  const dx = tx - px, dz = tz - pz;
-  const dist = Math.hypot(dx, dz);
-  const speed = panic ? (3.0 + minion.panicBoost * 0.8) : (alert ? 2.0 : 1.5);
-  const step = speed * dt;
-  if (dist <= step) { minionGroup.position.x = tx; minionGroup.position.z = tz; minion.x = nx; minion.z = nz; minion.path.shift(); }
-  else { minionGroup.position.x += (dx / dist) * step; minionGroup.position.z += (dz / dist) * step; }
-  const targetAngle = Math.atan2(dx, dz);
-  let diff = targetAngle - minion.facing;
-  while (diff > Math.PI) diff -= Math.PI * 2;
-  while (diff < -Math.PI) diff += Math.PI * 2;
-  minion.facing += diff * Math.min(1, dt * (panic ? 12 : 7));
-  minionGroup.rotation.y = minion.facing;
-  const freq = panic ? 13 + minion.panicBoost * 2 : (alert ? 8 : 6.5);
-  minion.phase += dt * freq;
-  const s = Math.sin(minion.phase);
-  minionParts.head.rotation.x = approach(minionParts.head.rotation.x, 0, dt, 5);
-  if (panic) {
-    minionParts.legLPivot.rotation.x = s * 0.95; minionParts.legRPivot.rotation.x = -s * 0.95;
-    minionParts.armLPivot.rotation.x = Math.PI * 0.85 + Math.sin(minion.phase * 1.6) * 0.45;
-    minionParts.armRPivot.rotation.x = Math.PI + Math.sin(minion.phase * 1.9 + 1) * 0.2;
-    minionParts.head.rotation.z = Math.sin(minion.phase * 0.7) * 0.13;
-    minionParts.head.rotation.y = approach(minionParts.head.rotation.y, 0, dt, 8);
-    minionParts.bodyGroup.rotation.x = 0.18;
-    minionGroup.position.y = Math.abs(s) * 0.13;
-  } else if (alert) {
-    minionParts.legLPivot.rotation.x = s * 0.75; minionParts.legRPivot.rotation.x = -s * 0.75;
-    minionParts.armLPivot.rotation.x = 0.45 - s * 0.35; minionParts.armRPivot.rotation.x = Math.PI;
-    minionParts.head.rotation.z = s * 0.05; minionParts.head.rotation.y = Math.sin(performance.now() / 420) * 0.24;
-    minionParts.bodyGroup.rotation.x = 0.1;
-    minionGroup.position.y = Math.abs(s) * 0.06;
+  incoming.length = 0;
+
+  // 3. Spontaneous activity (skip during settle)
+  if (settleSteps > 0) {
+    settleSteps--;
   } else {
-    minionParts.legLPivot.rotation.x = s * 0.62; minionParts.legRPivot.rotation.x = -s * 0.62;
-    minionParts.armLPivot.rotation.x = -s * 0.5; minionParts.armRPivot.rotation.x = Math.PI;
-    minionParts.head.rotation.z = s * 0.04; minionParts.head.rotation.y = approach(minionParts.head.rotation.y, 0, dt, 5);
-    minionParts.bodyGroup.rotation.x = 0.06;
-    minionGroup.position.y = Math.abs(s) * 0.05;
+    for (let s = 0; s < SPONTANEOUS_PER_STEP; s++) {
+      const idx = (Math.random() * n) | 0;
+      v[idx] += 2.5;
+    }
   }
-  if (!panic && !alert && now > minion.nextTalk && now > minion.talkUntil) {
-    minion.talkUntil = now + 2.0; minion.nextTalk = now + 6 + Math.random() * 8;
-    minion.bubbleChar = MINION_BUBBLES[Math.floor(Math.random() * MINION_BUBBLES.length)];
+
+  // 4. Check for new spikes with fatigue and hard cap
+  spiked.fill(0);
+  let spikeCount = 0;
+  const fatigueFactor = 1 + globalFatigue;
+  for (let i = 0; i < n; i++) {
+    if (spikeCount >= MAX_SPIKES_PER_STEP) break;
+    if (refractory[i] > 0) continue;
+    if (v[i] >= threshold[i] * fatigueFactor) {
+      spiked[i] = 1;
+      refractory[i] = REFRACTORY_STEPS;
+      v[i] = 0;
+      spikeCount++;
+      const slot = (bufferHead + axonDelay[i]) % BUFFER_SIZE;
+      spikeBuffer[slot].push(i);
+    } else if (v[i] > threshold[i] * 2) {
+      v[i] = threshold[i] * 2;
+    }
   }
+
+  // 5. Update global fatigue
+  globalFatigue += spikeCount * FATIGUE_PER_SPIKE;
+  globalFatigue *= FATIGUE_DECAY;
+  if (globalFatigue > FATIGUE_MAX) globalFatigue = FATIGUE_MAX;
+
+  // 6. Advance buffer
+  bufferHead = (bufferHead + 1) % BUFFER_SIZE;
 }
 
-const camAnim = { active: false, t: 0, dur: 1, fromPos: new THREE.Vector3(), toPos: new THREE.Vector3(), fromTgt: new THREE.Vector3(), toTgt: new THREE.Vector3(), onDone: null };
-const savedCam = { pos: new THREE.Vector3(), tgt: new THREE.Vector3() };
-function animateCamera(toPos, toTgt, dur, onDone) {
-  camAnim.active = true; camAnim.t = 0; camAnim.dur = Math.max(0.01, dur);
-  camAnim.fromPos.copy(camera.position); camAnim.fromTgt.copy(controls.target);
-  camAnim.toPos.copy(toPos); camAnim.toTgt.copy(toTgt);
-  camAnim.onDone = onDone || null; controls.enabled = false;
-}
-function updateCameraAnim(dt) {
-  if (!camAnim.active) return false;
-  camAnim.t += dt;
-  const k = Math.min(1, camAnim.t / camAnim.dur);
-  const e = k < 0.5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2;
-  camera.position.lerpVectors(camAnim.fromPos, camAnim.toPos, e);
-  controls.target.lerpVectors(camAnim.fromTgt, camAnim.toTgt, e);
-  if (k >= 1) { camAnim.active = false; const cb = camAnim.onDone; camAnim.onDone = null; if (cb) cb(); }
-  return true;
-}
+// Update point colors based on activity
+const HOT_COLOR = new THREE.Color(0xffffff);
+function updateActivityColors() {
+  const n = neurons.length;
+  const arr = colorAttr.array;
 
-function pickTip() {
-  const bundle = I18N[lang];
-  if (mode === 'visit') {
-    const pool = bundle.foreignTips || []; if (!pool.length) return t('flagProtected');
-    let idx = Math.floor(Math.random() * pool.length);
-    if (pool[idx] === minion.lastTipText) idx = (idx + 1) % pool.length;
-    minion.lastTipText = pool[idx]; return pool[idx];
-  }
-  const alertTips = bundle.alertTips || [], tips = bundle.tips;
-  if (minion.mood === 'alert' && alertTips.length && Math.random() < 0.6) {
-    const choice = alertTips[Math.floor(Math.random() * alertTips.length)];
-    minion.lastTipText = choice.text; return choice.text;
-  }
-  const hasCubes = cubeMeshes.size > 0;
-  const filtered = tips.filter(tip => {
-    if (tip.cond === 'hasCubes') return hasCubes;
-    if (tip.cond === 'noCubes') return !hasCubes;
-    return true;
-  });
-  let idx = Math.floor(Math.random() * filtered.length);
-  if (filtered[idx].text === minion.lastTipText) idx = (idx + 1) % filtered.length;
-  minion.lastTipText = filtered[idx].text; return filtered[idx].text;
-}
-function animateTipText(text) {
-  const el = $('tip-text'); el.innerHTML = ''; let i = 0;
-  for (const word of text.split(' ')) {
-    const w = document.createElement('span'); w.className = 'tip-word';
-    for (const ch of word) { const s = document.createElement('span'); s.className = 'tip-char'; s.textContent = ch; s.style.animationDelay = (i * 26) + 'ms'; w.appendChild(s); i++; }
-    el.appendChild(w); el.appendChild(document.createTextNode(' ')); i++;
-  }
-  return i * 26 + 340;
-}
-function openTip() {
-  const text = pickTip();
-  minion.pendingTip = text; minion.frozen = true; minion.thinking = true;
-  minion.thinkUntil = performance.now() / 1000 + THINK_TIME; minion.path = []; minion.idleAct = null;
-  SFX.buoyQuestion();
-  const mp = minionGroup.position;
-  const toCam = new THREE.Vector3().subVectors(camera.position, mp).setY(0);
-  if (toCam.lengthSq() < 0.001) toCam.set(1, 0, 1);
-  toCam.normalize();
-  minion.facing = Math.atan2(toCam.x, toCam.z); minionGroup.rotation.y = minion.facing;
-  savedCam.pos.copy(camera.position); savedCam.tgt.copy(controls.target);
-  const camPos = new THREE.Vector3(mp.x + toCam.x * 4.2, mp.y + 2.3, mp.z + toCam.z * 4.2);
-  const camTgt = new THREE.Vector3(mp.x, mp.y + 0.85, mp.z);
-  animateCamera(camPos, camTgt, 0.55);
-  $('tip-text').innerHTML = ''; $('tip-ok').disabled = true; showScreen('tip-screen');
-}
-function finishThinking() {
-  if (!minion.thinking) return;
-  minion.thinking = false; $('tip-text').innerHTML = '';
-  const text = minion.pendingTip || pickTip(); minion.pendingTip = null;
-  const ms = animateTipText(text);
-  setTimeout(() => { $('tip-ok').disabled = false; }, ms);
-}
-function closeTip() {
-  hideScreens(); minion.frozen = false; minion.thinking = false;
-  animateCamera(savedCam.pos, savedCam.tgt, 0.45, () => { controls.enabled = true; });
-}
-
-const ghostMat = new THREE.MeshBasicMaterial({ color: 0x22c55e, transparent: true, opacity: 0.4, depthWrite: false });
-const ghost = new THREE.Mesh(new THREE.BoxGeometry(1,1,1), ghostMat);
-ghost.visible = false; scene.add(ghost);
-
-function effFootprint() {
-  const s = selectedSize;
-  if (vertical) return { sx: s.sy, sy: s.sx, sz: s.sz };
-  if (rotationStep % 2 === 1) return { sx: s.sz, sy: s.sy, sz: s.sx };
-  return { sx: s.sx, sy: s.sy, sz: s.sz };
-}
-function canRotate() {
-  if (selectedShape === 'triangle') return true;
-  return selectedSize.sx !== selectedSize.sz;
-}
-function canVertical() {
-  return selectedSize.sy === 1 && selectedSize.sx * selectedSize.sz > 1;
-}
-function updateGhostGeometry() {
-  const { sx: sxW, sy: syW, sz: szW } = effFootprint();
-  const effectiveRotation = vertical ? 0 : rotationStep;
-  const { sx, sy, sz } = localDims(sxW, syW, szW, effectiveRotation);
-  ghost.geometry.dispose();
-  ghost.geometry = shapeGeometry(selectedShape, sx, sy, sz);
-  if (selectedShape === 'triangle' && effectiveRotation) ghost.rotation.y = effectiveRotation * Math.PI / 2;
-  else ghost.rotation.y = 0;
-}
-function updateRotateButton() {
-  const btnH = $('btn-rotate'), btnV = $('btn-vertical');
-  const on = buildMode && mode === 'own' && !menuMode;
-  btnH.textContent = '↔️'; btnV.textContent = '↕️';
-  btnH.classList.toggle('hidden', !canRotate() || !on);
-  btnV.classList.toggle('hidden', !canVertical() || !on);
-  btnH.classList.toggle('rot-on', rotationStep !== 0);
-  btnV.classList.toggle('rot-on', vertical);
-}
-function updateBlockSwatch() { $('swatch-block').style.background = BLOCK_COLORS_CSS[selectedBlockColor] || '#c9a06a'; }
-function updateFlagSwatch() {
-  const el = $('swatch-flag');
-  if (el) el.style.background = FLAG_COLORS_CSS[myFlagColor] || '#ef4444';
-}
-
-const raycaster = new THREE.Raycaster();
-const plane = new THREE.Plane(new THREE.Vector3(0,1,0), 0);
-const hitPoint = new THREE.Vector3();
-const normalMatrix = new THREE.Matrix3();
-const projVec = new THREE.Vector3();
-const aimPoint = { x: 0, y: 0 };
-function updateAimFromClient(clientX, clientY) {
-  aimPoint.x = (clientX / innerWidth) * 2 - 1;
-  aimPoint.y = -(clientY / innerHeight) * 2 + 1;
-}
-window.addEventListener('pointermove', (ev) => { updateAimFromClient(ev.clientX, ev.clientY); });
-window.addEventListener('pointerdown', (ev) => { updateAimFromClient(ev.clientX, ev.clientY); }, true);
-
-function computePlacement(ndcX, ndcY) {
-  const { sx, sy, sz } = effFootprint();
-  raycaster.setFromCamera({ x: ndcX, y: ndcY }, camera);
-  const cubeHits = raycaster.intersectObjects([...cubeMeshes.values()], false);
-  let x, y, z;
-  if (cubeHits.length) {
-    const h = cubeHits[0];
-    const base = h.object.userData.cube;
-    const bsx = base.size_x||1, bsy = base.size_y||1, bsz = base.size_z||1;
-    const bc = cubeCenter({ ...base, size_x:bsx, size_y:bsy, size_z:bsz });
-    normalMatrix.getNormalMatrix(h.object.matrixWorld);
-    const n = h.face.normal.clone().applyMatrix3(normalMatrix).normalize();
-    const ax = Math.round(n.x), ay = Math.round(n.y), az = Math.round(n.z);
-    if (ay !== 0) { y = ay > 0 ? base.y + bsy : base.y - sy; x = Math.round(bc.x - sx/2); z = Math.round(bc.z - sz/2); }
-    else if (ax !== 0) { x = ax > 0 ? base.x + bsx : base.x - sx; y = base.y + Math.round((bsy - sy)/2); z = Math.round(bc.z - sz/2); }
-    else { z = az > 0 ? base.z + bsz : base.z - sz; y = base.y + Math.round((bsy - sy)/2); x = Math.round(bc.x - sx/2); }
-  } else {
-    if (!raycaster.ray.intersectPlane(plane, hitPoint)) return null;
-    x = Math.round(hitPoint.x - sx/2); y = 0; z = Math.round(hitPoint.z - sz/2);
-  }
-  const baseCost = cubeTypeInfo(selectedMaterial, selectedShape).cost;
-  const price = baseCost * sx * sy * sz;
-  if (x < -32 || x + sx - 1 > 32 || z < -32 || z + sz - 1 > 32 || y < 0 || y + sy - 1 > 32)
-    return { x, y, z, sx, sy, sz, valid:false, reason: t('outOfBounds'), price };
-  const R = FLAG_CLEAR_RADIUS;
-  if (x <= R && x + sx - 1 >= -R && z <= R && z + sz - 1 >= -R)
-    return { x, y, z, sx, sy, sz, valid:false, reason: t('flagReserved'), price };
-  for (const m of cubeMeshes.values()) {
-    const c = m.userData.cube;
-    const csx = c.size_x||1, csy = c.size_y||1, csz = c.size_z||1;
-    if (x < c.x+csx && x+sx > c.x && y < c.y+csy && y+sy > c.y && z < c.z+csz && z+sz > c.z)
-      return { x, y, z, sx, sy, sz, valid:false, reason: t('occupied'), price };
-  }
-  if (y > 0) {
-    for (let dx = 0; dx < sx; dx++) {
-      for (let dz = 0; dz < sz; dz++) {
-        const cx = x + dx, cz = z + dz;
-        let supported = false;
-        for (const m of cubeMeshes.values()) {
-          const c = m.userData.cube;
-          const csx = c.size_x||1, csy = c.size_y||1, csz = c.size_z||1;
-          if (c.y <= y-1 && c.y + csy - 1 >= y-1 && c.x <= cx && c.x + csx - 1 >= cx && c.z <= cz && c.z + csz - 1 >= cz) { supported = true; break; }
+  if (selectedGroup !== null && groupSet !== null) {
+    for (let i = 0; i < n; i++) {
+      const k = i * 3;
+      if (groupSet.has(i)) {
+        let intensity;
+        if (spiked[i]) intensity = 1.0;
+        else {
+          intensity = v[i] / threshold[i];
+          if (intensity > 1) intensity = 1;
         }
-        if (!supported) return { x, y, z, sx, sy, sz, valid:false, reason: t('noSupport'), price };
+        arr[k]     = 0.95 + 0.05 * intensity;
+        arr[k + 1] = 0.95 + 0.05 * intensity;
+        arr[k + 2] = 1.0;
+      } else {
+        arr[k]     = baseColors[k] * 0.15;
+        arr[k + 1] = baseColors[k + 1] * 0.15;
+        arr[k + 2] = baseColors[k + 2] * 0.15;
       }
     }
-  }
-  if (econ.ether_balance < price) return { x, y, z, sx, sy, sz, valid:false, reason: t('noEther'), price };
-  return { x, y, z, sx, sy, sz, valid:true, reason:'', price };
-}
-
-function updateGhost() {
-  if (menuMode || !buildMode || mode !== 'own' || demolishMode) {
-    ghost.visible = false; priceEl.classList.add('hidden'); noBuildRing.visible = false; return;
-  }
-  noBuildRing.visible = true;
-  const p = computePlacement(aimPoint.x, aimPoint.y);
-  if (!p) { ghost.visible = false; priceEl.classList.add('hidden'); return; }
-  const flat = isFlatHalf(selectedShape, p.sy);
-  const cy = p.y + (flat ? p.sy * 0.25 : p.sy / 2);
-  ghost.position.set(p.x + p.sx / 2, cy, p.z + p.sz / 2);
-  ghostMat.color.set(p.valid ? 0x22c55e : 0xef4444);
-  ghost.visible = true;
-  priceEl.textContent = p.price + '⚡';
-  priceEl.classList.toggle('bad', !p.valid);
-  projVec.set(p.x + p.sx / 2, p.y + p.sy + 0.35, p.z + p.sz / 2).project(camera);
-  if (projVec.z > 1) { priceEl.classList.add('hidden'); return; }
-  const px = (projVec.x * 0.5 + 0.5) * innerWidth;
-  const py = (-projVec.y * 0.5 + 0.5) * innerHeight;
-  priceEl.style.transform = `translate(${px}px, ${py}px) translate(-50%, -100%)`;
-  priceEl.classList.remove('hidden');
-}
-
-function flagLockedMessage(st) {
-  if (!st) return t('flagProtected');
-  if (st.percent < st.min_percent) return t('flagNeedPercent', { need: st.cubes_left_to_min, percent: st.percent, min: st.min_percent });
-  return t('flagNeedPath', { width: st.corridor_width });
-}
-function applyFlagState(st) {
-  raidFlagState = st;
-  if (!st) { updateFlagButton(); return; }
-  if (st.can_attack && !flagWasOpen) { flagWasOpen = true; toast(t('flagOpened'), 'tip'); }
-  if (!st.can_attack && flagWasOpen) flagWasOpen = false;
-  updateFlagButton();
-}
-function updateFlagButton() {
-  const btn = $('btn-flag'), label = $('btn-flag-label'), ico = $('btn-flag-ico');
-  if (mode !== 'raid' || !raidFlagState) { if (label) label.textContent = t('flag'); if (ico) ico.textContent = '🚩'; btn.classList.add('locked'); return; }
-  if (raidFlagState.can_attack) { if (label) label.textContent = t('flag'); if (ico) ico.textContent = '🚩'; btn.classList.remove('locked'); return; }
-  btn.classList.add('locked');
-  if (raidFlagState.percent < raidFlagState.min_percent) { if (ico) ico.textContent = '🔒'; if (label) label.textContent = raidFlagState.percent + '%'; }
-  else { if (ico) ico.textContent = '🚧'; if (label) label.textContent = t('flag'); }
-}
-
-function applyTab(id, visible) {
-  const el = $(id);
-  if (visible) {
-    if (el.classList.contains('hidden')) { el.classList.remove('hidden'); el.classList.remove('reveal'); void el.offsetWidth; el.classList.add('reveal'); }
-  } else el.classList.add('hidden');
-}
-function updatePanel() {
-  if (menuMode) return;
-  const on = buildMode && mode === 'own';
-  $('top').classList.remove('hidden');
-  $('btn-build').classList.toggle('on', on);
-  $('btn-size').classList.toggle('hidden', !on);
-  $('btn-block-color').classList.toggle('hidden', !on);
-  $('btn-palette').classList.toggle('hidden', !on);
-  $('btn-demolish').classList.toggle('hidden', !on);
-  $('btn-shop').classList.toggle('hidden', !on);
-  $('reload').classList.toggle('hidden', on);
-  $('target-pill').classList.toggle('hidden', mode === 'own');
-  updateRotateButton();
-  updateShopMini();
-  updateFlagSwatch();
-  applyTab('bottom', mode === 'own');
-  applyTab('bottom-visit', mode === 'visit');
-  applyTab('bottom-raid', mode === 'raid');
-}
-function setMode(next) {
-  if (next === 'raid' && mode !== 'raid') playMusic('clubDiver');
-  else if (next !== 'raid' && mode === 'raid') stopMusic();
-  mode = next;
-  if (next !== 'own') buildMode = false;
-  minion.frozen = false; minion.thinking = false; minion.panicBoost = 0; minion.idleAct = null;
-  resetMinionPath(); refreshMinionMood(); closeAllPalettes(); updatePanel();
-}
-function setBuildMode(on) { buildMode = on; if (!on) setDemolish(false); closeAllPalettes(); updatePanel(); }
-function setDemolish(on) { demolishMode = on; $('btn-demolish').classList.toggle('demolish-on', on); updatePanel(); }
-
-function showScreen(id) {
-  const el = $(id);
-  if (!el) return;
-  el.classList.remove('hidden');
-  el.classList.remove('closing');
-}
-
-function hideScreens() {
-  const ids = [
-    'world-screen','loot-screen','onboard-screen','tip-screen','shop-screen',
-    'history-screen','map-screen','profile-screen','edit-profile-screen',
-    'settings-screen',
-  ];
-  for (const id of ids) {
-    const el = $(id);
-    if (!el || el.classList.contains('hidden') || el.classList.contains('closing')) continue;
-    el.classList.add('closing');
-    setTimeout(() => {
-      el.classList.remove('closing');
-      el.classList.add('hidden');
-    }, 220);
-  }
-  closeAllPalettes();
-}
-
-function closeOnboard() {
-  const el = $('onboard-screen'); el.classList.add('closing');
-  setTimeout(() => { el.classList.remove('closing'); el.classList.add('hidden'); }, 300);
-}
-
-function showGoogleLogin() {
-  const menu = $('menu-screen');
-  menu.classList.remove('hidden');
-  menu.classList.remove('fading');
-  if ($('google-login-btn')) return;
-
-  const btn = document.createElement('button');
-  btn.id = 'google-login-btn';
-  btn.className = 'menu-play';
-  btn.style.marginTop = '16px';
-  btn.innerHTML =
-  '<svg width="18" height="18" viewBox="0 0 48 48" style="margin-right:10px" xmlns="http://www.w3.org/2000/svg">' +
-    '<path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>' +
-    '<path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>' +
-    '<path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>' +
-    '<path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>' +
-  '</svg>' +
-  t('googleLogin');
-  btn.addEventListener('click', signInWithGoogle);
-  menu.appendChild(btn);
-
-  const play = $('menu-play');
-  if (play) play.disabled = true;
-}
-
-function showMenu(on) {
-  menuMode = on;
-  const ms = $('menu-screen');
-  if (on) {
-    ms.classList.remove('hidden');
-    ms.classList.remove('fading');
-    $('top').classList.add('hidden');
-    $('bottom').classList.add('hidden');
-    $('bottom-visit').classList.add('hidden');
-    $('bottom-raid').classList.add('hidden');
-    priceEl.classList.add('hidden');
-    noBuildRing.visible = false;
-    ghost.visible = false;
-    controls.enabled = false;
-  }
-}
-
-// --- Карта + меню: одна сцена на два экрана -------------------------
-// Canvas живёт постоянно, между меню и картой мы его просто переносим
-// в другой контейнер.
-
-let mapInitialized = false;
-
-function ensureMapInitialized() {
-  if (mapInitialized) return;
-  const container = $('map-container');
-  initMap3D(container, {
-    onPointTap: (userId, username) => openProfile(userId, username),
-    onNeedCubes: (ids) => loadMapCubes(ids),
-    myUserId: myId,
-  });
-  mapInitialized = true;
-}
-
-async function openMap() {
-  closeAllPalettes();
-  ensureMapInitialized();
-
-  const mapScreen = $('map-screen');
-  mapScreen.classList.remove('menu-bg');
-  mapScreen.classList.remove('hidden');
-  setMapRunning(true);
-  setMapVisible(true);
-  setMapCameraDistance(SPHERE_RADIUS_FOR_MENU * 3.0);
-
-  setTimeout(() => {
-    resizeMap3D();
-    loadMapPoints();
-  }, 100);
-}
-
-function closeMap() {
-  setMapRunning(false);
-  $('map-screen').classList.add('hidden');
-}
-
-// В меню карта работает как фон: контейнер виден, но UI скрыт,
-// камера отлетает далеко и медленно вращается.
-async function showMenuGlobe() {
-  ensureMapInitialized();
-
-  const mapScreen = $('map-screen');
-  mapScreen.classList.remove('hidden');
-  mapScreen.classList.add('menu-bg');
-
-  setMapRunning(true);
-  setMapVisible(true);
-
-  setMapCameraDistance(SPHERE_RADIUS_FOR_MENU * 3.2);
-
-  try { await loadMapPoints(); } catch (e) {}
-}
-
-// Запуск игры: меню fade-out, карта уходит.
-function startGame() {
-  if (!menuMode) return;
-  menuMode = false;
-  $('menu-play').disabled = true;
-  scheduleMusicStop(25000, 5000);
-
-  const ms = $('menu-screen');
-  ms.classList.add('fading');
-  setTimeout(() => {
-    ms.classList.add('hidden');
-    ms.classList.remove('fading');
-  }, 700);
-
-  setTimeout(() => {
-    $('map-screen').classList.add('hidden');
-    $('map-screen').classList.remove('menu-bg');
-    setMapRunning(false);
-    setMapVisible(false);
-  }, 700);
-
-  renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
-  animateCamera(
-    new THREE.Vector3(26, 44, 26),
-    new THREE.Vector3(0, 0, 3),
-    1.2,
-    () => {
-      controls.enabled = true;
-      updatePanel();
-      if (!localStorage.getItem('adrift_onboarded')) {
-        setTimeout(() => showScreen('onboard-screen'), 200);
-      }
-    }
-  );
-}
-
-async function loadOwnIsland() {
-  const data = await api(`/api/v1/islands/${myId}`);
-  resetCubes(); data.cubes.forEach(addCube); refreshCounters();
-  setFlagVisual(data.flag.hp, data.flag.max_hp, myFlagColor);
-  placeMinionInitial();
-}
-async function loadMe() {
-  const me = await api('/api/v1/me');
-  $('ether').textContent = me.ether_balance; econ.ether_balance = me.ether_balance;
-  pulseCounter($('ether'));
-  myFlagColor = me.flag_color || 'red'; displayFlagColor = myFlagColor;
-  setMinionFlagColor(myFlagColor);
-  updateFlagSwatch();
-  myWorldX = me.world_pos ? me.world_pos.x : null;
-  myWorldY = me.world_pos ? me.world_pos.y : null;
-  currentUsername = me.username || '';
-  currentBio = me.bio || null;
-  currentAvatar = me.avatar || null;
-}
-async function returnHome() {
-  targetUser = null; raidId = null; raidFlagState = null; flagWasOpen = false; hideScreens();
-  setDemolish(false); setMode('own'); buildMode = true; updatePanel();
-  $('target-name').textContent = '—';
-  fail(t('returning'));
-  try { await loadOwnIsland(); await loadMe(); await loadEconomy(); pollRaidAlert(); } finally { ok(); }
-}
-async function pollRaidAlert() {
-  try {
-    const data = await api('/api/v1/raids/history?limit=8');
-    const wasAlert = myRaidAlert;
-    myRaidAlert = (data.raids || []).some(r => r.role === 'defender' && r.status === 'active');
-    refreshMinionMood();
-    if (myRaidAlert && !wasAlert && mode === 'own' && !menuMode) toast(t('raidAlertToast'), 'warn');
-  } catch (e) {}
-}
-setInterval(() => { if (token) pollRaidAlert(); }, 25000);
-
-function renderEconomy() {
-  const btn = $('claim-btn'), hint = $('claim-hint');
-  if (econ.accrued_now >= 1) { btn.classList.add('ready'); hint.textContent = '+' + econ.accrued_now; }
-  else { btn.classList.remove('ready'); hint.textContent = fmtTime(econ.seconds_to_next); }
-}
-async function loadEconomy() {
-  try {
-    econ = await api('/api/v1/economy/rates');
-    $('ether').textContent = econ.ether_balance;
-    pulseCounter($('ether'));
-    renderEconomy();
-  } catch (e) {
-    if (econ.seconds_to_next <= 0) {
-      econ.seconds_to_next = 30;
-      renderEconomy();
-    }
-  }
-}
-async function claimEther() {
-  if (econ.accrued_now < 1) return;
-  try {
-    const res = await api('/api/v1/economy/claim', { method: 'POST' });
-    $('ether').textContent = res.ether_balance;
-    pulseCounter($('ether'));
-    toast('+' + res.claimed + ' ' + t('ether'), 'tip');
-    SFX.claim();
-    await loadEconomy();
-  } catch (e) {
-    if (e.code === 'CLAIM_TOO_EARLY') { await loadEconomy(); return; }
-    toast(humanError(e), 'error');
-  }
-}
-setInterval(() => { if (!token) return; if (econ.accrued_now >= 1) return; if (econ.seconds_to_next > 0) { econ.seconds_to_next -= 1; renderEconomy(); } else loadEconomy(); }, 1000);
-setInterval(() => { if (token) loadEconomy(); }, 30000);
-
-function closeAllPalettes() { ['palette','block-palette','size-palette'].forEach(id => $(id).classList.add('hidden')); }
-function buildFlagPalette() {
-  const grid = $('palette-grid'); grid.innerHTML = '';
-  for (const [key, hex] of Object.entries(FLAG_COLORS_CSS)) {
-    const dot = document.createElement('button');
-    dot.className = 'color-dot' + (key === myFlagColor ? ' selected' : '');
-    dot.style.background = hex;
-    dot.addEventListener('click', () => pickFlagColor(key));
-    grid.appendChild(dot);
-  }
-}
-function buildBlockPalette() {
-  const grid = $('block-palette-grid'); grid.innerHTML = '';
-  for (const [key, hex] of Object.entries(BLOCK_COLORS_CSS)) {
-    const dot = document.createElement('button');
-    dot.className = 'color-dot' + (key === selectedBlockColor ? ' selected' : '');
-    dot.style.background = hex;
-    dot.addEventListener('click', () => { selectedBlockColor = key; updateBlockSwatch(); saveBuildPrefs(); closeAllPalettes(); });
-    grid.appendChild(dot);
-  }
-}
-function saveBuildPrefs() {
-  try { localStorage.setItem('adrift_build_prefs', JSON.stringify({ shape: selectedShape, material: selectedMaterial, color: selectedBlockColor, sizeKey: selectedSize.key })); } catch (e) {}
-}
-function loadBuildPrefs() {
-  try {
-    const raw = localStorage.getItem('adrift_build_prefs'); if (!raw) return;
-    const p = JSON.parse(raw);
-    if (p.shape && SHOP_SHAPES.some(s => s.key === p.shape)) selectedShape = p.shape;
-    if (p.material && SHOP_MATERIALS.some(m => m.key === p.material)) selectedMaterial = p.material;
-    if (p.color && BLOCK_COLORS_CSS[p.color]) selectedBlockColor = p.color;
-    if (p.sizeKey) { const sz = BLOCK_SIZES.find(x => x.key === p.sizeKey); if (sz) selectedSize = sz; }
-  } catch (e) {}
-}
-function sizePrice(s) { return cubeTypeInfo(selectedMaterial, selectedShape).cost * s.sx * s.sy * s.sz; }
-function buildSizePalette() {
-  const grid = $('size-grid'); grid.innerHTML = '';
-  for (const s of BLOCK_SIZES) {
-    const btn = document.createElement('button');
-    btn.className = 'size-btn' + (s.key === selectedSize.key ? ' selected' : '');
-    const glyph = document.createElement('span'); glyph.className = 'glyph'; glyph.textContent = s.label;
-    const price = document.createElement('span'); price.className = 'price'; price.textContent = sizePrice(s) + '⚡';
-    btn.append(glyph, price);
-    btn.addEventListener('click', () => {
-      selectedSize = s; rotationStep = 0; vertical = false;
-      updateSizeLabel(); updateGhostGeometry(); updateRotateButton();
-      saveBuildPrefs(); closeAllPalettes();
-    });
-    grid.appendChild(btn);
-  }
-}
-function updateSizeLabel() { $('size-label').textContent = selectedSize.label; }
-function togglePalette(id) {
-  const wasHidden = $(id).classList.contains('hidden');
-  closeAllPalettes();
-  if (!wasHidden) return;
-  if (id === 'palette') buildFlagPalette();
-  if (id === 'block-palette') buildBlockPalette();
-  if (id === 'size-palette') buildSizePalette();
-  $(id).classList.remove('hidden');
-}
-async function pickFlagColor(key) {
-  try {
-    const res = await api('/api/v1/me/flag-color', { method:'POST', body: JSON.stringify({ color:key }) });
-    myFlagColor = res.flag_color;
-    updateFlagSwatch();
-    if (mode !== 'raid') setFlagVisual(currentFlagHp, currentFlagMax, myFlagColor);
-    closeAllPalettes(); toast(t('flagColorChanged'), 'tip');
-  } catch (e) { toast(humanError(e), 'error'); }
-}
-
-function cubeTypeInfo(material, shape) {
-  const key = `${material}_${shape}`;
-  const fromServer = catalog[key];
-  if (fromServer) return { cost: fromServer.cost, max_hp: fromServer.max_hp };
-  const fb = FALLBACK_PRICES[key];
-  if (fb) return { cost: fb.cost, max_hp: fb.hp };
-  return { cost: 10, max_hp: 100 };
-}
-async function loadCatalog() {
-  try {
-    const data = await api('/api/v1/build/catalog');
-    catalog = {};
-    for (const c of (data.cubes || [])) catalog[c.type] = { cost: c.cost, max_hp: c.max_hp };
-  } catch (e) {}
-}
-function updateShopMini() {
-  const el = $('shop-mini'); if (!el) return;
-  const pal = MATERIAL_PALETTE[selectedMaterial];
-  el.style.background = pal ? pal.mid : '#c9a06a';
-  el.innerHTML = svgIsometric(selectedShape, pal || MATERIAL_PALETTE.wood);
-}
-function svgIsometric(shape, palette) {
-  const { light, mid, dark } = palette;
-  if (shape === 'half') {
-    return `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><path d="M50 30 L92 52 L50 74 L8 52 Z" fill="${light}"/><path d="M8 52 L50 74 L50 94 L8 72 Z" fill="${dark}"/><path d="M92 52 L50 74 L50 94 L92 72 Z" fill="${mid}"/></svg>`;
-  }
-  if (shape === 'triangle') {
-    return `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><path d="M50 10 L88 82 L12 82 Z" fill="${light}"/><path d="M50 10 L88 82 L88 92 L50 20 Z" fill="${mid}"/><path d="M12 82 L50 10 L50 20 L12 92 Z" fill="${dark}"/></svg>`;
-  }
-  if (shape === 'circle') {
-    return `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><path d="M 14 26 L 14 74 C 14 81.7 30.1 88 50 88 C 69.9 88 86 81.7 86 74 L 86 26 Z" fill="${mid}"/><ellipse cx="50" cy="74" rx="36" ry="14" fill="${dark}"/><ellipse cx="50" cy="26" rx="36" ry="14" fill="${light}"/></svg>`;
-  }
-  return `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><path d="M50 8 L92 30 L50 52 L8 30 Z" fill="${light}"/><path d="M8 30 L50 52 L50 94 L8 72 Z" fill="${dark}"/><path d="M92 30 L50 52 L50 94 L92 72 Z" fill="${mid}"/></svg>`;
-}
-function buildShop() {
-  const shapesEl = $('shop-shapes'), matsEl = $('shop-materials');
-  shapesEl.innerHTML = ''; matsEl.innerHTML = '';
-  for (const s of SHOP_SHAPES) {
-    const info = cubeTypeInfo(selectedMaterial, s.key);
-    const btn = document.createElement('button');
-    btn.className = 'shop-card' + (s.key === selectedShape ? ' selected' : '');
-    btn.innerHTML = `<div class="card-preview">${svgIsometric(s.key, MATERIAL_PALETTE[selectedMaterial])}</div><div class="card-name">${lang === 'ru' ? s.name : s.nameEn}</div><div class="card-info">${lang === 'ru' ? s.info : s.infoEn}</div><div class="card-price">${info.cost}⚡</div>`;
-    btn.addEventListener('click', () => { selectedShape = s.key; saveBuildPrefs(); buildShop(); updateGhostGeometry(); });
-    shapesEl.appendChild(btn);
-  }
-  for (const m of SHOP_MATERIALS) {
-    const info = cubeTypeInfo(m.key, selectedShape);
-    const btn = document.createElement('button');
-    btn.className = 'shop-card' + (m.key === selectedMaterial ? ' selected' : '');
-    btn.innerHTML = `<div class="card-preview">${svgIsometric(selectedShape, MATERIAL_PALETTE[m.key])}</div><div class="card-name">${lang === 'ru' ? m.name : m.nameEn}</div><div class="card-info">${lang === 'ru' ? m.info : m.infoEn}</div><div class="card-price">${info.cost}⚡</div>`;
-    btn.addEventListener('click', () => { selectedMaterial = m.key; saveBuildPrefs(); buildShop(); updateGhostGeometry(); });
-    matsEl.appendChild(btn);
-  }
-  renderShopSummary(); updateShopMini();
-}
-function renderShopSummary() {
-  const info = cubeTypeInfo(selectedMaterial, selectedShape);
-  const s = SHOP_SHAPES.find(x => x.key === selectedShape), m = SHOP_MATERIALS.find(x => x.key === selectedMaterial);
-  const sName = lang === 'ru' ? s.name : s.nameEn, mName = lang === 'ru' ? m.name : m.nameEn;
-  $('shop-summary').innerHTML = `<b>${sName}</b> · ${mName} · <b>${info.cost}⚡</b> · ${info.max_hp} HP`;
-}
-function openShop() { buildShop(); showScreen('shop-screen'); }
-
-function blockLabel(isl) {
-  switch (isl.raid_block_reason) {
-    case 'TARGET_SHIELDED': return '🛡 ' + fmtTime(isl.shield_seconds_left);
-    case 'COOLDOWN_ACTIVE': return '⏳ ' + fmtTime(isl.cooldown_seconds_left);
-    case 'TARGET_IS_SELF': return t('yourIsland');
-    default: return isl.raid_block_reason || '';
-  }
-}
-function makeIslandRow(isl) {
-  const row = document.createElement('button');
-  row.className = 'island-row' + (isl.can_raid ? '' : ' locked');
-
-  const name = document.createElement('div'); name.className = 'island-name';
-  const dot = document.createElement('span');
-  dot.className = 'online-dot ' + (isl.is_online ? 'on' : 'off');
-  name.appendChild(dot);
-  name.appendChild(document.createTextNode(isl.username));
-
-  const meta = document.createElement('div'); meta.className = 'island-meta';
-  meta.textContent = `🧱 ${isl.cube_count} · ⚡ ${isl.potential_loot} · 🚩 ${isl.flag_hp}`;
-  row.append(name, meta);
-  if (!isl.can_raid) { const badge = document.createElement('div'); badge.className = 'island-badge'; badge.textContent = blockLabel(isl); row.appendChild(badge); }
-  row.addEventListener('click', () => openProfile(isl.user_id, isl.username));
-  return row;
-}
-async function openWorld() {
-  closeAllPalettes(); showScreen('world-screen');
-  const list = $('world-list'); list.innerHTML = '';
-  const note = document.createElement('div'); note.className = 'screen-note'; note.textContent = t('loading');
-  list.appendChild(note);
-  try {
-    const data = await api('/api/v1/islands?limit=50');
-    list.innerHTML = '';
-    if (!data.islands.length) { const empty = document.createElement('div'); empty.className = 'screen-note'; empty.textContent = t('noone'); list.appendChild(empty); return; }
-    for (const isl of data.islands) list.appendChild(makeIslandRow(isl));
-  } catch (e) {
-    list.innerHTML = '';
-    const err = document.createElement('div'); err.className = 'screen-note'; err.textContent = t('error') + ': ' + humanError(e);
-    list.appendChild(err);
-  }
-}
-let currentUsername = '';
-let currentBio = null;
-let currentAvatar = null;
-let pendingAvatar = undefined;
-const AVATAR_PRESETS = {
-  cat: '🐱', dog: '🐶', fox: '🦊', bear: '🐻',
-  panda: '🐼', frog: '🐸', lion: '🦁', tiger: '🐯',
-};
-let profileTarget = null;
-
-const DEFAULT_AVATAR_URL = './assets/Untitled72_20260916105743.png';
-
-function renderAvatar(el, avatar) {
-  el.innerHTML = '';
-  const img = document.createElement('img');
-  img.alt = '';
-  if (!avatar) {
-    img.src = DEFAULT_AVATAR_URL;
-  } else if (avatar.startsWith('url:')) {
-    img.src = avatar.slice(4);
-  } else if (avatar.startsWith('preset:')) {
-    const key = avatar.slice(7);
-    el.textContent = AVATAR_PRESETS[key] || '🙂';
-    return;
   } else {
-    img.src = DEFAULT_AVATAR_URL;
-  }
-  img.onerror = () => { el.innerHTML = ''; el.textContent = '🙂'; };
-  el.appendChild(img);
-}
-
-function paintProfile(isl) {
-  profileTarget = isl;
-  renderAvatar($('profile-avatar'), isl.avatar);
-  $('profile-name').textContent = isl.username;
-  $('profile-id').textContent = String(isl.user_id);
-
-  const statusEl = $('profile-status');
-  if (statusEl) {
-    statusEl.innerHTML = '';
-    const dot = document.createElement('span');
-    dot.className = 'online-dot ' + (isl.is_online ? 'on' : 'off');
-    statusEl.appendChild(dot);
-    statusEl.appendChild(document.createTextNode(
-      isl.is_online ? t('onlineNow') : t('offlineLabel')
-    ));
-  }
-
-  const bio = (isl.bio || '').trim();
-  const bioEl = $('profile-bio');
-  if (bio) { bioEl.textContent = bio; bioEl.classList.remove('empty'); }
-  else { bioEl.textContent = t('profileNoBio'); bioEl.classList.add('empty'); }
-
-  const copyBtn = $('profile-copy');
-  copyBtn.classList.remove('copied');
-  copyBtn.textContent = '📎';
-}
-
-function statsPercent(part, total) {
-  if (!total) return '—';
-  return Math.round((part / total) * 100) + '%';
-}
-
-function renderStats(s, gridEl) {
-  if (!gridEl) return;
-  gridEl.innerHTML = '';
-
-  const makeGroup = (titleKey, rows) => {
-    const g = document.createElement('div');
-    g.className = 'stats-group';
-    const title = document.createElement('div');
-    title.className = 'stats-group-title';
-    title.textContent = t(titleKey);
-    g.appendChild(title);
-
-    for (const [labelKey, value, cls] of rows) {
-      const row = document.createElement('div');
-      row.className = 'stats-row';
-      const label = document.createElement('span');
-      label.textContent = t(labelKey);
-      const val = document.createElement('b');
-      val.textContent = value;
-      if (cls) val.classList.add(cls);
-      row.append(label, val);
-      g.appendChild(row);
+    for (let i = 0; i < n; i++) {
+      let intensity;
+      if (spiked[i]) {
+        intensity = 1.0;
+      } else {
+        intensity = v[i] / threshold[i];
+        if (intensity > 1) intensity = 1;
+      }
+      const base = baseColors;
+      const k = i * 3;
+      arr[k]     = base[k]     + (1 - base[k])     * intensity * 0.9;
+      arr[k + 1] = base[k + 1] + (1 - base[k + 1]) * intensity * 0.9;
+      arr[k + 2] = base[k + 2] + (1 - base[k + 2]) * intensity * 0.9;
     }
-    return g;
+  }
+
+  if (highlightedIdx !== -1) {
+    const k = highlightedIdx * 3;
+    arr[k] = 1; arr[k + 1] = 1; arr[k + 2] = 1;
+  }
+  colorAttr.needsUpdate = true;
+}
+
+// ---------------------------------------------------------------
+// Selected neuron edges
+// ---------------------------------------------------------------
+function clearEdgeMesh() {
+  if (currentEdgeMesh) {
+    scene.remove(currentEdgeMesh);
+    currentEdgeMesh.geometry.dispose();
+    currentEdgeMesh.material.dispose();
+    currentEdgeMesh = null;
+  }
+}
+
+function showNeuronEdges(idx, maxPerDirection) {
+  clearEdgeMesh();
+
+  const outgoing = adjacency[idx].slice(0, maxPerDirection);
+  const incoming = reverseAdjacency[idx].slice(0, maxPerDirection);
+  const total = outgoing.length + incoming.length;
+  if (total === 0) return;
+
+  const positions = new Float32Array(total * 6);
+  const colors = new Float32Array(total * 6);
+  const origin = neurons[idx];
+
+  let o = 0;
+  for (const c of outgoing) {
+    const b = neurons[c.target];
+    positions[o] = origin.x; positions[o + 1] = origin.y; positions[o + 2] = origin.z;
+    positions[o + 3] = b.x; positions[o + 4] = b.y; positions[o + 5] = b.z;
+    colors[o] = 0.30; colors[o + 1] = 0.79; colors[o + 2] = 0.94;
+    colors[o + 3] = 0.30; colors[o + 4] = 0.79; colors[o + 5] = 0.94;
+    o += 6;
+  }
+  for (const c of incoming) {
+    const a = neurons[c.source];
+    positions[o] = a.x; positions[o + 1] = a.y; positions[o + 2] = a.z;
+    positions[o + 3] = origin.x; positions[o + 4] = origin.y; positions[o + 5] = origin.z;
+    colors[o] = 0.94; colors[o + 1] = 0.28; colors[o + 2] = 0.44;
+    colors[o + 3] = 0.94; colors[o + 4] = 0.28; colors[o + 5] = 0.44;
+    o += 6;
+  }
+
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+  geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+
+  const mat = new THREE.LineBasicMaterial({
+    vertexColors: true,
+    transparent: true,
+    opacity: 0.8
+  });
+
+  currentEdgeMesh = new THREE.LineSegments(geo, mat);
+  currentEdgeMesh.frustumCulled = false;
+  scene.add(currentEdgeMesh);
+}
+
+// ---------------------------------------------------------------
+// Tap detection
+// ---------------------------------------------------------------
+const infoEl = document.getElementById('info');
+const pullTab = document.getElementById('panel-pull');
+let lastSelectedIdx = -1;
+let pointerDownTime = 0, pointerDownX = 0, pointerDownY = 0;
+
+let panelDrag = null;
+
+infoEl.addEventListener('pointerdown', (e) => {
+  if (!e.target.classList.contains('handle')) return;
+  e.preventDefault();
+  panelDrag = {
+    startY: e.clientY,
+    offsetY: 0,
+    pointerId: e.pointerId
   };
-
-  const defendedWon = Math.max(0, s.raids_defended - s.raids_lost);
-
-  gridEl.appendChild(makeGroup('statsCubes', [
-    ['statsCubesTotal', s.cubes_total],
-    ['statsCubesSafe', s.cubes_in_safe_zone],
-  ]));
-
-  gridEl.appendChild(makeGroup('statsAttacks', [
-    ['statsAttacksTotal', s.raids_attacked],
-    ['statsAttacksWon', s.raids_won, 'gold'],
-    ['statsAttacksWinrate', statsPercent(s.raids_won, s.raids_attacked)],
-  ]));
-
-  gridEl.appendChild(makeGroup('statsDefenses', [
-    ['statsDefensesTotal', s.raids_defended],
-    ['statsDefensesWon', defendedWon],
-    ['statsDefensesLost', s.raids_lost, 'danger'],
-  ]));
-
-  gridEl.appendChild(makeGroup('statsLoot', [
-    ['statsLootStolen', '⚡ ' + s.ether_stolen_total, 'gold'],
-    ['statsLootLost', '⚡ ' + s.ether_lost_total, 'danger'],
-  ]));
-}
-
-async function loadStatsInto(gridEl, url, tokenCheck) {
-  if (!gridEl) return;
-  gridEl.innerHTML = '<div class="stats-loading">…</div>';
-  try {
-    const s = await api(url);
-    if (tokenCheck && !tokenCheck()) return;
-    renderStats(s, gridEl);
-  } catch (e) {
-    if (tokenCheck && !tokenCheck()) return;
-    gridEl.innerHTML = '<div class="stats-loading">' + humanError(e) + '</div>';
-  }
-}
-
-async function openProfile(userId, fallbackUsername) {
-  const statsGrid = $('stats-grid');
-  if (statsGrid) statsGrid.innerHTML = '<div class="stats-loading">…</div>';
-
-  paintProfile({
-    user_id: userId,
-    username: fallbackUsername || '—',
-    bio: null, avatar: null,
-  });
-  showScreen('profile-screen');
-  popIn($('profile-screen').querySelector('.profile-card'));
-
-  loadStatsInto(
-    $('stats-grid'),
-    '/api/v1/islands/' + userId + '/stats',
-    () => profileTarget && String(profileTarget.user_id) === String(userId)
-  );
-
-  try {
-    const isl = await api(`/api/v1/islands/${userId}/profile`);
-    if (!$('profile-screen').classList.contains('hidden')) paintProfile(isl);
-  } catch (e) {
-    toast(humanError(e), 'error');
-  }
-}
-
-async function loadMapPoints() {
-  try {
-    const data = await api('/api/v1/islands/map?x1=-2000&y1=-2000&x2=2000&y2=2000&limit=1000');
-    setMapPoints(data.points || []);
-  } catch (e) {
-    console.warn('map load failed', e);
-  }
-}
-
-// Загрузка кубов для конкретных игроков — вызывается из map3d.js
-// когда камера приближается к островам. Батч-запрос, максимум 20 ids.
-async function loadMapCubes(ids) {
-  if (!ids || !ids.length) return;
-  try {
-    const idsCsv = ids.slice(0, 20).join(',');
-    const data = await api(
-      `/api/v1/islands/map/cubes?ids=${encodeURIComponent(idsCsv)}&limit_per_user=60`
-    );
-    const islands = data.islands || {};
-    for (const [uid, cubes] of Object.entries(islands)) {
-      setMapCubes(uid, cubes);
-    }
-    // Если для какого-то uid вернулся пустой список — тоже помечаем
-    // как «загружено», иначе будем перезапрашивать вечно.
-    for (const uid of ids) {
-      if (!(uid in islands)) setMapCubes(uid, []);
-    }
-  } catch (e) {
-    console.warn('loadMapCubes failed', e);
-  }
-}
-
-function isIOS() {
-  return /iPad|iPhone|iPod/.test(navigator.userAgent);
-}
-function isStandalone() {
-  return window.matchMedia('(display-mode: standalone)').matches
-      || window.navigator.standalone === true;
-}
-
-function pushSupported() {
-  if (isIOS() && !isStandalone()) return false;
-  return 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
-}
-
-function urlBase64ToUint8Array(base64String) {
-  const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
-  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
-  const raw = atob(base64);
-  const out = new Uint8Array(raw.length);
-  for (let i = 0; i < raw.length; i++) out[i] = raw.charCodeAt(i);
-  return out;
-}
-
-async function registerServiceWorker() {
-  if (!('serviceWorker' in navigator)) return null;
-  try {
-    return await navigator.serviceWorker.register('./sw.js', { scope: './' });
-  } catch (e) {
-    return null;
-  }
-}
-
-async function getPushStatus() {
-  if (isIOS() && !isStandalone()) return 'ios';
-  if (!pushSupported()) return 'unsupported';
-  if (Notification.permission === 'denied') return 'denied';
-  if (Notification.permission !== 'granted') return 'idle';
-  const reg = await navigator.serviceWorker.getRegistration();
-  if (!reg) return 'idle';
-  const sub = await reg.pushManager.getSubscription();
-  return sub ? 'subscribed' : 'idle';
-}
-
-async function subscribeToPush() {
-  if (!pushSupported()) throw new Error('PUSH_UNSUPPORTED');
-
-  const perm = await Notification.requestPermission();
-  if (perm !== 'granted') throw new Error('PUSH_DENIED');
-
-  const reg = await registerServiceWorker();
-  if (!reg) throw new Error('PUSH_SW_FAILED');
-
-  if (!reg.active) {
-    await new Promise((resolve) => {
-      const sw = reg.installing || reg.waiting;
-      if (!sw) return resolve();
-      sw.addEventListener('statechange', () => {
-        if (sw.state === 'activated') resolve();
-      });
-    });
-  }
-
-  const vapid = await api('/api/v1/push/vapid-public-key');
-  const appKey = urlBase64ToUint8Array(vapid.public_key);
-
-  let sub = await reg.pushManager.getSubscription();
-
-  if (sub) {
-    try {
-      const existing = sub.options && sub.options.applicationServerKey;
-      if (existing && urlBase64ToUint8Array(vapid.public_key).length !== new Uint8Array(existing).length) {
-        await sub.unsubscribe();
-        sub = null;
-      }
-    } catch (e) {}
-  }
-
-  if (!sub) {
-    sub = await reg.pushManager.subscribe({
-      userVisibleOnly: true,
-      applicationServerKey: appKey,
-    });
-  }
-
-  const json = sub.toJSON();
-  await api('/api/v1/push/subscribe', {
-    method: 'POST',
-    body: JSON.stringify({
-      endpoint: json.endpoint,
-      p256dh: json.keys.p256dh,
-      auth: json.keys.auth,
-    }),
-  });
-
-  return 'subscribed';
-}
-
-async function unsubscribeFromPush() {
-  const reg = await navigator.serviceWorker.getRegistration();
-  if (!reg) return;
-  const sub = await reg.pushManager.getSubscription();
-  if (!sub) return;
-  const endpoint = sub.endpoint;
-  try { await sub.unsubscribe(); } catch (e) {}
-  try {
-    await api('/api/v1/push/unsubscribe', {
-      method: 'DELETE',
-      body: JSON.stringify({ endpoint }),
-    });
-  } catch (e) {}
-}
-
-async function paintPushBlock() {
-  const btn = $('push-toggle');
-  const statusEl = $('push-status');
-  if (!btn || !statusEl) return;
-
-  const status = await getPushStatus();
-  statusEl.classList.remove('on', 'warn', 'err');
-  btn.disabled = false;
-
-  switch (status) {
-    case 'subscribed':
-      statusEl.textContent = t('pushEnabled');
-      statusEl.classList.add('on');
-      btn.textContent = t('pushDisable');
-      btn.className = 'danger';
-      break;
-    case 'idle':
-      statusEl.textContent = t('pushDesc');
-      btn.textContent = t('pushEnable');
-      btn.className = 'go';
-      break;
-    case 'denied':
-      statusEl.textContent = t('pushDenied');
-      statusEl.classList.add('err');
-      btn.textContent = t('pushEnable');
-      btn.className = '';
-      btn.disabled = true;
-      break;
-    case 'ios':
-      statusEl.textContent = t('pushIOSHint');
-      statusEl.classList.add('warn');
-      btn.textContent = t('pushEnable');
-      btn.className = '';
-      btn.disabled = true;
-      break;
-    default:
-      statusEl.textContent = t('pushUnsupported');
-      statusEl.classList.add('warn');
-      btn.textContent = t('pushEnable');
-      btn.className = '';
-      btn.disabled = true;
-  }
-}
-
-async function togglePush() {
-  const btn = $('push-toggle');
-  if (!btn) return;
-  const wasSubscribed = (await getPushStatus()) === 'subscribed';
-  btn.disabled = true;
-  try {
-    if (wasSubscribed) {
-      await unsubscribeFromPush();
-      toast(t('pushDisable'), 'tip');
-    } else {
-      await subscribeToPush();
-      toast(t('pushEnabled'), 'tip');
-    }
-  } catch (e) {
-    if (e.message === 'PUSH_DENIED') toast(t('pushDenied'), 'error');
-    else if (e.message === 'PUSH_UNSUPPORTED') toast(t('pushUnsupported'), 'error');
-    else toast(humanError(e) || t('pushSubscribeFail'), 'error');
-  } finally {
-    btn.disabled = false;
-    paintPushBlock();
-  }
-}
-
-const GRAPHICS_KEY = 'adrift_graphics';
-
-function getGraphicsQuality() {
-  try { return localStorage.getItem(GRAPHICS_KEY) || 'high'; } catch (e) { return 'high'; }
-}
-
-function applyGraphicsQuality(q) {
-  const high = q === 'high';
-  renderer.shadowMap.enabled = high;
-  renderer.shadowMap.needsUpdate = true;
-
-  for (const mesh of cubeMeshes.values()) {
-    mesh.castShadow = high;
-    mesh.receiveShadow = high;
-    mesh.material.needsUpdate = true;
-  }
-  minionGroup.traverse((obj) => {
-    if (obj.isMesh) {
-      obj.castShadow = high;
-      obj.receiveShadow = high;
-      if (obj.material && obj.material.needsUpdate !== undefined) {
-        obj.material.needsUpdate = true;
-      }
-    }
-  });
-  flagGroup.traverse((obj) => {
-    if (obj.isMesh) {
-      obj.castShadow = high;
-      obj.receiveShadow = high;
-    }
-  });
-  ground.receiveShadow = high;
-
-  renderer.setPixelRatio(high ? Math.min(devicePixelRatio, 2) : 1);
-}
-
-async function paintGraphicsBlock() {
-  const btn = $('graphics-toggle');
-  const statusEl = $('graphics-status');
-  if (!btn || !statusEl) return;
-
-  const q = getGraphicsQuality();
-  const high = q === 'high';
-  statusEl.textContent = high ? t('graphicsHighDesc') : t('graphicsLowDesc');
-  statusEl.className = 'settings-row-sub' + (high ? ' on' : '');
-  btn.textContent = high ? t('graphicsHigh') : t('graphicsLow');
-  btn.className = high ? 'go' : 'danger';
-}
-
-function toggleGraphics() {
-  const current = getGraphicsQuality();
-  const next = current === 'high' ? 'low' : 'high';
-  try { localStorage.setItem(GRAPHICS_KEY, next); } catch (e) {}
-  applyGraphicsQuality(next);
-  paintGraphicsBlock();
-  toast(next === 'high' ? t('graphicsHigh') : t('graphicsLow'), 'tip');
-}
-
-async function paintSoundBlock() {
-  const statusEl = $('sound-status');
-  if (!statusEl) return;
-  let muted = false;
-  try { muted = localStorage.getItem('adrift_audio_muted') === '1'; } catch (e) {}
-  statusEl.textContent = muted ? t('soundOff') : t('soundOn');
-  statusEl.className = 'settings-row-sub' + (muted ? '' : ' on');
-}
-
-function openSettings() {
-  paintGraphicsBlock();
-  paintSoundBlock();
-  paintPushBlock();
-  showScreen('settings-screen');
-}
-
-function fmtAgo(iso) {
-  const diff = Math.max(0, Date.now() - new Date(iso).getTime());
-  const min = Math.floor(diff / 60000);
-  if (min < 1) return t('justNow');
-  if (min < 60) return min + t('mShort');
-  const h = Math.floor(min / 60);
-  if (h < 24) return h + t('hShort');
-  const d = Math.floor(h / 24);
-  if (d < 7) return d + t('dShort');
-  return new Date(iso).toLocaleDateString(
-    lang === 'ru' ? 'ru-RU' : 'en-US', { day: 'numeric', month: 'short' }
-  );
-}
-
-function makeHistoryRow(r) {
-  const isAttacker = r.role === 'attacker';
-  const isActive = r.status === 'active';
-
-  let outcomeKey, outcomeCls;
-  if (isActive) {
-    outcomeKey = 'historyActive'; outcomeCls = 'active';
-  } else if (isAttacker) {
-    outcomeKey = r.is_success ? 'historyWonAttacker' : 'historyLostAttacker';
-    outcomeCls = r.is_success ? 'won' : 'lost';
-  } else {
-    outcomeKey = r.is_success ? 'historyLostDefender' : 'historyWonDefender';
-    outcomeCls = r.is_success ? 'lost' : 'won';
-  }
-
-  const row = document.createElement('button');
-  row.className = 'history-row';
-
-  const head = document.createElement('div'); head.className = 'history-head';
-  const role = document.createElement('span');
-  role.className = 'history-role ' + (isAttacker ? 'attacker' : 'defender');
-  role.textContent = isAttacker ? '⚔️' : '🛡';
-  const name = document.createElement('span');
-  name.className = 'history-name';
-  name.textContent = r.opponent_username;
-  const time = document.createElement('span');
-  time.className = 'history-time';
-  time.textContent = fmtAgo(r.created_at);
-  head.append(role, name, time);
-
-  const parts = [t(outcomeKey)];
-  if (r.ether_spent) parts.push('⚡-' + r.ether_spent);
-  if (isAttacker && r.stolen_ether) parts.push('⚡+' + r.stolen_ether);
-  if (!isAttacker && r.stolen_ether) parts.push('⚡-' + r.stolen_ether);
-  if (r.destroyed_cubes) parts.push('🧱-' + r.destroyed_cubes);
-
-  const meta = document.createElement('div');
-  meta.className = 'history-meta ' + outcomeCls;
-  meta.textContent = parts.join(' · ');
-
-  row.append(head, meta);
-
-  row.addEventListener('click', () => openProfile(r.opponent_id, r.opponent_username));
-  return row;
-}
-
-async function loadHistoryList() {
-  const list = $('history-list');
-  list.innerHTML = '';
-  const note = document.createElement('div');
-  note.className = 'screen-note';
-  note.textContent = t('loading');
-  list.appendChild(note);
-
-  try {
-    const data = await api('/api/v1/raids/history?limit=50');
-    list.innerHTML = '';
-    const raids = data.raids || [];
-    if (!raids.length) {
-      const empty = document.createElement('div');
-      empty.className = 'screen-note';
-      empty.textContent = t('historyEmpty');
-      list.appendChild(empty);
-      return;
-    }
-    for (const r of raids) list.appendChild(makeHistoryRow(r));
-  } catch (e) {
-    list.innerHTML = '';
-    const err = document.createElement('div');
-    err.className = 'screen-note';
-    err.textContent = t('error') + ': ' + humanError(e);
-    list.appendChild(err);
-  }
-}
-
-function openHistory() {
-  hideScreens();
-  showScreen('history-screen');
-  loadHistoryList();
-}
-
-async function signOut() {
-  try { await unsubscribeFromPush(); } catch (e) {}
-  clearSession();
-  try {
-    localStorage.removeItem('adrift_refresh');
-  } catch (e) {}
-  window.location.reload();
-}
-
-function updateBioCounter() {
-  const bio = $('edit-bio');
-  $('edit-bio-counter').textContent = bio.value.length + ' / 280';
-}
-
-function buildAvatarPicker() {
-  const grid = $('avatar-grid');
-  grid.innerHTML = '';
-  const current = pendingAvatar !== undefined ? pendingAvatar : currentAvatar;
-
-  const def = document.createElement('button');
-  def.className = 'avatar-option' + (current === null ? ' selected' : '');
-  def.innerHTML = '<img src="' + DEFAULT_AVATAR_URL + '" alt="">';
-  def.addEventListener('click', () => {
-    pendingAvatar = null;
-    renderAvatar($('edit-profile-avatar'), null);
-    buildAvatarPicker();
-  });
-  grid.appendChild(def);
-
-  for (const [key, emoji] of Object.entries(AVATAR_PRESETS)) {
-    const isSel = current === 'preset:' + key;
-    const btn = document.createElement('button');
-    btn.className = 'avatar-option' + (isSel ? ' selected' : '');
-    btn.textContent = emoji;
-    btn.addEventListener('click', () => {
-      pendingAvatar = 'preset:' + key;
-      renderAvatar($('edit-profile-avatar'), 'preset:' + key);
-      buildAvatarPicker();
-    });
-    grid.appendChild(btn);
-  }
-}
-
-function openEditProfile() {
-  $('edit-profile-name').textContent = currentUsername || '—';
-  renderAvatar($('edit-profile-avatar'), currentAvatar);
-  $('edit-bio').value = currentBio || '';
-  updateBioCounter();
-  pendingAvatar = undefined;
-  buildAvatarPicker();
-  showScreen('edit-profile-screen');
-}
-
-async function saveEditProfile() {
-  const bioVal = $('edit-bio').value.trim() || null;
-  const btn = $('edit-save');
-  btn.disabled = true;
-  try {
-    const bioRes = await api('/api/v1/me/bio', {
-      method: 'POST',
-      body: JSON.stringify({ bio: bioVal }),
-    });
-    currentBio = bioRes.bio;
-
-    if (pendingAvatar !== undefined) {
-      const avRes = await api('/api/v1/me/avatar', {
-        method: 'POST',
-        body: JSON.stringify({ avatar: pendingAvatar }),
-      });
-      currentAvatar = avRes.avatar;
-      pendingAvatar = undefined;
-    }
-
-    hideScreens();
-    toast(t('profileSaved'), 'tip');
-  } catch (e) {
-    toast(humanError(e), 'error');
-  } finally {
-    btn.disabled = false;
-  }
-}
-async function visitIsland(userId, username) {
-  hideScreens(); fail(t('islandLoading') + ' ' + username + '...');
-  try {
-    const detail = await api(`/api/v1/islands/${userId}`);
-    targetUser = { user_id:userId, username };
-    resetCubes(); detail.cubes.forEach(addCube); refreshCounters();
-    setFlagVisual(detail.flag.hp, detail.flag.max_hp, detail.flag.color);
-    placeMinionInitial();
-    $('target-name').textContent = username;
-    setMode('visit'); ok();
-  } catch (e) { ok(); toast(humanError(e), 'error'); }
-}
-
-function pickCharge(cube) {
-  const hp = Math.max(0, cube.hp | 0);
-  const bal = econ.ether_balance | 0;
-  let want = 1;
-  if (hp > 25) want = 2;
-  if (hp > 75) want = 3;
-  while (want > 1 && bal < CHARGE_COST[want]) want--;
-  return want;
-}
-async function startRaid() {
-  if (!targetUser) return;
-  fail(t('raidStart'));
-  try {
-    const res = await api(`/api/v1/raids/${targetUser.user_id}/start`, { method:'POST' });
-    raidId = res.raid_id; flagWasOpen = false;
-    applyFlagState(res.flag_state);
-    $('ether').textContent = res.ether_balance; econ.ether_balance = res.ether_balance;
-    const detail = await api(`/api/v1/islands/${targetUser.user_id}`);
-    resetCubes(); detail.cubes.forEach(addCube); refreshCounters();
-    setFlagVisual(detail.flag.hp, detail.flag.max_hp, detail.flag.color);
-    placeMinionInitial();
-    setMode('raid');
-    updateFlagButton(); ok(); toast(t('raidStartOk'), 'tip');
-  } catch (e) { ok(); toast(humanError(e), 'error'); }
-}
-function raidGone(e) {
-  if (e.code === 'RAID_NOT_FOUND' || e.code === 'RAID_ALREADY_FINISHED') {
-    stopMusic();
-    toast(t('raidFinished'), 'warn'); raidId = null; setTimeout(returnHome, 1200); return true;
-  }
-  return false;
-}
-async function attackCube(cube) {
-  if (!raidId || attacking) return;
-  const charge = pickCharge(cube);
-  attacking = true;
-  try {
-    const res = await api(`/api/v1/raids/${raidId}/attack-cube`, { method:'POST', headers:{ 'Idempotency-Key': uid() }, body: JSON.stringify({ cube_id: cube.id, charge }) });
-    $('ether').textContent = res.ether_balance; econ.ether_balance = res.ether_balance;
-    SFX.hit();
-    if (res.cube.destroyed) {
-      removeCube(res.cube.id);
-      minion.panicBoost = 3;
-      minion.path = [];
-      SFX.collapse();
-    } else updateCubeHp(res.cube.id, res.cube.hp);
-    for (const c of res.collapsed) removeCube(c.id);
-    refreshCounters();
-    if (res.flag_state) applyFlagState(res.flag_state);
-  } catch (e) { if (!raidGone(e)) toast(humanError(e), 'error'); }
-  finally { attacking = false; }
-}
-async function attackFlag() {
-  if (!raidId || attacking) return;
-  if (raidFlagState && !raidFlagState.can_attack) { toast(flagLockedMessage(raidFlagState), 'error'); return; }
-  attacking = true;
-  try {
-    const res = await api(`/api/v1/raids/${raidId}/attack-flag`, { method:'POST', headers:{ 'Idempotency-Key': uid() } });
-    $('ether').textContent = res.ether_balance; econ.ether_balance = res.ether_balance;
-    setFlagVisual(res.flag_hp, res.flag_max_hp);
-    if (res.flag_state) applyFlagState(res.flag_state);
-    if (res.flag_destroyed && res.loot) {
-      raidId = null;
-      stopMusic();
-      $('loot-stolen').textContent = res.loot.stolen_ether;
-      $('loot-balance').textContent = res.loot.attacker_balance;
-      showScreen('loot-screen');
-      SFX.win();
-    } else {
-      SFX.hit();
-      toast('−' + res.damage + ' ' + t('dmgyou'), 'tip');
-    }
-  } catch (e) {
-    if (!raidGone(e)) {
-      if (e.code === 'FLAG_PROTECTED' && e.details) applyFlagState(e.details);
-      toast(e.code === 'FLAG_PROTECTED' ? flagLockedMessage(e.details) : humanError(e), 'error');
-    }
-  } finally { attacking = false; }
-}
-async function leaveRaid() {
-  if (raidId) { try { await api(`/api/v1/raids/${raidId}/finish`, { method:'POST' }); } catch (e) {} }
-  await returnHome();
-}
-
-let pointerStart = null;
-const TAP_MAX_MOVE = 8, TAP_MAX_TIME = 400;
-renderer.domElement.addEventListener('pointerdown', (ev) => {
-  if (ev.button !== 0) return;
-  pointerStart = { x:ev.clientX, y:ev.clientY, t:performance.now(), id:ev.pointerId };
-  updateAimFromClient(ev.clientX, ev.clientY); updateGhost();
+  infoEl.style.transition = 'none';
+  e.target.setPointerCapture(e.pointerId);
 });
-renderer.domElement.addEventListener('pointercancel', () => { pointerStart = null; });
-renderer.domElement.addEventListener('pointerup', async (ev) => {
-  if (!pointerStart || ev.pointerId !== pointerStart.id) return;
-  const moved = Math.hypot(ev.clientX - pointerStart.x, ev.clientY - pointerStart.y);
-  const elapsed = performance.now() - pointerStart.t;
-  pointerStart = null;
-  if (moved > TAP_MAX_MOVE || elapsed > TAP_MAX_TIME) return;
-  if (loading || menuMode) return;
-  if (camAnim.active) return;
-  if (!$('tip-screen').classList.contains('hidden')) return;
-  const ndcX = (ev.clientX / innerWidth) * 2 - 1;
-  const ndcY = -(ev.clientY / innerHeight) * 2 + 1;
-  if (ndcY < -0.76) return;
-  raycaster.setFromCamera({ x:ndcX, y:ndcY }, camera);
-  const minionHits = raycaster.intersectObjects(minionHitMeshes, false);
-  if (minionHits.length) { if (minion.mood === 'panic') { toast(t('minionPanic'), 'warn'); return; } openTip(); return; }
-  if (mode === 'own' && demolishMode) return handleDemolishTap(ndcX, ndcY);
-  if (mode === 'own' && buildMode) return handleBuildTap();
-  if (mode === 'raid') return handleRaidTap(ndcX, ndcY);
-});
-async function handleBuildTap() {
-  const p = computePlacement(aimPoint.x, aimPoint.y);
-  if (!p) return;
-  if (!p.valid) { toast(p.reason, 'error'); return; }
-  try {
-    const effectiveRotation = vertical ? 0 : rotationStep;
-    const res = await api('/api/v1/build/cube', {
-      method:'POST',
-      body: JSON.stringify({
-        x:p.x, y:p.y, z:p.z,
-        size_x:p.sx, size_y:p.sy, size_z:p.sz,
-        material: selectedMaterial, shape: selectedShape,
-        color: selectedBlockColor, rotation: effectiveRotation,
-      }),
-    });
-    addCube(res.cube);
-    $('ether').textContent = res.ether_balance; econ.ether_balance = res.ether_balance;
-    $('cubes').textContent = res.island_cube_count;
-    pulseCounter($('cubes'));
-    SFX.build();
-  } catch (e) { toast(humanError(e), 'error'); }
-}
-async function handleDemolishTap(ndcX, ndcY) {
-  raycaster.setFromCamera({ x:ndcX, y:ndcY }, camera);
-  const hits = raycaster.intersectObjects([...cubeMeshes.values()], false);
-  if (!hits.length) return;
-  const cube = hits[0].object.userData.cube;
-  try {
-    const res = await api(`/api/v1/build/cube/${cube.id}`, { method:'DELETE' });
-    for (const c of res.removed) removeCube(c.id);
-    refreshCounters();
-    pulseCounter($('cubes'));
-    $('ether').textContent = res.ether_balance; econ.ether_balance = res.ether_balance;
-    toast('+' + res.ether_refunded + ' ' + t('refund'), 'tip');
-    SFX.demolish();
-  } catch (e) { toast(humanError(e), 'error'); }
-}
-async function handleRaidTap(ndcX, ndcY) {
-  raycaster.setFromCamera({ x:ndcX, y:ndcY }, camera);
-  const targets = [...cubeMeshes.values(), ...flagGroup.children];
-  const hits = raycaster.intersectObjects(targets, false);
-  if (!hits.length) return;
-  const obj = hits[0].object;
-  if (flagGroup.children.includes(obj)) { await attackFlag(); return; }
-  await attackCube(obj.userData.cube);
-}
 
-$('claim-btn').addEventListener('click', claimEther);
-$('profile-btn').addEventListener('click', openEditProfile);
-$('edit-profile-close').addEventListener('click', hideScreens);
-$('edit-save').addEventListener('click', saveEditProfile);
-$('edit-bio').addEventListener('input', updateBioCounter);
-$('reload').addEventListener('click', () => loadOwnIsland().catch(e => toast(humanError(e), 'error')));
-$('btn-build').addEventListener('click', () => setBuildMode(!buildMode));
-$('btn-demolish').addEventListener('click', () => setDemolish(!demolishMode));
-$('btn-size').addEventListener('click', () => togglePalette('size-palette'));
-$('btn-rotate').addEventListener('click', () => {
-  if (!canRotate()) return;
-  rotationStep = (rotationStep + 1) % 4; vertical = false;
-  updateGhostGeometry(); updateRotateButton();
+infoEl.addEventListener('pointermove', (e) => {
+  if (!panelDrag || e.pointerId !== panelDrag.pointerId) return;
+  const dy = Math.max(0, e.clientY - panelDrag.startY);
+  panelDrag.offsetY = dy;
+  infoEl.style.transform = `translateY(${dy}px)`;
 });
-$('btn-vertical').addEventListener('click', () => {
-  if (!canVertical()) return;
-  vertical = !vertical; if (vertical) rotationStep = 0;
-  updateGhostGeometry(); updateRotateButton();
-});
-$('btn-block-color').addEventListener('click', () => togglePalette('block-palette'));
-$('btn-palette').addEventListener('click', () => togglePalette('palette'));
-$('btn-shop').addEventListener('click', openShop);
-$('shop-close').addEventListener('click', hideScreens);
-$('shop-confirm').addEventListener('click', hideScreens);
-$('btn-map').addEventListener('click', openMap);
-$('map-close').addEventListener('click', closeMap);
-$('map-zoom-in').addEventListener('click', () => zoomMapBy(1.4));
-$('map-zoom-out').addEventListener('click', () => zoomMapBy(1 / 1.4));
-$('map-center').addEventListener('click', setMapCameraToMe);
-$('profile-close').addEventListener('click', () => $('profile-screen').classList.add('hidden'));
-$('profile-copy').addEventListener('click', async () => {
-  if (!profileTarget) return;
-  const btn = $('profile-copy');
-  try {
-    await navigator.clipboard.writeText(String(profileTarget.user_id));
-    btn.classList.add('copied');
-    btn.textContent = t('copied');
+
+function endPanelDrag(e) {
+  if (!panelDrag || e.pointerId !== panelDrag.pointerId) return;
+  const dy = panelDrag.offsetY;
+  panelDrag = null;
+
+  infoEl.style.transition = 'transform 0.28s cubic-bezier(0.22, 1, 0.36, 1)';
+  const panelHeight = infoEl.offsetHeight;
+
+  if (dy > panelHeight * 0.35 || dy > 120) {
+    infoEl.style.transform = `translateY(${panelHeight + 60}px)`;
     setTimeout(() => {
-      btn.classList.remove('copied');
-      btn.textContent = t('copy');
-    }, 1500);
-  } catch (e) {
-    toast(t('copyFailed'), 'error');
-  }
-});
-$('profile-visit').addEventListener('click', () => {
-  if (!profileTarget) return;
-  const { user_id, username } = profileTarget;
-  hideScreens();
-  visitIsland(user_id, username);
-});
-$('world-close').addEventListener('click', hideScreens);
-$('btn-back').addEventListener('click', returnHome);
-$('btn-raid').addEventListener('click', startRaid);
-$('btn-flag').addEventListener('click', attackFlag);
-$('btn-leave').addEventListener('click', leaveRaid);
-$('loot-ok').addEventListener('click', returnHome);
-$('tip-ok').addEventListener('click', closeTip);
-$('onboard-ok').addEventListener('click', () => { localStorage.setItem('adrift_onboarded', '1'); closeOnboard(); });
-$('graphics-toggle').addEventListener('click', toggleGraphics);
-$('sound-btn').addEventListener('click', toggleAudio);
-$('push-toggle').addEventListener('click', togglePush);
-$('signout-btn').addEventListener('click', signOut);
-$('settings-btn').addEventListener('click', openSettings);
-$('settings-close').addEventListener('click', hideScreens);
-$('history-open-btn').addEventListener('click', openHistory);
-$('history-close').addEventListener('click', () => {
-  $('history-screen').classList.add('hidden');
-  showScreen('settings-screen');
-});
-$('menu-play').addEventListener('click', startGame);
-
-['pointerdown', 'touchstart', 'click', 'keydown'].forEach(function (evt) {
-  window.addEventListener(evt, function () {
-    tryUnlockAudio();
-    retryMusic();
-  }, true);
-});
-
-addEventListener('resize', () => { camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); renderer.setSize(innerWidth, innerHeight); });
-let lastFrame = performance.now();
-function animate() {
-  requestAnimationFrame(animate);
-  const now = performance.now();
-  const dt = Math.min((now - lastFrame) / 1000, 0.1);
-  lastFrame = now;
-  const nowSec = now / 1000;
-
-  if (menuMode) {
-    // В меню игровая камера не двигается.
-  } else if (updateCameraAnim(dt)) {
-    camera.lookAt(controls.target);
+      infoEl.style.display = 'none';
+      infoEl.style.transform = '';
+      infoEl.style.transition = '';
+      if (lastSelectedIdx !== -1) pullTab.classList.remove('hidden');
+    }, 300);
   } else {
-    controls.update();
+    infoEl.style.transform = 'translateY(0px)';
+    setTimeout(() => {
+      infoEl.style.transform = '';
+      infoEl.style.transition = '';
+    }, 300);
+  }
+}
+
+infoEl.addEventListener('pointerup', endPanelDrag);
+infoEl.addEventListener('pointercancel', endPanelDrag);
+
+renderer.domElement.addEventListener('pointerdown', (e) => {
+  pointerDownTime = performance.now();
+  pointerDownX = e.clientX;
+  pointerDownY = e.clientY;
+});
+
+renderer.domElement.addEventListener('pointerup', (e) => {
+  const dt = performance.now() - pointerDownTime;
+  const dx = e.clientX - pointerDownX;
+  const dy = e.clientY - pointerDownY;
+  if (dt > 350 || Math.hypot(dx, dy) > 12) return;
+
+  const rect = renderer.domElement.getBoundingClientRect();
+  const tapX = e.clientX - rect.left;
+  const tapY = e.clientY - rect.top;
+  const TAP_RADIUS_PX = 45;
+
+  let bestIdx = -1;
+  let bestDist = TAP_RADIUS_PX;
+  const v3 = new THREE.Vector3();
+
+  for (let i = 0; i < neurons.length; i++) {
+    const n = neurons[i];
+    v3.set(n.x, n.y, n.z).project(camera);
+    if (v3.z > 1) continue;
+    const sx = (v3.x * 0.5 + 0.5) * rect.width;
+    const sy = (-v3.y * 0.5 + 0.5) * rect.height;
+    const dist = Math.hypot(sx - tapX, sy - tapY);
+    if (dist < bestDist) {
+      bestDist = dist;
+      bestIdx = i;
+    }
   }
 
-  flagGroup.rotation.y += 0.005;
-  if (minion.thinking && nowSec >= minion.thinkUntil) finishThinking();
-  updateMinion(dt);
-  updateBubbles(nowSec, dt);
-  updateGhost();
-  renderer.render(scene, camera);
-}
-animate();
+  if (bestIdx !== -1) {
+    if (selectedGroup !== null) clearGroupSelection();
+    lastSelectedIdx = bestIdx;
+    showInfo(bestIdx);
+    highlightNeuron(bestIdx);
+    showNeuronEdges(bestIdx, 60);
+  } else {
+    infoEl.style.display = 'none';
+    clearEdgeMesh();
+    unhighlight();
+    if (lastSelectedIdx !== -1) pullTab.classList.remove('hidden');
+  }
+});
 
+function setPointColor(idx, r, g, b) {
+  colorAttr.array[idx * 3] = r;
+  colorAttr.array[idx * 3 + 1] = g;
+  colorAttr.array[idx * 3 + 2] = b;
+}
+
+function highlightNeuron(idx) {
+  if (highlightedIdx !== -1 && highlightedIdx !== idx) {
+    const p = baseColors;
+    setPointColor(highlightedIdx, p[highlightedIdx*3], p[highlightedIdx*3+1], p[highlightedIdx*3+2]);
+  }
+  setPointColor(idx, 1, 1, 1);
+  colorAttr.needsUpdate = true;
+  highlightedIdx = idx;
+}
+
+function unhighlight() {
+  if (highlightedIdx === -1) return;
+  const p = baseColors;
+  setPointColor(highlightedIdx, p[highlightedIdx*3], p[highlightedIdx*3+1], p[highlightedIdx*3+2]);
+  colorAttr.needsUpdate = true;
+  highlightedIdx = -1;
+}
+
+function showInfo(idx) {
+  const n = neurons[idx];
+  const out = adjacency[idx].length;
+  const inc = reverseAdjacency[idx].length;
+
+  infoEl.innerHTML = `
+    <div class="handle"></div>
+    <div class="close" onclick="document.getElementById('info').style.display='none'">x</div>
+    <div class="title">Neuron #${idx}</div>
+    <div class="subtitle">${n.type || 'unknown'}</div>
+    <div class="row"><span>Class</span><b>${inhibitory[idx] ? 'Inhibitory' : 'Excitatory'}</b></div>
+    <div class="row"><span>Outgoing links</span><b>${out}</b></div>
+    <div class="row"><span>Incoming links</span><b>${inc}</b></div>
+    <div class="slider-row">
+      <div class="slider-label"><span>Threshold</span><span class="val" id="th-val">${threshold[idx].toFixed(2)}</span></div>
+      <input type="range" id="th-slider" min="0.2" max="3.0" step="0.05" value="${threshold[idx]}">
+    </div>
+    <div class="slider-row">
+      <div class="slider-label"><span>Decay</span><span class="val" id="dc-val">${decay[idx].toFixed(2)}</span></div>
+      <input type="range" id="dc-slider" min="0.5" max="0.99" step="0.01" value="${decay[idx]}">
+    </div>
+    <div class="slider-row">
+      <div class="slider-label"><span>Outgoing strength</span><span class="val" id="ow-val">${outWeight[idx].toFixed(2)}</span></div>
+      <input type="range" id="ow-slider" min="0.1" max="3.0" step="0.05" value="${outWeight[idx]}">
+    </div>
+    <button class="reset-btn" id="reset-neuron">Reset this neuron</button>
+  `;
+  infoEl.style.display = 'block';
+  infoEl.style.transform = '';
+  infoEl.style.transition = '';
+  pullTab.classList.add('hidden');
+
+  document.getElementById('th-slider').addEventListener('input', (e) => {
+    threshold[idx] = parseFloat(e.target.value);
+    document.getElementById('th-val').textContent = threshold[idx].toFixed(2);
+  });
+  document.getElementById('dc-slider').addEventListener('input', (e) => {
+    decay[idx] = parseFloat(e.target.value);
+    document.getElementById('dc-val').textContent = decay[idx].toFixed(2);
+  });
+  document.getElementById('ow-slider').addEventListener('input', (e) => {
+    outWeight[idx] = parseFloat(e.target.value);
+    document.getElementById('ow-val').textContent = outWeight[idx].toFixed(2);
+  });
+  document.getElementById('reset-neuron').addEventListener('click', () => {
+    threshold[idx] = 1.0;
+    decay[idx] = 0.90;
+    outWeight[idx] = 1.0;
+    showInfo(idx);
+  });
+}
+
+// ---------------------------------------------------------------
+// Stimulation with dedicated glow layers
+// ---------------------------------------------------------------
+function clearStim() {
+  if (!activeStim) return;
+  for (const layer of activeStim.layerMeshes) {
+    scene.remove(layer.points);
+    layer.points.geometry.dispose();
+    layer.points.material.dispose();
+  }
+  activeStim = null;
+}
+
+function buildStimLayers(startIdx) {
+  const MAX_HOPS = 4;
+  const PER_HOP = 40;
+
+  const visited = new Set([startIdx]);
+  const layers = [[startIdx]];
+
+  for (let hop = 0; hop < MAX_HOPS; hop++) {
+    const prev = layers[layers.length - 1];
+    const next = [];
+    for (const idx of prev) {
+      for (const conn of adjacency[idx]) {
+        if (next.length >= PER_HOP) break;
+        if (!visited.has(conn.target)) {
+          visited.add(conn.target);
+          next.push(conn.target);
+        }
+      }
+      if (next.length >= PER_HOP) break;
+    }
+    if (next.length === 0) break;
+    layers.push(next);
+  }
+  return layers;
+}
+
+function stimulate(startIdx) {
+  clearStim();
+
+  const layers = buildStimLayers(startIdx);
+
+  const layerMeshes = [];
+  for (let li = 0; li < layers.length; li++) {
+    const positions = new Float32Array(layers[li].length * 3);
+    for (let i = 0; i < layers[li].length; i++) {
+      const n = neurons[layers[li][i]];
+      positions[i*3] = n.x;
+      positions[i*3+1] = n.y;
+      positions[i*3+2] = n.z;
+    }
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+
+    const mat = new THREE.PointsMaterial({
+      size: 20,
+      map: circleTexture,
+      color: 0xffffff,
+      transparent: true,
+      opacity: 0,
+      sizeAttenuation: true,
+      depthWrite: false,
+      blending: THREE.AdditiveBlending
+    });
+
+    const pts = new THREE.Points(geo, mat);
+    pts.frustumCulled = false;
+    scene.add(pts);
+
+    layerMeshes.push({ points: pts, layerIndex: li });
+  }
+
+  activeStim = {
+    startTime: performance.now(),
+    duration: 1800,
+    layerCount: layers.length,
+    layerMeshes: layerMeshes
+  };
+}
+
+function updateStim(now) {
+  if (!activeStim) return;
+  const t = (now - activeStim.startTime) / activeStim.duration;
+
+  if (t >= 1) {
+    clearStim();
+    return;
+  }
+
+  const L = activeStim.layerCount;
+  for (const lm of activeStim.layerMeshes) {
+    const layerStart = lm.layerIndex / L;
+    const layerSpan = 2 / L;
+    const lt = (t - layerStart) / layerSpan;
+
+    if (lt < 0 || lt > 1) {
+      lm.points.material.opacity = 0;
+      continue;
+    }
+
+    const pulse = Math.sin(lt * Math.PI);
+    lm.points.material.opacity = pulse;
+    lm.points.material.size = 18 + pulse * 35;
+  }
+}
+
+// ---------------------------------------------------------------
+// Buttons
+// ---------------------------------------------------------------
+document.getElementById('btn-stim').addEventListener('click', () => {
+  if (!neurons) return;
+
+  let target = highlightedIdx;
+  if (target === -1) {
+    target = (Math.random() * neurons.length) | 0;
+    highlightNeuron(target);
+  }
+  lastSelectedIdx = target;
+
+  infoEl.style.transition = 'transform 0.25s cubic-bezier(0.22, 1, 0.36, 1)';
+  infoEl.style.transform = 'translateY(120%)';
+  setTimeout(() => {
+    infoEl.style.display = 'none';
+    infoEl.style.transform = '';
+    infoEl.style.transition = '';
+    if (lastSelectedIdx !== -1) pullTab.classList.remove('hidden');
+  }, 260);
+
+  showNeuronEdges(target, 60);
+  stimulate(target);
+});
+
+document.getElementById('hud-reset').addEventListener('click', () => {
+  if (!v) return;
+
+  v.fill(0);
+  refractory.fill(0);
+  spiked.fill(0);
+  for (let i = 0; i < BUFFER_SIZE; i++) spikeBuffer[i].length = 0;
+  bufferHead = 0;
+
+  threshold.fill(1.0);
+  decay.fill(0.90);
+  outWeight.fill(1.0);
+
+  globalFatigue = 0;
+  settleSteps = 30;
+
+  if (selectedGroup !== null) clearGroupSelection();
+
+  clearEdgeMesh();
+  clearStim();
+  unhighlight();
+  infoEl.style.display = 'none';
+  pullTab.classList.add('hidden');
+
+  updateActivityColors();
+});
+
+document.getElementById('hud-fly').addEventListener('click', () => {
+  if (!flyModel) return;
+  flyModel.visible = !flyModel.visible;
+  document.getElementById('hud-fly').classList.toggle('active', flyModel.visible);
+});
+
+pullTab.addEventListener('click', () => {
+  if (lastSelectedIdx === -1) return;
+  showInfo(lastSelectedIdx);
+  highlightNeuron(lastSelectedIdx);
+  showNeuronEdges(lastSelectedIdx, 60);
+});
+
+// ---------------------------------------------------------------
+// Render loop
+// ---------------------------------------------------------------
+const hudStats = document.getElementById('hud-stats');
+let lastFpsTime = performance.now();
+let frameCount = 0;
+
+function animate(now) {
+  requestAnimationFrame(animate);
+
+  if (lastSimTime === 0) lastSimTime = now;
+  simAccum += now - lastSimTime;
+  lastSimTime = now;
+
+  let simulated = false;
+  while (simAccum >= SIM_STEP_MS) {
+    simulateStep();
+    simAccum -= SIM_STEP_MS;
+    simulated = true;
+  }
+
+  if (simulated) {
+    updateActivityColors();
+  }
+
+  controls.update();
+  updateStim(now);
+  composer.render();
+
+  frameCount++;
+  if (now - lastFpsTime > 1000) {
+    const fps = Math.round(frameCount * 1000 / (now - lastFpsTime));
+
+    let activeCount = 0;
+    let spikingCount = 0;
+    for (let i = 0; i < v.length; i++) {
+      if (spiked[i]) spikingCount++;
+      if (v[i] > threshold[i] * 0.1) activeCount++;
+    }
+
+    hudStats.innerHTML =
+      `${fps} FPS<br>` +
+      `${activeCount.toLocaleString('en')} active<br>` +
+      `${spikingCount.toLocaleString('en')} spiking`;
+
+    frameCount = 0;
+    lastFpsTime = now;
+  }
+}
+
+addEventListener('resize', () => {
+  camera.aspect = innerWidth / innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
+  composer.setSize(innerWidth, innerHeight);
+});
+
+// ---------------------------------------------------------------
+// Bootstrap
+// ---------------------------------------------------------------
 (async () => {
   try {
-    applyI18n(); loadBuildPrefs(); loadAudioPref(); updateSizeLabel(); updateGhostGeometry(); updateRotateButton(); updateBlockSwatch(); updateFlagSwatch();
-
-    showMenu(true);
-    playMusic('nowhereland');
-
-    showMenuGlobe();
-
-    applyGraphicsQuality(getGraphicsQuality());
-
-    await auth();
-    registerServiceWorker();
-    fail(t('loading'));
-    await loadCatalog();
-    await loadMe();
-    await loadOwnIsland();
-    await loadEconomy();
-    setMode('own'); buildMode = true; updatePanel(); ok();
-
-    $('menu-play').disabled = false;
-    pollRaidAlert();
-    attachRippleToAll();
-  } catch (e) {
-    if (e.message === 'AUTH_REQUIRED') {
-      ok();
-      return;
-    }
-    fail(t('error') + ': ' + humanError(e));
+    const data = await loadBrain();
+    buildNeurons(data);
+    buildAdjacency(data);
+    buildGroups();
+    loadFlyModel();
+    initSimulation();
+    requestAnimationFrame(animate);
+    loadingEl.style.opacity = '0';
+    setTimeout(() => loadingEl.remove(), 400);
+  } catch (err) {
+    loadingEl.innerHTML = '<div style="color:#ef476f;padding:20px;text-align:center;">' + err.message + '</div>';
+    console.error(err);
   }
 })();
 </script>
 </body>
-  </html>
+</html>
