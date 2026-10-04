@@ -696,6 +696,7 @@ import {
   attachTo, setMapVisible,
 } from './src/map3d.js';
 import { attachRippleToAll, popIn, pulseCounter } from './src/ui.js';
+import { loadEconomy, claimEther } from './src/economy.js';
 import { camAnim, savedCam, animateCamera, updateCameraAnim } from './src/camera.js';
 import {
   scene, camera, renderer, controls, ground, grid, flagGroup, noBuildRing,
@@ -1446,40 +1447,6 @@ async function pollRaidAlert() {
 }
 setInterval(() => { if (token) pollRaidAlert(); }, 25000);
 
-function renderEconomy() {
-  const btn = $('claim-btn'), hint = $('claim-hint');
-  if (state.econ.accrued_now >= 1) { btn.classList.add('ready'); hint.textContent = '+' + state.econ.accrued_now; }
-  else { btn.classList.remove('ready'); hint.textContent = fmtTime(state.econ.seconds_to_next); }
-}
-async function loadEconomy() {
-  try {
-    state.econ = await api('/api/v1/economy/rates');
-    $('ether').textContent = state.econ.ether_balance;
-    pulseCounter($('ether'));
-    renderEconomy();
-  } catch (e) {
-    if (state.econ.seconds_to_next <= 0) {
-      state.econ.seconds_to_next = 30;
-      renderEconomy();
-    }
-  }
-}
-async function claimEther() {
-  if (state.econ.accrued_now < 1) return;
-  try {
-    const res = await api('/api/v1/economy/claim', { method: 'POST' });
-    $('ether').textContent = res.ether_balance;
-    pulseCounter($('ether'));
-    toast('+' + res.claimed + ' ' + t('ether'), 'tip');
-    SFX.claim();
-    await loadEconomy();
-  } catch (e) {
-    if (e.code === 'CLAIM_TOO_EARLY') { await loadEconomy(); return; }
-    toast(humanError(e), 'error');
-  }
-}
-setInterval(() => { if (!token) return; if (state.econ.accrued_now >= 1) return; if (state.econ.seconds_to_next > 0) { state.econ.seconds_to_next -= 1; renderEconomy(); } else loadEconomy(); }, 1000);
-setInterval(() => { if (token) loadEconomy(); }, 30000);
 
 function closeAllPalettes() { ['palette','block-palette','size-palette'].forEach(id => $(id).classList.add('hidden')); }
 function buildFlagPalette() {
