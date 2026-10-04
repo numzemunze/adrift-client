@@ -10,7 +10,7 @@
 // tryUnlockAudio() — она висит на первых pointerdown/touchstart/click/keydown
 // в index.html.
 //
-// Мьют хранится в localStorage под ключом adrift_audio_muted ('1' или '0').
+// Мьют хранится в localStorage под ключом riftad_audio_muted ('1' или '0').
 // Затрагивает и эффекты, и музыку — это осознанно, одна кнопка на всё.
 
 import { MUSIC_URLS } from './config.js';
@@ -19,7 +19,7 @@ import { MUSIC_URLS } from './config.js';
 //: зависимости. Функция однострочная, дублирование дешевле.
 const $ = (id) => document.getElementById(id);
 
-const AUDIO_MUTED_KEY = 'adrift_audio_muted';
+const AUDIO_MUTED_KEY = 'riftad_audio_muted';
 
 //: Общий множитель громкости эффектов. 1.7 — потому что отдельные SFX
 //: заданы тихо (0.06–0.15), и без него они звучат почти неслышно

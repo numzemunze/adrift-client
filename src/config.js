@@ -2,6 +2,8 @@
 
 export const SUPABASE_URL = 'https://suaitzmqulcziefyryvf.supabase.co';
 export const SUPABASE_ANON_KEY = 'sb_publishable_pT2H1bpnu_fcBbevfvfOoQ_AhzZLQjH';
+// TODO: переезд после смены хостинга — домен Render-сервиса и адрес GitHub Pages
+// меняются вместе с переименованием сервиса и репозитория, поэтому пока как есть.
 export const API_URL = 'https://adrift-backend-ys3i.onrender.com';
 
 export const NET_TIMEOUT_MS = 15000;

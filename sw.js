@@ -1,4 +1,4 @@
-// ADRIFT Service Worker.
+// Riftad Service Worker.
 //
 // ЕДИНСТВЕННАЯ ЗАДАЧА: показать push-уведомление и открыть игру по тапу.
 // Никакого кэширования, никаких offline-стратегий — они превращают SW в
@@ -28,15 +28,15 @@ self.addEventListener('push', (event) => {
     data = event.data ? event.data.json() : {};
   } catch (e) {
     // Сервер всегда шлёт JSON, но на всякий случай не падаем.
-    data = { title: 'ADRIFT', body: event.data ? event.data.text() : '' };
+    data = { title: 'Riftad', body: event.data ? event.data.text() : '' };
   }
 
-  const title = data.title || 'ADRIFT';
+  const title = data.title || 'Riftad';
   const options = {
     body: data.body || '',
     // tag: уведомления с одинаковым tag'ом заменяют друг друга, а не
     // копятся стопкой. Три «забери эфир» подряд превратятся в одно.
-    tag: data.tag || 'adrift',
+    tag: data.tag || 'riftad',
     icon: './assets/Untitled72_20260916105743.png',
     badge: './assets/Untitled72_20260916105743.png',
     data: { url: data.url || './' },

@@ -3,9 +3,9 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-<title>ADRIFT</title>
+<title>Riftad</title>
 <link rel="manifest" href="./manifest.json">
-<link rel="icon" href="./favicon.png">
+<link rel="icon" href="./assets/Untitled72_20260916105743.png">
 <link rel="apple-touch-icon" href="./assets/Untitled72_20260916105743.png">
 <style>
   :root {
@@ -163,7 +163,7 @@
     100% { opacity:1; transform:translateX(-50%) translateY(0) scale(1); }
   }
   .menu-title::before {
-    content: 'ADRIFT';
+    content: 'Riftad';
     position: absolute; inset: 0;
     color: var(--accent);
     letter-spacing: 0.18em;
@@ -451,7 +451,7 @@
 <div id="app"></div>
 
 <div id="menu-screen">
-  <div class="menu-title">ADRIFT</div>
+  <div class="menu-title">Riftad</div>
   <button id="menu-play" class="menu-play" disabled>▶ Play</button>
 </div>
 
@@ -530,7 +530,7 @@
 <div class="screen hidden" id="onboard-screen">
   <div class="onboard-card">
     <div class="onboard-emoji">🏝️</div>
-    <div class="onboard-title" data-i18n="onboardTitle">Добро пожаловать в ADRIFT</div>
+    <div class="onboard-title" data-i18n="onboardTitle">Добро пожаловать в Riftad</div>
     <div class="onboard-step" data-i18n-html="onboard1"></div>
     <div class="onboard-step" data-i18n-html="onboard2"></div>
     <div class="onboard-step" data-i18n-html="onboard3"></div>
@@ -656,6 +656,9 @@
 }}
 </script>
 <script type="module">
+// Разовая миграция ключей localStorage (adrift_* → riftad_*). Побочный эффект
+// при импорте, поэтому модуль идёт первым — раньше config.js и audio.js.
+import './src/migrations.js';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import {
@@ -752,13 +755,13 @@ function handleOAuthCallback() {
 
   const refreshToken = params.get('refresh_token');
   if (refreshToken) {
-    try { localStorage.setItem('adrift_refresh', refreshToken); } catch (e) {}
+    try { localStorage.setItem('riftad_refresh', refreshToken); } catch (e) {}
   }
 
   if (myId) {
     try {
-      localStorage.setItem('adrift_token', token);
-      localStorage.setItem('adrift_id', myId);
+      localStorage.setItem('riftad_token', token);
+      localStorage.setItem('riftad_id', myId);
     } catch (e) {}
   }
 
@@ -770,9 +773,9 @@ function clearSession() {
   token = null;
   myId = null;
   try {
-    localStorage.removeItem('adrift_token');
-    localStorage.removeItem('adrift_id');
-    localStorage.removeItem('adrift_refresh');
+    localStorage.removeItem('riftad_token');
+    localStorage.removeItem('riftad_id');
+    localStorage.removeItem('riftad_refresh');
   } catch (e) {}
 }
 
@@ -780,7 +783,7 @@ const AUTH_ERRORS = ['TOKEN_EXPIRED','TOKEN_INVALID','TOKEN_MISSING','UNAUTHORIZ
 
 async function refreshSession() {
   let refreshToken;
-  try { refreshToken = localStorage.getItem('adrift_refresh'); } catch (e) { return false; }
+  try { refreshToken = localStorage.getItem('riftad_refresh'); } catch (e) { return false; }
   if (!refreshToken) return false;
 
   try {
@@ -800,8 +803,8 @@ async function refreshSession() {
 
     token = data.access_token;
     try {
-      localStorage.setItem('adrift_token', token);
-      if (data.refresh_token) localStorage.setItem('adrift_refresh', data.refresh_token);
+      localStorage.setItem('riftad_token', token);
+      if (data.refresh_token) localStorage.setItem('riftad_refresh', data.refresh_token);
     } catch (e) {}
 
     return true;
@@ -840,8 +843,8 @@ async function api(path, options = {}) {
 async function auth() {
   if (handleOAuthCallback()) return;
 
-  const saved = localStorage.getItem('adrift_token');
-  const savedId = localStorage.getItem('adrift_id');
+  const saved = localStorage.getItem('riftad_token');
+  const savedId = localStorage.getItem('riftad_id');
   if (saved && savedId) {
     token = saved; myId = savedId;
     try {
@@ -1733,7 +1736,7 @@ function startGame() {
     () => {
       controls.enabled = true;
       updatePanel();
-      if (!localStorage.getItem('adrift_onboarded')) {
+      if (!localStorage.getItem('riftad_onboarded')) {
         setTimeout(() => showScreen('onboard-screen'), 200);
       }
     }
@@ -1834,11 +1837,11 @@ function buildBlockPalette() {
   }
 }
 function saveBuildPrefs() {
-  try { localStorage.setItem('adrift_build_prefs', JSON.stringify({ shape: selectedShape, material: selectedMaterial, color: selectedBlockColor, sizeKey: selectedSize.key })); } catch (e) {}
+  try { localStorage.setItem('riftad_build_prefs', JSON.stringify({ shape: selectedShape, material: selectedMaterial, color: selectedBlockColor, sizeKey: selectedSize.key })); } catch (e) {}
 }
 function loadBuildPrefs() {
   try {
-    const raw = localStorage.getItem('adrift_build_prefs'); if (!raw) return;
+    const raw = localStorage.getItem('riftad_build_prefs'); if (!raw) return;
     const p = JSON.parse(raw);
     if (p.shape && SHOP_SHAPES.some(s => s.key === p.shape)) selectedShape = p.shape;
     if (p.material && SHOP_MATERIALS.some(m => m.key === p.material)) selectedMaterial = p.material;
@@ -2350,7 +2353,7 @@ async function togglePush() {
   }
 }
 
-const GRAPHICS_KEY = 'adrift_graphics';
+const GRAPHICS_KEY = 'riftad_graphics';
 
 function getGraphicsQuality() {
   try { return localStorage.getItem(GRAPHICS_KEY) || 'high'; } catch (e) { return 'high'; }
@@ -2412,7 +2415,7 @@ async function paintSoundBlock() {
   const statusEl = $('sound-status');
   if (!statusEl) return;
   let muted = false;
-  try { muted = localStorage.getItem('adrift_audio_muted') === '1'; } catch (e) {}
+  try { muted = localStorage.getItem('riftad_audio_muted') === '1'; } catch (e) {}
   statusEl.textContent = muted ? t('soundOff') : t('soundOn');
   statusEl.className = 'settings-row-sub' + (muted ? '' : ' on');
 }
@@ -2523,7 +2526,7 @@ async function signOut() {
   try { await unsubscribeFromPush(); } catch (e) {}
   clearSession();
   try {
-    localStorage.removeItem('adrift_refresh');
+    localStorage.removeItem('riftad_refresh');
   } catch (e) {}
   window.location.reload();
 }
@@ -2829,7 +2832,7 @@ $('btn-flag').addEventListener('click', attackFlag);
 $('btn-leave').addEventListener('click', leaveRaid);
 $('loot-ok').addEventListener('click', returnHome);
 $('tip-ok').addEventListener('click', closeTip);
-$('onboard-ok').addEventListener('click', () => { localStorage.setItem('adrift_onboarded', '1'); closeOnboard(); });
+$('onboard-ok').addEventListener('click', () => { localStorage.setItem('riftad_onboarded', '1'); closeOnboard(); });
 $('graphics-toggle').addEventListener('click', toggleGraphics);
 $('sound-btn').addEventListener('click', toggleAudio);
 $('push-toggle').addEventListener('click', togglePush);
