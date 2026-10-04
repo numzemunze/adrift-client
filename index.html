@@ -127,6 +127,15 @@
     filter: saturate(.5);
   }
 
+  /* Активная кнопка (toggle вкл) — синяя. */
+  button.on {
+    background: linear-gradient(180deg, #60a5fa, #2563eb);
+    box-shadow:
+      0 4px 0 #1e40af,
+      0 6px 18px rgba(59,130,246,.45),
+      inset 0 2px 0 rgba(255,255,255,.35);
+  }
+
   /* Основная кнопка — золотая, самая заметная. */
   button.primary {
     background: linear-gradient(180deg, var(--accent-light), var(--accent));
@@ -157,15 +166,6 @@
       0 4px 0 var(--danger-dark),
       0 6px 18px rgba(220,38,38,.45),
       inset 0 2px 0 rgba(255,255,255,.3);
-  }
-
-  /* Активная кнопка (toggle вкл) — синяя. */
-  button.on {
-    background: linear-gradient(180deg, #60a5fa, #2563eb);
-    box-shadow:
-      0 4px 0 #1e40af,
-      0 6px 18px rgba(59,130,246,.45),
-      inset 0 2px 0 rgba(255,255,255,.35);
   }
 
   /* Компактная иконочная кнопка. */
@@ -476,7 +476,7 @@
   .size-btn { display:flex; flex-direction:column; align-items:center; gap:4px; min-width:100px; padding:12px 10px; }
   .size-btn .glyph { font-family:ui-monospace,monospace; font-size:15px; font-weight:700; }
   .size-btn .price { font-size:11px; opacity:.75; }
-  .size-btn.selected { background:linear-gradient(180deg,#3b82f6,#2563eb); border-color:#60a5fa; }
+  .size-btn.selected { background:linear-gradient(180deg,#3b82f6,#2563eb); border:2px solid var(--accent); }
   .shop-section { margin-bottom:18px; }
   .shop-label { font-size:12px; color: var(--fg-2); text-transform:uppercase; letter-spacing:.9px; margin-bottom:10px; }
   .shop-grid { display:grid; grid-template-columns:repeat(2, 1fr); gap:10px; }
