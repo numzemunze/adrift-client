@@ -1,6 +1,6 @@
 {
-  "name": "ADRIFT",
-  "short_name": "ADRIFT",
+  "name": "Riftad",
+  "short_name": "Riftad",
   "description": "Cubic sandbox with async PvP, live economy and a world map.",
   "start_url": "./",
   "scope": "./",
