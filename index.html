@@ -757,8 +757,21 @@
     min-height: 64px;
     white-space: pre-wrap;
     word-break: break-word;
-    border-left: 3px solid transparent;
-    border-image: linear-gradient(180deg, var(--accent), transparent) 1;
+    padding-left: 16px;
+    border-left: none;
+  }
+
+  /* Полоска слева: псевдоэлемент вместо border-image — тот не сочетается
+     с border-radius и рисовал прямоугольный край поверх скругления. */
+  .profile-bio::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 4px;
+    bottom: 4px;
+    width: 3px;
+    border-radius: 2px;
+    background: linear-gradient(180deg, var(--accent), transparent 80%);
   }
   .profile-bio.empty { color: var(--fg-2); font-style:italic; }
   .profile-actions { display:grid; grid-template-columns:1fr; gap:10px; }
@@ -789,6 +802,17 @@
     height: 1px;
     background: linear-gradient(90deg, transparent, rgba(255,255,255,.15), transparent);
     pointer-events: none;
+  }
+
+  /* Вложенные панели внутри карточки: внешняя остаётся объёмной,
+     внутренние становятся плоскими и не складывают padding. */
+  .profile-card .settings-section,
+  .profile-card .stats-block {
+    background: rgba(255,255,255,.03);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.06);
+    padding: 14px 16px;
+    border-radius: 14px;
+    margin-bottom: 12px;
   }
   .stats-group { margin-bottom:14px; }
   .stats-group:last-child { margin-bottom:0; }
