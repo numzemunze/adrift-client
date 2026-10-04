@@ -201,25 +201,71 @@
   button * { position:relative; z-index:1; }
 
   .pill {
-    background: var(--bg-1);
-    backdrop-filter:blur(10px);
-    padding:7px 13px; border-radius:22px; font-size:14px; font-weight:600;
-    font-variant-numeric:tabular-nums; color: var(--fg-0);
-    border: 1px solid var(--border);
-    box-shadow: 0 3px 14px rgba(0,0,0,.4), inset 0 1px 0 rgba(255,255,255,.14);
-    font-family:inherit;
-    transition: transform .15s ease, background .2s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 7px 14px;
+    border-radius: var(--radius-pill);
+    font-family: inherit;
+    font-size: 15px;
+    font-weight: 800;
+    color: var(--fg-0);
+    background: linear-gradient(180deg, var(--bg-3), var(--bg-2));
+    border: none;
+    box-shadow:
+      0 3px 0 rgba(0,0,0,.4),
+      0 4px 12px rgba(0,0,0,.3),
+      inset 0 1.5px 0 rgba(255,255,255,.18);
+    transition: transform .08s ease, box-shadow .08s ease;
   }
   .pill:active { transform:scale(.95); }
-  .pill b { color: var(--info); font-weight:700; }
+  .pill b {
+    font-size: 17px;
+    font-weight: 900;
+    color: var(--fg-0);
+    font-variant-numeric: tabular-nums;
+    text-shadow: 0 1px 2px rgba(0,0,0,.5);
+    min-width: 1ch;
+    text-align: left;
+  }
+
+  .pill-ico {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    flex-shrink: 0;
+    color: var(--fg-1);
+  }
+  .pill-ico svg { width:100%; height:100%; display:block; }
+
+  /* Цвет иконки — по ресурсу. */
+  .pill-ether  .pill-ico { color: var(--accent); }
+  .pill-cubes  .pill-ico { color: #f97316; }
+  .pill-flag   .pill-ico { color: #ef4444; }
+  .pill-target .pill-ico { color: var(--info); }
+
+  /* Подложка подсвечена только у эфира — это главный ресурс. */
+  .pill-ether {
+    background: linear-gradient(180deg, rgba(246,168,50,.22), rgba(246,168,50,.08));
+    box-shadow:
+      0 3px 0 rgba(184,114,14,.5),
+      0 4px 14px rgba(246,168,50,.3),
+      inset 0 1.5px 0 rgba(255,200,92,.35);
+  }
+
   .pill-btn { display:flex; gap:8px; align-items:center; cursor:pointer; }
   .pill-btn.ready {
-    background: linear-gradient(180deg,var(--success),var(--success-dark));
-    border-color:var(--success);
-    box-shadow: 0 4px 20px rgba(34,197,94,.6), inset 0 1px 0 rgba(255,255,255,.25);
+    background: linear-gradient(180deg, var(--success-light), var(--success));
+    box-shadow:
+      0 3px 0 var(--success-dark),
+      0 4px 14px rgba(34,197,94,.5),
+      inset 0 1.5px 0 rgba(255,255,255,.35);
     animation: readyPulse 2s ease-in-out infinite;
   }
-  .pill-btn.ready b { color: var(--fg-0); }
+  .pill-btn.ready .pill-ico { color: #06240f; }
+  .pill-btn.ready b { color: #06240f; text-shadow: none; }
   @keyframes readyPulse {
     0%,100% { box-shadow: 0 4px 20px rgba(34,197,94,.6), inset 0 1px 0 rgba(255,255,255,.25); }
     50% { box-shadow: 0 4px 30px rgba(34,197,94,.9), inset 0 1px 0 rgba(255,255,255,.35); }
@@ -581,12 +627,12 @@
 
 <div id="net-banner" data-i18n="netDown">📡 Нет соединения с сервером…</div>
 <div class="bar" id="top">
-  <button class="pill pill-btn" id="claim-btn" title="Claim">⚡ <b id="ether">—</b><span id="claim-hint">…</span></button>
-  <div class="pill">🧱 <b id="cubes">—</b></div>
-  <div class="pill">🚩 <b id="flag">—</b></div>
-  <div class="pill hidden" id="target-pill">👁 <b id="target-name">—</b></div>
-  <button class="pill pill-btn" id="profile-btn" title="Profile">👤</button>
-  <button class="pill pill-btn" id="settings-btn" title="Settings">⚙️</button>
+  <button class="pill pill-btn pill-ether" id="claim-btn" title="Claim"><span class="pill-ico" data-icon="ether"></span><b id="ether">—</b><span id="claim-hint">…</span></button>
+  <div class="pill pill-cubes"><span class="pill-ico" data-icon="cubes"></span><b id="cubes">—</b></div>
+  <div class="pill pill-flag"><span class="pill-ico" data-icon="flag"></span><b id="flag">—</b></div>
+  <div class="pill pill-target hidden" id="target-pill"><span class="pill-ico" data-icon="target"></span><b id="target-name">—</b></div>
+  <button class="pill pill-btn" id="profile-btn" title="Profile"><span class="pill-ico" data-icon="profile"></span></button>
+  <button class="pill pill-btn" id="settings-btn" title="Settings"><span class="pill-ico" data-icon="settings"></span></button>
 </div>
 <div id="price-tag" class="hidden">10⚡</div>
 <div class="bar hidden" id="bottom">
@@ -828,6 +874,7 @@ import {
 } from './src/scene.js';
 import { token, myId, clearSession, api, auth } from './src/auth.js';
 import { state } from './src/state.js';
+import { mountIcons } from './src/icons.js';
 
 let catalog = {};
 const SPHERE_RADIUS_FOR_MENU = 100;   // синхронно с map3d.js
@@ -2638,6 +2685,7 @@ animate();
 
 (async () => {
   try {
+    mountIcons();
     applyI18n(); loadBuildPrefs(); loadAudioPref(); updateSizeLabel(); updateGhostGeometry(); updateRotateButton(); updateBlockSwatch(); updateFlagSwatch();
 
     showMenu(true);
