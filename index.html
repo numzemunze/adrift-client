@@ -696,31 +696,12 @@ import {
   attachTo, setMapVisible,
 } from './src/map3d.js';
 import { attachRippleToAll, popIn, pulseCounter } from './src/ui.js';
+import { state } from './src/state.js';
 
 let token = null, myId = null;
-let mode = 'own';
-let buildMode = true;
-let demolishMode = false;
-let rotationStep = 0;
-let vertical = false;
-let selectedBlockColor = 'wood';
-let selectedSize = BLOCK_SIZES[0];
-let selectedShape = 'block';
-let selectedMaterial = 'wood';
 let catalog = {};
-let raidId = null;
-let raidFlagState = null;
-let flagWasOpen = false;
-let targetUser = null;
-let attacking = false;
-let econ = { accrued_now: 0, seconds_to_next: 0, ether_balance: 0 };
-let myFlagColor = 'red';
-let displayFlagColor = 'red';
-let currentFlagHp = 0, currentFlagMax = 0;
-let myRaidAlert = false;
-let myWorldX = null, myWorldY = null;
 const SPHERE_RADIUS_FOR_MENU = 100;   // синхронно с map3d.js
-let menuMode = true;
+
 
 async function signIn() {
   throw new Error('Use signInWithGoogle()');
@@ -991,13 +972,13 @@ scene.add(flagGroup);
 initBlocks(scene);
 
 function setFlagVisual(hp, maxHp, color) {
-  currentFlagHp = hp; currentFlagMax = maxHp;
-  if (color) displayFlagColor = color;
+  state.currentFlagHp = hp; state.currentFlagMax = maxHp;
+  if (color) state.displayFlagColor = color;
   const ratio = maxHp > 0 ? Math.max(0, Math.min(1, hp/maxHp)) : 0;
-  const base = new THREE.Color(FLAG_COLORS_HEX[displayFlagColor] || FLAG_COLORS_HEX.red);
+  const base = new THREE.Color(FLAG_COLORS_HEX[state.displayFlagColor] || FLAG_COLORS_HEX.red);
   banner.material.color.copy(base).lerp(new THREE.Color(0x7f1d1d), 1 - ratio);
   $('flag').textContent = Math.max(0, hp) + ' / ' + maxHp;
-  setMinionFlagColor(displayFlagColor);
+  setMinionFlagColor(state.displayFlagColor);
 }
 
 const emojiTexCache = new Map();
@@ -1101,8 +1082,8 @@ const minion = {
 function setMinionFlagColor(color) { minionFlagMat.color.set(FLAG_COLORS_HEX[color] || FLAG_COLORS_HEX.red); }
 function refreshMinionMood() {
   if (minion.frozen || minion.thinking) return;
-  if (mode === 'raid') minion.mood = 'panic';
-  else if (mode === 'own' && myRaidAlert) minion.mood = 'alert';
+  if (state.mode === 'raid') minion.mood = 'panic';
+  else if (state.mode === 'own' && state.myRaidAlert) minion.mood = 'alert';
   else minion.mood = 'calm';
 }
 function cellFree(x, z) {
@@ -1219,7 +1200,7 @@ function idleMinion(now, dt) {
 
 function updateMinion(dt) {
   const now = performance.now() / 1000;
-  if (!menuMode && !minion.frozen && !minion.thinking && now > minion.nextChirp) {
+  if (!state.menuMode && !minion.frozen && !minion.thinking && now > minion.nextChirp) {
     if (minion.mood === 'panic') {
       SFX.buoyPanic();
       minion.nextChirp = now + 0.45 + Math.random() * 0.7;
@@ -1337,7 +1318,7 @@ function updateCameraAnim(dt) {
 
 function pickTip() {
   const bundle = I18N[lang];
-  if (mode === 'visit') {
+  if (state.mode === 'visit') {
     const pool = bundle.foreignTips || []; if (!pool.length) return t('flagProtected');
     let idx = Math.floor(Math.random() * pool.length);
     if (pool[idx] === minion.lastTipText) idx = (idx + 1) % pool.length;
@@ -1400,40 +1381,40 @@ const ghost = new THREE.Mesh(new THREE.BoxGeometry(1,1,1), ghostMat);
 ghost.visible = false; scene.add(ghost);
 
 function effFootprint() {
-  const s = selectedSize;
-  if (vertical) return { sx: s.sy, sy: s.sx, sz: s.sz };
-  if (rotationStep % 2 === 1) return { sx: s.sz, sy: s.sy, sz: s.sx };
+  const s = state.selectedSize;
+  if (state.vertical) return { sx: s.sy, sy: s.sx, sz: s.sz };
+  if (state.rotationStep % 2 === 1) return { sx: s.sz, sy: s.sy, sz: s.sx };
   return { sx: s.sx, sy: s.sy, sz: s.sz };
 }
 function canRotate() {
-  if (selectedShape === 'triangle') return true;
-  return selectedSize.sx !== selectedSize.sz;
+  if (state.selectedShape === 'triangle') return true;
+  return state.selectedSize.sx !== state.selectedSize.sz;
 }
 function canVertical() {
-  return selectedSize.sy === 1 && selectedSize.sx * selectedSize.sz > 1;
+  return state.selectedSize.sy === 1 && state.selectedSize.sx * state.selectedSize.sz > 1;
 }
 function updateGhostGeometry() {
   const { sx: sxW, sy: syW, sz: szW } = effFootprint();
-  const effectiveRotation = vertical ? 0 : rotationStep;
+  const effectiveRotation = state.vertical ? 0 : state.rotationStep;
   const { sx, sy, sz } = localDims(sxW, syW, szW, effectiveRotation);
   ghost.geometry.dispose();
-  ghost.geometry = shapeGeometry(selectedShape, sx, sy, sz);
-  if (selectedShape === 'triangle' && effectiveRotation) ghost.rotation.y = effectiveRotation * Math.PI / 2;
+  ghost.geometry = shapeGeometry(state.selectedShape, sx, sy, sz);
+  if (state.selectedShape === 'triangle' && effectiveRotation) ghost.rotation.y = effectiveRotation * Math.PI / 2;
   else ghost.rotation.y = 0;
 }
 function updateRotateButton() {
   const btnH = $('btn-rotate'), btnV = $('btn-vertical');
-  const on = buildMode && mode === 'own' && !menuMode;
+  const on = state.buildMode && state.mode === 'own' && !state.menuMode;
   btnH.textContent = '↔️'; btnV.textContent = '↕️';
   btnH.classList.toggle('hidden', !canRotate() || !on);
   btnV.classList.toggle('hidden', !canVertical() || !on);
-  btnH.classList.toggle('rot-on', rotationStep !== 0);
-  btnV.classList.toggle('rot-on', vertical);
+  btnH.classList.toggle('rot-on', state.rotationStep !== 0);
+  btnV.classList.toggle('rot-on', state.vertical);
 }
-function updateBlockSwatch() { $('swatch-block').style.background = BLOCK_COLORS_CSS[selectedBlockColor] || '#c9a06a'; }
+function updateBlockSwatch() { $('swatch-block').style.background = BLOCK_COLORS_CSS[state.selectedBlockColor] || '#c9a06a'; }
 function updateFlagSwatch() {
   const el = $('swatch-flag');
-  if (el) el.style.background = FLAG_COLORS_CSS[myFlagColor] || '#ef4444';
+  if (el) el.style.background = FLAG_COLORS_CSS[state.myFlagColor] || '#ef4444';
 }
 
 const raycaster = new THREE.Raycaster();
@@ -1469,7 +1450,7 @@ function computePlacement(ndcX, ndcY) {
     if (!raycaster.ray.intersectPlane(plane, hitPoint)) return null;
     x = Math.round(hitPoint.x - sx/2); y = 0; z = Math.round(hitPoint.z - sz/2);
   }
-  const baseCost = cubeTypeInfo(selectedMaterial, selectedShape).cost;
+  const baseCost = cubeTypeInfo(state.selectedMaterial, state.selectedShape).cost;
   const price = baseCost * sx * sy * sz;
   if (x < -32 || x + sx - 1 > 32 || z < -32 || z + sz - 1 > 32 || y < 0 || y + sy - 1 > 32)
     return { x, y, z, sx, sy, sz, valid:false, reason: t('outOfBounds'), price };
@@ -1496,18 +1477,18 @@ function computePlacement(ndcX, ndcY) {
       }
     }
   }
-  if (econ.ether_balance < price) return { x, y, z, sx, sy, sz, valid:false, reason: t('noEther'), price };
+  if (state.econ.ether_balance < price) return { x, y, z, sx, sy, sz, valid:false, reason: t('noEther'), price };
   return { x, y, z, sx, sy, sz, valid:true, reason:'', price };
 }
 
 function updateGhost() {
-  if (menuMode || !buildMode || mode !== 'own' || demolishMode) {
+  if (state.menuMode || !state.buildMode || state.mode !== 'own' || state.demolishMode) {
     ghost.visible = false; priceEl.classList.add('hidden'); noBuildRing.visible = false; return;
   }
   noBuildRing.visible = true;
   const p = computePlacement(aimPoint.x, aimPoint.y);
   if (!p) { ghost.visible = false; priceEl.classList.add('hidden'); return; }
-  const flat = isFlatHalf(selectedShape, p.sy);
+  const flat = isFlatHalf(state.selectedShape, p.sy);
   const cy = p.y + (flat ? p.sy * 0.25 : p.sy / 2);
   ghost.position.set(p.x + p.sx / 2, cy, p.z + p.sz / 2);
   ghostMat.color.set(p.valid ? 0x22c55e : 0xef4444);
@@ -1528,18 +1509,18 @@ function flagLockedMessage(st) {
   return t('flagNeedPath', { width: st.corridor_width });
 }
 function applyFlagState(st) {
-  raidFlagState = st;
+  state.raidFlagState = st;
   if (!st) { updateFlagButton(); return; }
-  if (st.can_attack && !flagWasOpen) { flagWasOpen = true; toast(t('flagOpened'), 'tip'); }
-  if (!st.can_attack && flagWasOpen) flagWasOpen = false;
+  if (st.can_attack && !state.flagWasOpen) { state.flagWasOpen = true; toast(t('flagOpened'), 'tip'); }
+  if (!st.can_attack && state.flagWasOpen) state.flagWasOpen = false;
   updateFlagButton();
 }
 function updateFlagButton() {
   const btn = $('btn-flag'), label = $('btn-flag-label'), ico = $('btn-flag-ico');
-  if (mode !== 'raid' || !raidFlagState) { if (label) label.textContent = t('flag'); if (ico) ico.textContent = '🚩'; btn.classList.add('locked'); return; }
-  if (raidFlagState.can_attack) { if (label) label.textContent = t('flag'); if (ico) ico.textContent = '🚩'; btn.classList.remove('locked'); return; }
+  if (state.mode !== 'raid' || !state.raidFlagState) { if (label) label.textContent = t('flag'); if (ico) ico.textContent = '🚩'; btn.classList.add('locked'); return; }
+  if (state.raidFlagState.can_attack) { if (label) label.textContent = t('flag'); if (ico) ico.textContent = '🚩'; btn.classList.remove('locked'); return; }
   btn.classList.add('locked');
-  if (raidFlagState.percent < raidFlagState.min_percent) { if (ico) ico.textContent = '🔒'; if (label) label.textContent = raidFlagState.percent + '%'; }
+  if (state.raidFlagState.percent < state.raidFlagState.min_percent) { if (ico) ico.textContent = '🔒'; if (label) label.textContent = state.raidFlagState.percent + '%'; }
   else { if (ico) ico.textContent = '🚧'; if (label) label.textContent = t('flag'); }
 }
 
@@ -1550,8 +1531,8 @@ function applyTab(id, visible) {
   } else el.classList.add('hidden');
 }
 function updatePanel() {
-  if (menuMode) return;
-  const on = buildMode && mode === 'own';
+  if (state.menuMode) return;
+  const on = state.buildMode && state.mode === 'own';
   $('top').classList.remove('hidden');
   $('btn-build').classList.toggle('on', on);
   $('btn-size').classList.toggle('hidden', !on);
@@ -1560,24 +1541,24 @@ function updatePanel() {
   $('btn-demolish').classList.toggle('hidden', !on);
   $('btn-shop').classList.toggle('hidden', !on);
   $('reload').classList.toggle('hidden', on);
-  $('target-pill').classList.toggle('hidden', mode === 'own');
+  $('target-pill').classList.toggle('hidden', state.mode === 'own');
   updateRotateButton();
   updateShopMini();
   updateFlagSwatch();
-  applyTab('bottom', mode === 'own');
-  applyTab('bottom-visit', mode === 'visit');
-  applyTab('bottom-raid', mode === 'raid');
+  applyTab('bottom', state.mode === 'own');
+  applyTab('bottom-visit', state.mode === 'visit');
+  applyTab('bottom-raid', state.mode === 'raid');
 }
 function setMode(next) {
-  if (next === 'raid' && mode !== 'raid') playMusic('clubDiver');
-  else if (next !== 'raid' && mode === 'raid') stopMusic();
-  mode = next;
-  if (next !== 'own') buildMode = false;
+  if (next === 'raid' && state.mode !== 'raid') playMusic('clubDiver');
+  else if (next !== 'raid' && state.mode === 'raid') stopMusic();
+  state.mode = next;
+  if (next !== 'own') state.buildMode = false;
   minion.frozen = false; minion.thinking = false; minion.panicBoost = 0; minion.idleAct = null;
   resetMinionPath(); refreshMinionMood(); closeAllPalettes(); updatePanel();
 }
-function setBuildMode(on) { buildMode = on; if (!on) setDemolish(false); closeAllPalettes(); updatePanel(); }
-function setDemolish(on) { demolishMode = on; $('btn-demolish').classList.toggle('demolish-on', on); updatePanel(); }
+function setBuildMode(on) { state.buildMode = on; if (!on) setDemolish(false); closeAllPalettes(); updatePanel(); }
+function setDemolish(on) { state.demolishMode = on; $('btn-demolish').classList.toggle('demolish-on', on); updatePanel(); }
 
 function showScreen(id) {
   const el = $(id);
@@ -1635,7 +1616,7 @@ function showGoogleLogin() {
 }
 
 function showMenu(on) {
-  menuMode = on;
+  state.menuMode = on;
   const ms = $('menu-screen');
   if (on) {
     ms.classList.remove('hidden');
@@ -1709,8 +1690,8 @@ async function showMenuGlobe() {
 
 // Запуск игры: меню fade-out, карта уходит.
 function startGame() {
-  if (!menuMode) return;
-  menuMode = false;
+  if (!state.menuMode) return;
+  state.menuMode = false;
   $('menu-play').disabled = true;
   scheduleMusicStop(25000, 5000);
 
@@ -1746,25 +1727,25 @@ function startGame() {
 async function loadOwnIsland() {
   const data = await api(`/api/v1/islands/${myId}`);
   resetCubes(); data.cubes.forEach(addCube); refreshCounters();
-  setFlagVisual(data.flag.hp, data.flag.max_hp, myFlagColor);
+  setFlagVisual(data.flag.hp, data.flag.max_hp, state.myFlagColor);
   placeMinionInitial();
 }
 async function loadMe() {
   const me = await api('/api/v1/me');
-  $('ether').textContent = me.ether_balance; econ.ether_balance = me.ether_balance;
+  $('ether').textContent = me.ether_balance; state.econ.ether_balance = me.ether_balance;
   pulseCounter($('ether'));
-  myFlagColor = me.flag_color || 'red'; displayFlagColor = myFlagColor;
-  setMinionFlagColor(myFlagColor);
+  state.myFlagColor = me.flag_color || 'red'; state.displayFlagColor = state.myFlagColor;
+  setMinionFlagColor(state.myFlagColor);
   updateFlagSwatch();
-  myWorldX = me.world_pos ? me.world_pos.x : null;
-  myWorldY = me.world_pos ? me.world_pos.y : null;
+  state.myWorldX = me.world_pos ? me.world_pos.x : null;
+  state.myWorldY = me.world_pos ? me.world_pos.y : null;
   currentUsername = me.username || '';
   currentBio = me.bio || null;
   currentAvatar = me.avatar || null;
 }
 async function returnHome() {
-  targetUser = null; raidId = null; raidFlagState = null; flagWasOpen = false; hideScreens();
-  setDemolish(false); setMode('own'); buildMode = true; updatePanel();
+  state.targetUser = null; state.raidId = null; state.raidFlagState = null; state.flagWasOpen = false; hideScreens();
+  setDemolish(false); setMode('own'); state.buildMode = true; updatePanel();
   $('target-name').textContent = '—';
   fail(t('returning'));
   try { await loadOwnIsland(); await loadMe(); await loadEconomy(); pollRaidAlert(); } finally { ok(); }
@@ -1772,34 +1753,34 @@ async function returnHome() {
 async function pollRaidAlert() {
   try {
     const data = await api('/api/v1/raids/history?limit=8');
-    const wasAlert = myRaidAlert;
-    myRaidAlert = (data.raids || []).some(r => r.role === 'defender' && r.status === 'active');
+    const wasAlert = state.myRaidAlert;
+    state.myRaidAlert = (data.raids || []).some(r => r.role === 'defender' && r.status === 'active');
     refreshMinionMood();
-    if (myRaidAlert && !wasAlert && mode === 'own' && !menuMode) toast(t('raidAlertToast'), 'warn');
+    if (state.myRaidAlert && !wasAlert && state.mode === 'own' && !state.menuMode) toast(t('raidAlertToast'), 'warn');
   } catch (e) {}
 }
 setInterval(() => { if (token) pollRaidAlert(); }, 25000);
 
 function renderEconomy() {
   const btn = $('claim-btn'), hint = $('claim-hint');
-  if (econ.accrued_now >= 1) { btn.classList.add('ready'); hint.textContent = '+' + econ.accrued_now; }
-  else { btn.classList.remove('ready'); hint.textContent = fmtTime(econ.seconds_to_next); }
+  if (state.econ.accrued_now >= 1) { btn.classList.add('ready'); hint.textContent = '+' + state.econ.accrued_now; }
+  else { btn.classList.remove('ready'); hint.textContent = fmtTime(state.econ.seconds_to_next); }
 }
 async function loadEconomy() {
   try {
-    econ = await api('/api/v1/economy/rates');
-    $('ether').textContent = econ.ether_balance;
+    state.econ = await api('/api/v1/economy/rates');
+    $('ether').textContent = state.econ.ether_balance;
     pulseCounter($('ether'));
     renderEconomy();
   } catch (e) {
-    if (econ.seconds_to_next <= 0) {
-      econ.seconds_to_next = 30;
+    if (state.econ.seconds_to_next <= 0) {
+      state.econ.seconds_to_next = 30;
       renderEconomy();
     }
   }
 }
 async function claimEther() {
-  if (econ.accrued_now < 1) return;
+  if (state.econ.accrued_now < 1) return;
   try {
     const res = await api('/api/v1/economy/claim', { method: 'POST' });
     $('ether').textContent = res.ether_balance;
@@ -1812,7 +1793,7 @@ async function claimEther() {
     toast(humanError(e), 'error');
   }
 }
-setInterval(() => { if (!token) return; if (econ.accrued_now >= 1) return; if (econ.seconds_to_next > 0) { econ.seconds_to_next -= 1; renderEconomy(); } else loadEconomy(); }, 1000);
+setInterval(() => { if (!token) return; if (state.econ.accrued_now >= 1) return; if (state.econ.seconds_to_next > 0) { state.econ.seconds_to_next -= 1; renderEconomy(); } else loadEconomy(); }, 1000);
 setInterval(() => { if (token) loadEconomy(); }, 30000);
 
 function closeAllPalettes() { ['palette','block-palette','size-palette'].forEach(id => $(id).classList.add('hidden')); }
@@ -1820,7 +1801,7 @@ function buildFlagPalette() {
   const grid = $('palette-grid'); grid.innerHTML = '';
   for (const [key, hex] of Object.entries(FLAG_COLORS_CSS)) {
     const dot = document.createElement('button');
-    dot.className = 'color-dot' + (key === myFlagColor ? ' selected' : '');
+    dot.className = 'color-dot' + (key === state.myFlagColor ? ' selected' : '');
     dot.style.background = hex;
     dot.addEventListener('click', () => pickFlagColor(key));
     grid.appendChild(dot);
@@ -1830,43 +1811,43 @@ function buildBlockPalette() {
   const grid = $('block-palette-grid'); grid.innerHTML = '';
   for (const [key, hex] of Object.entries(BLOCK_COLORS_CSS)) {
     const dot = document.createElement('button');
-    dot.className = 'color-dot' + (key === selectedBlockColor ? ' selected' : '');
+    dot.className = 'color-dot' + (key === state.selectedBlockColor ? ' selected' : '');
     dot.style.background = hex;
-    dot.addEventListener('click', () => { selectedBlockColor = key; updateBlockSwatch(); saveBuildPrefs(); closeAllPalettes(); });
+    dot.addEventListener('click', () => { state.selectedBlockColor = key; updateBlockSwatch(); saveBuildPrefs(); closeAllPalettes(); });
     grid.appendChild(dot);
   }
 }
 function saveBuildPrefs() {
-  try { localStorage.setItem('riftad_build_prefs', JSON.stringify({ shape: selectedShape, material: selectedMaterial, color: selectedBlockColor, sizeKey: selectedSize.key })); } catch (e) {}
+  try { localStorage.setItem('riftad_build_prefs', JSON.stringify({ shape: state.selectedShape, material: state.selectedMaterial, color: state.selectedBlockColor, sizeKey: state.selectedSize.key })); } catch (e) {}
 }
 function loadBuildPrefs() {
   try {
     const raw = localStorage.getItem('riftad_build_prefs'); if (!raw) return;
     const p = JSON.parse(raw);
-    if (p.shape && SHOP_SHAPES.some(s => s.key === p.shape)) selectedShape = p.shape;
-    if (p.material && SHOP_MATERIALS.some(m => m.key === p.material)) selectedMaterial = p.material;
-    if (p.color && BLOCK_COLORS_CSS[p.color]) selectedBlockColor = p.color;
-    if (p.sizeKey) { const sz = BLOCK_SIZES.find(x => x.key === p.sizeKey); if (sz) selectedSize = sz; }
+    if (p.shape && SHOP_SHAPES.some(s => s.key === p.shape)) state.selectedShape = p.shape;
+    if (p.material && SHOP_MATERIALS.some(m => m.key === p.material)) state.selectedMaterial = p.material;
+    if (p.color && BLOCK_COLORS_CSS[p.color]) state.selectedBlockColor = p.color;
+    if (p.sizeKey) { const sz = BLOCK_SIZES.find(x => x.key === p.sizeKey); if (sz) state.selectedSize = sz; }
   } catch (e) {}
 }
-function sizePrice(s) { return cubeTypeInfo(selectedMaterial, selectedShape).cost * s.sx * s.sy * s.sz; }
+function sizePrice(s) { return cubeTypeInfo(state.selectedMaterial, state.selectedShape).cost * s.sx * s.sy * s.sz; }
 function buildSizePalette() {
   const grid = $('size-grid'); grid.innerHTML = '';
   for (const s of BLOCK_SIZES) {
     const btn = document.createElement('button');
-    btn.className = 'size-btn' + (s.key === selectedSize.key ? ' selected' : '');
+    btn.className = 'size-btn' + (s.key === state.selectedSize.key ? ' selected' : '');
     const glyph = document.createElement('span'); glyph.className = 'glyph'; glyph.textContent = s.label;
     const price = document.createElement('span'); price.className = 'price'; price.textContent = sizePrice(s) + '⚡';
     btn.append(glyph, price);
     btn.addEventListener('click', () => {
-      selectedSize = s; rotationStep = 0; vertical = false;
+      state.selectedSize = s; state.rotationStep = 0; state.vertical = false;
       updateSizeLabel(); updateGhostGeometry(); updateRotateButton();
       saveBuildPrefs(); closeAllPalettes();
     });
     grid.appendChild(btn);
   }
 }
-function updateSizeLabel() { $('size-label').textContent = selectedSize.label; }
+function updateSizeLabel() { $('size-label').textContent = state.selectedSize.label; }
 function togglePalette(id) {
   const wasHidden = $(id).classList.contains('hidden');
   closeAllPalettes();
@@ -1879,9 +1860,9 @@ function togglePalette(id) {
 async function pickFlagColor(key) {
   try {
     const res = await api('/api/v1/me/flag-color', { method:'POST', body: JSON.stringify({ color:key }) });
-    myFlagColor = res.flag_color;
+    state.myFlagColor = res.flag_color;
     updateFlagSwatch();
-    if (mode !== 'raid') setFlagVisual(currentFlagHp, currentFlagMax, myFlagColor);
+    if (state.mode !== 'raid') setFlagVisual(state.currentFlagHp, state.currentFlagMax, state.myFlagColor);
     closeAllPalettes(); toast(t('flagColorChanged'), 'tip');
   } catch (e) { toast(humanError(e), 'error'); }
 }
@@ -1903,9 +1884,9 @@ async function loadCatalog() {
 }
 function updateShopMini() {
   const el = $('shop-mini'); if (!el) return;
-  const pal = MATERIAL_PALETTE[selectedMaterial];
+  const pal = MATERIAL_PALETTE[state.selectedMaterial];
   el.style.background = pal ? pal.mid : '#c9a06a';
-  el.innerHTML = svgIsometric(selectedShape, pal || MATERIAL_PALETTE.wood);
+  el.innerHTML = svgIsometric(state.selectedShape, pal || MATERIAL_PALETTE.wood);
 }
 function svgIsometric(shape, palette) {
   const { light, mid, dark } = palette;
@@ -1924,26 +1905,26 @@ function buildShop() {
   const shapesEl = $('shop-shapes'), matsEl = $('shop-materials');
   shapesEl.innerHTML = ''; matsEl.innerHTML = '';
   for (const s of SHOP_SHAPES) {
-    const info = cubeTypeInfo(selectedMaterial, s.key);
+    const info = cubeTypeInfo(state.selectedMaterial, s.key);
     const btn = document.createElement('button');
-    btn.className = 'shop-card' + (s.key === selectedShape ? ' selected' : '');
-    btn.innerHTML = `<div class="card-preview">${svgIsometric(s.key, MATERIAL_PALETTE[selectedMaterial])}</div><div class="card-name">${lang === 'ru' ? s.name : s.nameEn}</div><div class="card-info">${lang === 'ru' ? s.info : s.infoEn}</div><div class="card-price">${info.cost}⚡</div>`;
-    btn.addEventListener('click', () => { selectedShape = s.key; saveBuildPrefs(); buildShop(); updateGhostGeometry(); });
+    btn.className = 'shop-card' + (s.key === state.selectedShape ? ' selected' : '');
+    btn.innerHTML = `<div class="card-preview">${svgIsometric(s.key, MATERIAL_PALETTE[state.selectedMaterial])}</div><div class="card-name">${lang === 'ru' ? s.name : s.nameEn}</div><div class="card-info">${lang === 'ru' ? s.info : s.infoEn}</div><div class="card-price">${info.cost}⚡</div>`;
+    btn.addEventListener('click', () => { state.selectedShape = s.key; saveBuildPrefs(); buildShop(); updateGhostGeometry(); });
     shapesEl.appendChild(btn);
   }
   for (const m of SHOP_MATERIALS) {
-    const info = cubeTypeInfo(m.key, selectedShape);
+    const info = cubeTypeInfo(m.key, state.selectedShape);
     const btn = document.createElement('button');
-    btn.className = 'shop-card' + (m.key === selectedMaterial ? ' selected' : '');
-    btn.innerHTML = `<div class="card-preview">${svgIsometric(selectedShape, MATERIAL_PALETTE[m.key])}</div><div class="card-name">${lang === 'ru' ? m.name : m.nameEn}</div><div class="card-info">${lang === 'ru' ? m.info : m.infoEn}</div><div class="card-price">${info.cost}⚡</div>`;
-    btn.addEventListener('click', () => { selectedMaterial = m.key; saveBuildPrefs(); buildShop(); updateGhostGeometry(); });
+    btn.className = 'shop-card' + (m.key === state.selectedMaterial ? ' selected' : '');
+    btn.innerHTML = `<div class="card-preview">${svgIsometric(state.selectedShape, MATERIAL_PALETTE[m.key])}</div><div class="card-name">${lang === 'ru' ? m.name : m.nameEn}</div><div class="card-info">${lang === 'ru' ? m.info : m.infoEn}</div><div class="card-price">${info.cost}⚡</div>`;
+    btn.addEventListener('click', () => { state.selectedMaterial = m.key; saveBuildPrefs(); buildShop(); updateGhostGeometry(); });
     matsEl.appendChild(btn);
   }
   renderShopSummary(); updateShopMini();
 }
 function renderShopSummary() {
-  const info = cubeTypeInfo(selectedMaterial, selectedShape);
-  const s = SHOP_SHAPES.find(x => x.key === selectedShape), m = SHOP_MATERIALS.find(x => x.key === selectedMaterial);
+  const info = cubeTypeInfo(state.selectedMaterial, state.selectedShape);
+  const s = SHOP_SHAPES.find(x => x.key === state.selectedShape), m = SHOP_MATERIALS.find(x => x.key === state.selectedMaterial);
   const sName = lang === 'ru' ? s.name : s.nameEn, mName = lang === 'ru' ? m.name : m.nameEn;
   $('shop-summary').innerHTML = `<b>${sName}</b> · ${mName} · <b>${info.cost}⚡</b> · ${info.max_hp} HP`;
 }
@@ -2607,7 +2588,7 @@ async function visitIsland(userId, username) {
   hideScreens(); fail(t('islandLoading') + ' ' + username + '...');
   try {
     const detail = await api(`/api/v1/islands/${userId}`);
-    targetUser = { user_id:userId, username };
+    state.targetUser = { user_id:userId, username };
     resetCubes(); detail.cubes.forEach(addCube); refreshCounters();
     setFlagVisual(detail.flag.hp, detail.flag.max_hp, detail.flag.color);
     placeMinionInitial();
@@ -2618,7 +2599,7 @@ async function visitIsland(userId, username) {
 
 function pickCharge(cube) {
   const hp = Math.max(0, cube.hp | 0);
-  const bal = econ.ether_balance | 0;
+  const bal = state.econ.ether_balance | 0;
   let want = 1;
   if (hp > 25) want = 2;
   if (hp > 75) want = 3;
@@ -2626,14 +2607,14 @@ function pickCharge(cube) {
   return want;
 }
 async function startRaid() {
-  if (!targetUser) return;
+  if (!state.targetUser) return;
   fail(t('raidStart'));
   try {
-    const res = await api(`/api/v1/raids/${targetUser.user_id}/start`, { method:'POST' });
-    raidId = res.raid_id; flagWasOpen = false;
+    const res = await api(`/api/v1/raids/${state.targetUser.user_id}/start`, { method:'POST' });
+    state.raidId = res.raid_id; state.flagWasOpen = false;
     applyFlagState(res.flag_state);
-    $('ether').textContent = res.ether_balance; econ.ether_balance = res.ether_balance;
-    const detail = await api(`/api/v1/islands/${targetUser.user_id}`);
+    $('ether').textContent = res.ether_balance; state.econ.ether_balance = res.ether_balance;
+    const detail = await api(`/api/v1/islands/${state.targetUser.user_id}`);
     resetCubes(); detail.cubes.forEach(addCube); refreshCounters();
     setFlagVisual(detail.flag.hp, detail.flag.max_hp, detail.flag.color);
     placeMinionInitial();
@@ -2644,17 +2625,17 @@ async function startRaid() {
 function raidGone(e) {
   if (e.code === 'RAID_NOT_FOUND' || e.code === 'RAID_ALREADY_FINISHED') {
     stopMusic();
-    toast(t('raidFinished'), 'warn'); raidId = null; setTimeout(returnHome, 1200); return true;
+    toast(t('raidFinished'), 'warn'); state.raidId = null; setTimeout(returnHome, 1200); return true;
   }
   return false;
 }
 async function attackCube(cube) {
-  if (!raidId || attacking) return;
+  if (!state.raidId || state.attacking) return;
   const charge = pickCharge(cube);
-  attacking = true;
+  state.attacking = true;
   try {
-    const res = await api(`/api/v1/raids/${raidId}/attack-cube`, { method:'POST', headers:{ 'Idempotency-Key': uid() }, body: JSON.stringify({ cube_id: cube.id, charge }) });
-    $('ether').textContent = res.ether_balance; econ.ether_balance = res.ether_balance;
+    const res = await api(`/api/v1/raids/${state.raidId}/attack-cube`, { method:'POST', headers:{ 'Idempotency-Key': uid() }, body: JSON.stringify({ cube_id: cube.id, charge }) });
+    $('ether').textContent = res.ether_balance; state.econ.ether_balance = res.ether_balance;
     SFX.hit();
     if (res.cube.destroyed) {
       removeCube(res.cube.id);
@@ -2666,19 +2647,19 @@ async function attackCube(cube) {
     refreshCounters();
     if (res.flag_state) applyFlagState(res.flag_state);
   } catch (e) { if (!raidGone(e)) toast(humanError(e), 'error'); }
-  finally { attacking = false; }
+  finally { state.attacking = false; }
 }
 async function attackFlag() {
-  if (!raidId || attacking) return;
-  if (raidFlagState && !raidFlagState.can_attack) { toast(flagLockedMessage(raidFlagState), 'error'); return; }
-  attacking = true;
+  if (!state.raidId || state.attacking) return;
+  if (state.raidFlagState && !state.raidFlagState.can_attack) { toast(flagLockedMessage(state.raidFlagState), 'error'); return; }
+  state.attacking = true;
   try {
-    const res = await api(`/api/v1/raids/${raidId}/attack-flag`, { method:'POST', headers:{ 'Idempotency-Key': uid() } });
-    $('ether').textContent = res.ether_balance; econ.ether_balance = res.ether_balance;
+    const res = await api(`/api/v1/raids/${state.raidId}/attack-flag`, { method:'POST', headers:{ 'Idempotency-Key': uid() } });
+    $('ether').textContent = res.ether_balance; state.econ.ether_balance = res.ether_balance;
     setFlagVisual(res.flag_hp, res.flag_max_hp);
     if (res.flag_state) applyFlagState(res.flag_state);
     if (res.flag_destroyed && res.loot) {
-      raidId = null;
+      state.raidId = null;
       stopMusic();
       $('loot-stolen').textContent = res.loot.stolen_ether;
       $('loot-balance').textContent = res.loot.attacker_balance;
@@ -2693,10 +2674,10 @@ async function attackFlag() {
       if (e.code === 'FLAG_PROTECTED' && e.details) applyFlagState(e.details);
       toast(e.code === 'FLAG_PROTECTED' ? flagLockedMessage(e.details) : humanError(e), 'error');
     }
-  } finally { attacking = false; }
+  } finally { state.attacking = false; }
 }
 async function leaveRaid() {
-  if (raidId) { try { await api(`/api/v1/raids/${raidId}/finish`, { method:'POST' }); } catch (e) {} }
+  if (state.raidId) { try { await api(`/api/v1/raids/${state.raidId}/finish`, { method:'POST' }); } catch (e) {} }
   await returnHome();
 }
 
@@ -2714,7 +2695,7 @@ renderer.domElement.addEventListener('pointerup', async (ev) => {
   const elapsed = performance.now() - pointerStart.t;
   pointerStart = null;
   if (moved > TAP_MAX_MOVE || elapsed > TAP_MAX_TIME) return;
-  if (loading || menuMode) return;
+  if (loading || state.menuMode) return;
   if (camAnim.active) return;
   if (!$('tip-screen').classList.contains('hidden')) return;
   const ndcX = (ev.clientX / innerWidth) * 2 - 1;
@@ -2723,27 +2704,27 @@ renderer.domElement.addEventListener('pointerup', async (ev) => {
   raycaster.setFromCamera({ x:ndcX, y:ndcY }, camera);
   const minionHits = raycaster.intersectObjects(minionHitMeshes, false);
   if (minionHits.length) { if (minion.mood === 'panic') { toast(t('minionPanic'), 'warn'); return; } openTip(); return; }
-  if (mode === 'own' && demolishMode) return handleDemolishTap(ndcX, ndcY);
-  if (mode === 'own' && buildMode) return handleBuildTap();
-  if (mode === 'raid') return handleRaidTap(ndcX, ndcY);
+  if (state.mode === 'own' && state.demolishMode) return handleDemolishTap(ndcX, ndcY);
+  if (state.mode === 'own' && state.buildMode) return handleBuildTap();
+  if (state.mode === 'raid') return handleRaidTap(ndcX, ndcY);
 });
 async function handleBuildTap() {
   const p = computePlacement(aimPoint.x, aimPoint.y);
   if (!p) return;
   if (!p.valid) { toast(p.reason, 'error'); return; }
   try {
-    const effectiveRotation = vertical ? 0 : rotationStep;
+    const effectiveRotation = state.vertical ? 0 : state.rotationStep;
     const res = await api('/api/v1/build/cube', {
       method:'POST',
       body: JSON.stringify({
         x:p.x, y:p.y, z:p.z,
         size_x:p.sx, size_y:p.sy, size_z:p.sz,
-        material: selectedMaterial, shape: selectedShape,
-        color: selectedBlockColor, rotation: effectiveRotation,
+        material: state.selectedMaterial, shape: state.selectedShape,
+        color: state.selectedBlockColor, rotation: effectiveRotation,
       }),
     });
     addCube(res.cube);
-    $('ether').textContent = res.ether_balance; econ.ether_balance = res.ether_balance;
+    $('ether').textContent = res.ether_balance; state.econ.ether_balance = res.ether_balance;
     $('cubes').textContent = res.island_cube_count;
     pulseCounter($('cubes'));
     SFX.build();
@@ -2759,7 +2740,7 @@ async function handleDemolishTap(ndcX, ndcY) {
     for (const c of res.removed) removeCube(c.id);
     refreshCounters();
     pulseCounter($('cubes'));
-    $('ether').textContent = res.ether_balance; econ.ether_balance = res.ether_balance;
+    $('ether').textContent = res.ether_balance; state.econ.ether_balance = res.ether_balance;
     toast('+' + res.ether_refunded + ' ' + t('refund'), 'tip');
     SFX.demolish();
   } catch (e) { toast(humanError(e), 'error'); }
@@ -2780,17 +2761,17 @@ $('edit-profile-close').addEventListener('click', hideScreens);
 $('edit-save').addEventListener('click', saveEditProfile);
 $('edit-bio').addEventListener('input', updateBioCounter);
 $('reload').addEventListener('click', () => loadOwnIsland().catch(e => toast(humanError(e), 'error')));
-$('btn-build').addEventListener('click', () => setBuildMode(!buildMode));
-$('btn-demolish').addEventListener('click', () => setDemolish(!demolishMode));
+$('btn-build').addEventListener('click', () => setBuildMode(!state.buildMode));
+$('btn-demolish').addEventListener('click', () => setDemolish(!state.demolishMode));
 $('btn-size').addEventListener('click', () => togglePalette('size-palette'));
 $('btn-rotate').addEventListener('click', () => {
   if (!canRotate()) return;
-  rotationStep = (rotationStep + 1) % 4; vertical = false;
+  state.rotationStep = (state.rotationStep + 1) % 4; state.vertical = false;
   updateGhostGeometry(); updateRotateButton();
 });
 $('btn-vertical').addEventListener('click', () => {
   if (!canVertical()) return;
-  vertical = !vertical; if (vertical) rotationStep = 0;
+  state.vertical = !state.vertical; if (state.vertical) state.rotationStep = 0;
   updateGhostGeometry(); updateRotateButton();
 });
 $('btn-block-color').addEventListener('click', () => togglePalette('block-palette'));
@@ -2862,7 +2843,7 @@ function animate() {
   lastFrame = now;
   const nowSec = now / 1000;
 
-  if (menuMode) {
+  if (state.menuMode) {
     // В меню игровая камера не двигается.
   } else if (updateCameraAnim(dt)) {
     camera.lookAt(controls.target);
@@ -2897,7 +2878,7 @@ animate();
     await loadMe();
     await loadOwnIsland();
     await loadEconomy();
-    setMode('own'); buildMode = true; updatePanel(); ok();
+    setMode('own'); state.buildMode = true; updatePanel(); ok();
 
     $('menu-play').disabled = false;
     pollRaidAlert();
